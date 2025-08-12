@@ -6,16 +6,11 @@ on:
       - master
 
   workflow_dispatch:
-  repository_dispatch:
 
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        book_name: ${{ fromJSON(needs.discovery.outputs.books) }}
 
     steps:
     - uses: actions/checkout@v4
