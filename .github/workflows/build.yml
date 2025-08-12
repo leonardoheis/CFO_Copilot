@@ -1,4 +1,4 @@
-name: Build Books
+name: Lint and Test Workflow
 
 on:
   push:
@@ -9,28 +9,36 @@ on:
 
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
         version: "0.8.9"
 
-    - name: Set up Python
-      run: uv python install
-
     - name: Run Linter
       run: |
+        uv python install
         uv sync --group lint
         uv run pre-commit run --all-files
 
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        version: "0.8.9"
+
     - name: Run Tests
       run: |
+        uv python install
         uv sync --group test
         uv run pytest
