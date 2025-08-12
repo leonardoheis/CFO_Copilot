@@ -1,0 +1,41 @@
+name: Build Books
+
+on:
+  push:
+    branches: 
+      - master
+
+  workflow_dispatch:
+  repository_dispatch:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        book_name: ${{ fromJSON(needs.discovery.outputs.books) }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        version: "0.8.9"
+
+    - name: Set up Python
+      run: uv python install
+
+    - name: Run Linter
+      run: |
+        uv sync --group lint
+        uv run pre-commit run --all-files
+
+    - name: Run Tests
+      run: |
+        uv sync --group test
+        uv run pytest
