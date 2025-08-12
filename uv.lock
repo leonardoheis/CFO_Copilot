@@ -39,6 +39,7 @@ dependencies = [
 lint = [
     { name = "pre-commit" },
     { name = "pre-commit-uv" },
+    { name = "uv" },
 ]
 test = [
     { name = "coverage" },
@@ -56,6 +57,7 @@ requires-dist = [
 lint = [
     { name = "pre-commit", specifier = "==4.3.0" },
     { name = "pre-commit-uv", specifier = "==4.1.4" },
+    { name = "uv", specifier = "==0.8.9" },
 ]
 test = [
     { name = "coverage", specifier = "==7.10.3" },

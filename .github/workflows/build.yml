@@ -2,7 +2,7 @@ name: Build Books
 
 on:
   push:
-    branches: 
+    branches:
       - master
 
   workflow_dispatch:
