@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "charliermarsh.ruff",
+        "eamodio.gitlens",
+        "wakatime.vscode-wakatime",
+        "usernamehw.errorlens",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "vscode-icons-team.vscode-icons",
+        "qwtel.sqlite-viewer"
+    ]
+}

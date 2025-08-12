@@ -1,0 +1,57 @@
+{
+    "python.analysis.typeCheckingMode": "strict",
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        },
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "editor.rulers": [
+        80,
+        120
+    ],
+    "files.autoSaveDelay": 1000,
+    "notebook.lineNumbers": "on",
+    "gitlens.mode.active": "review",
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "text": "Use conventional commit message format."
+        },
+        {
+            "text": "Use imperative mood."
+        },
+        {
+            "text": "Use present tense."
+        },
+        {
+            "text": "Use the following format: <type>(<scope>): <description>"
+        },
+        {
+            "text": "Use exclusively the following types: fix, feat, chore, refactor."
+        },
+        {
+            "text": "Always add a detailed description after the short description. Keep it short and to the point."
+        },
+        {
+            "text": "Separate the short description from the detailed description with a blank line."
+        },
+        {
+            "text": "Limit the short description to 50 characters or less."
+        },
+        {
+            "text": "Wrap the detailed description at 72 characters."
+        },
+        {
+            "text": "Use bullet points for multi-line descriptions where appropriate."
+        }
+    ],
+    "testing.coverageToolbarEnabled": true,
+    "python.testing.pytestArgs": [
+        "tests",
+        "--no-cov"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
