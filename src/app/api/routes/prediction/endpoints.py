@@ -1,4 +1,3 @@
-# Prediction endpoints router
 from fastapi import APIRouter
 
 from app.api.dependencies import PredictionServiceDependency
