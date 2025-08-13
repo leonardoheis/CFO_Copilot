@@ -5,9 +5,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class _Settings(BaseSettings):
     MODEL_PATH: Path = Path("model.pkl")
-    UI_PORT: int = 8501
+    UI_PORT: int = 10000
     API_PORT: int = 8000
-    HOST: str = "http://localhost:{port}"
+    HOST: str = "http://0.0.0.0:{port}"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.domain import MLModel, PredictionInput, PredictionOutput
 from app.services.helper import load_model
@@ -8,6 +8,8 @@ from .exceptions import NoTrainedModelError
 
 class PredictionService(BaseModel):
     model: MLModel | None = Field(default_factory=load_model)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def predict(self, prediction_input: PredictionInput) -> PredictionOutput:
         if self.model is None:
