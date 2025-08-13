@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain import MLModel, PredictionInput, PredictionOutput
 from app.services.helper import load_model
