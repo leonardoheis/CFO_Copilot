@@ -1,0 +1,14 @@
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+from app.services.training import DimensionalityMismatchError
+
+
+def dimensionality_mismatch_handler(
+    request: Request,  # noqa: ARG001 # pylint: disable=unused-argument
+    exc: DimensionalityMismatchError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )

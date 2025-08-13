@@ -1,20 +1,16 @@
-# FastAPI app scaffolding with exception handlers, routers, and service injection
 from fastapi import FastAPI
-from .routes.prediction.endpoints import router as prediction_router
-from .error_handlers import register_error_handlers
-from app.services import ServiceContainer
+
+from .error_handlers import EXCEPTION_HANDLERS
+from .routes import prediction_router, train_router
+
 
 def create_app() -> FastAPI:
-	app = FastAPI(title="FastAPI Production Template")
+    app = FastAPI(title="FastAPI Production Template")
 
-	# Dependency Injection: create service container
-	services = ServiceContainer()
-	app.state.services = services
+    app.include_router(prediction_router)
+    app.include_router(train_router)
 
-	# Register routers
-	app.include_router(prediction_router, prefix="/prediction")
+    for exception, exception_handler in EXCEPTION_HANDLERS.items():
+        app.add_exception_handler(exception, exception_handler)
 
-	# Register exception handlers
-	register_error_handlers(app)
-
-	return app
+    return app

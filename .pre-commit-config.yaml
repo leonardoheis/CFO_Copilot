@@ -45,7 +45,12 @@ repos:
     hooks:
       - id: pylint
         additional_dependencies:
-          - "pydantic==2.9.2"
+          - "dependency-injector>=4.48.1"
+          - "fastapi==0.116.1"
+          - "joblib>=1.5.1"
+          - "pydantic-settings>=2.10.1"
+          - "scikit-learn>=1.7.1"
+          - "uvicorn[standard]==0.35.0"
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.17.1"
@@ -53,8 +58,12 @@ repos:
       - id: mypy
         exclude: ^app/views/templates/books
         additional_dependencies:
-          - "pydantic==2.9.2"
-          - "pyyaml==6.0.2"
+          - "dependency-injector>=4.48.1"
+          - "fastapi==0.116.1"
+          - "joblib>=1.5.1"
+          - "pydantic-settings>=2.10.1"
+          - "scikit-learn>=1.7.1"
+          - "uvicorn[standard]==0.35.0"
 
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.9.1
@@ -63,18 +72,24 @@ repos:
 
       - id: nbqa-pylint
         additional_dependencies:
-          - "pylint==3.3.4"
-          - "numpy==2.2.2"
-          - "scikit-learn==1.6.1"
-          - "scipy==1.15.1"
-          - "pandas==2.2.3"
-          - "matplotlib==3.10.0"
+          - "pylint==3.3.8"
+          - "dependency-injector>=4.48.1"
+          - "fastapi==0.116.1"
+          - "joblib>=1.5.1"
+          - "pydantic-settings>=2.10.1"
+          - "scikit-learn>=1.7.1"
+          - "uvicorn[standard]==0.35.0"
           - "jupyter==1.1.1"
 
       - id: nbqa-mypy
         additional_dependencies:
           - "mypy==1.15.0"
-          - "mypy_exhaustive_check==1.0.0"
+          - "dependency-injector>=4.48.1"
+          - "fastapi==0.116.1"
+          - "joblib>=1.5.1"
+          - "pydantic-settings>=2.10.1"
+          - "scikit-learn>=1.7.1"
+          - "uvicorn[standard]==0.35.0"
           - "jupyter==1.1.1"
 
   - repo: https://github.com/kynan/nbstripout
