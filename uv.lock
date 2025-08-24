@@ -64,6 +64,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "joblib-stubs" },
     { name = "poethepoet" },
 ]
 lint = [
@@ -72,7 +73,6 @@ lint = [
     { name = "uv" },
 ]
 test = [
-    { name = "joblib-stubs" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pytest-recording" },
@@ -94,14 +94,16 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "poethepoet", specifier = "==0.37.0" }]
+dev = [
+    { name = "joblib-stubs", specifier = "==1.5.0.1.20250510" },
+    { name = "poethepoet", specifier = "==0.37.0" },
+]
 lint = [
     { name = "pre-commit", specifier = "==4.3.0" },
     { name = "pre-commit-uv", specifier = "==4.1.4" },
     { name = "uv", specifier = "==0.8.9" },
 ]
 test = [
-    { name = "joblib-stubs", specifier = "==1.5.0.1.20250510" },
     { name = "pytest", specifier = "==8.4.1" },
     { name = "pytest-cov", specifier = "==6.2.1" },
     { name = "pytest-recording", specifier = "==0.13.4" },

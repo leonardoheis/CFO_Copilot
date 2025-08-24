@@ -12,7 +12,7 @@ class _Settings(BaseSettings):
 
     @property
     def MODEL_DIRECTORY(self) -> Path:
-        model_directory = self.ROOT_PATH / "ml_binaries"
+        model_directory = self.APP_PATH / "ml_binaries"
         model_directory.mkdir(parents=True, exist_ok=True)
         return model_directory
 
@@ -30,7 +30,7 @@ class _Settings(BaseSettings):
 
     @property
     def ROOT_PATH(self) -> Path:
-        return self.ROOT_PATH.parent.parent
+        return self.APP_PATH.parent.parent
 
     @property
     def UI_HOST(self) -> str:
