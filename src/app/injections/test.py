@@ -1,4 +1,5 @@
-from dependency_injector import containers
+from dependency_injector.containers import DeclarativeContainer
 
 
-class TestContainer(containers.DeclarativeContainer): ...
+class TestContainer(DeclarativeContainer):
+    """This container overwrites the Production container for testing purposes."""

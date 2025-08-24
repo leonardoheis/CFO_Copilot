@@ -1,3 +1,4 @@
+from dependency_injector.wiring import inject
 from fastapi import APIRouter
 
 from app.api.dependencies import PredictionServiceDependency
@@ -9,6 +10,7 @@ router = APIRouter(prefix="/prediction", tags=["Prediction"])
 
 
 @router.post("/predict")
+@inject
 async def predict(
     body: PredictionRequest, prediction_service: PredictionServiceDependency
 ) -> PredictionResponse:

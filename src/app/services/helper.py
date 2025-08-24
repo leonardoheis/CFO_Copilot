@@ -1,15 +1,16 @@
+from pathlib import Path
+
 import joblib
 
 from app.domain.ml_model import MLModel
-from app.settings import Settings
 
 
-def load_model() -> MLModel | None:
-    if not Settings.MODEL_PATH.exists():
+def load_model(model_path: Path) -> MLModel | None:
+    if not model_path.exists():
         return None
 
-    return joblib.load(Settings.MODEL_PATH)  # type: ignore[no-any-return]
+    return joblib.load(model_path)  # type: ignore[no-any-return]
 
 
-def save_model(model: MLModel) -> None:
-    joblib.dump(model, Settings.MODEL_PATH)
+def save_model(model: MLModel, model_path: Path) -> None:
+    joblib.dump(model, model_path)

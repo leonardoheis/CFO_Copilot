@@ -9,7 +9,9 @@ requires-python = "==3.12.*"
 dependencies = [
     "dependency-injector>=4.48.1",
     "fastapi==0.116.1",
+    "httpx>=0.28.1",
     "joblib>=1.5.1",
+    "polyfactory>=2.22.2",
     "pydantic-settings>=2.10.1",
     "requests>=2.32.4",
     "scikit-learn>=1.7.1",
@@ -20,7 +22,10 @@ dependencies = [
 [dependency-groups]
 test = [
     "pytest==8.4.1",
-    "coverage==7.10.3"
+    "pytest-cov==6.2.1",
+    "pytest-recording==0.13.4",
+    "syrupy==4.9.1",
+    "joblib-stubs==1.5.0.1.20250510",
 ]
 lint = [
     "uv==0.8.9",
@@ -28,14 +33,51 @@ lint = [
     "pre-commit-uv==4.1.4"
 ]
 dev = [
-    "joblib-stubs>=1.5.0.1.20250510",
+    "poethepoet==0.37.0",
 ]
 
+
+#########################
+# Tasks
+#########################
+
+[tool.poe.tasks]
+test = "uv run pytest"
+format = "uv run pre-commit run --all-files --verbose"
+check-coverage = "uv run coverage report --fail-under=80"
+
+#########################
+# Pytest
+#########################
+
+[tool.pytest.ini_options]
+addops = [
+    "-r=A",
+    "--doctest-modules",
+    "--junitxml=pytest-report.xml",
+    "--cov=.",
+    "--cov-branch",
+    "--cov-report=xml",
+    "--cov-report=html",
+    "--cov-report=term-missing:skip-covered",
+    "-vvv",
+]
+
+#########################
+# Coverage
+#########################
 
 [tool.coverage.run]
 branch = true
 parallel = true
-source = ["app", "tests"]
+source = ["src", "tests"]
+omit = [
+    "**/__main__.py",
+    "src/app/api/__init__.py",
+    "src/app/frontend/*",
+    "src/app/settings.py",
+]
+
 
 [tool.coverage.report]
 show_missing = true
@@ -130,11 +172,8 @@ extension-pkg-whitelist=[
 fail-on = ["I"]
 fail-under = 10
 ignore = []
-ignore-paths = [
-    '^app\\views\\templates\\books\\.*',
-    '^books\\.*',
-]
-jobs = 8
+ignore-paths = []
+jobs = 0
 limit-inference-results = 1000
 load-plugins = [
     "pylint.extensions.bad_builtin",
@@ -155,6 +194,7 @@ load-plugins = [
     "pylint.extensions.set_membership",
     "pylint.extensions.typing",
     "pylint.extensions.while_used",
+    "pylint_pydantic",
 ]
 py-version = "3.12"
 suggestion-mode = true

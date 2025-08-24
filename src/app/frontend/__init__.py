@@ -8,9 +8,9 @@ def run_streamlit() -> None:
     subprocess.run(  # nosec
         [
             sys.executable,
-            Settings.UI_EXECUTABLE,
+            str(Settings.UI_EXECUTABLE),
             "run",
-            Settings.UI_ENTRYPOINT,
+            str(Settings.UI_ENTRYPOINT),
             "--server.port",
             str(Settings.UI_PORT),
             "--server.headless",

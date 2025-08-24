@@ -4,28 +4,45 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class _Settings(BaseSettings):
-    MODEL_PATH: Path = Path("model.pkl")
     UI_PORT: int = 10000
     API_PORT: int = 8000
-    HOST: str = "http://0.0.0.0:{port}"
+    HOST: str = "0.0.0.0"  # nosec
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
-    def ROOT_PATH(self) -> Path:
+    def MODEL_DIRECTORY(self) -> Path:
+        model_directory = self.ROOT_PATH / "ml_binaries"
+        model_directory.mkdir(parents=True, exist_ok=True)
+        return model_directory
+
+    @property
+    def MODEL_PATH(self) -> Path:
+        return self.MODEL_DIRECTORY / "model.joblib"
+
+    @property
+    def SOCKET_URL(self) -> str:
+        return f"http://{self.HOST}:{{port}}"
+
+    @property
+    def APP_PATH(self) -> Path:
         return Path(__file__).resolve().parent
 
     @property
+    def ROOT_PATH(self) -> Path:
+        return self.ROOT_PATH.parent.parent
+
+    @property
     def UI_HOST(self) -> str:
-        return self.HOST.format(port=self.UI_PORT)
+        return self.SOCKET_URL.format(port=self.UI_PORT)
 
     @property
     def UI_PATH(self) -> Path:
-        return self.ROOT_PATH / "frontend"
+        return self.APP_PATH / "frontend"
 
     @property
     def UI_EXECUTABLE(self) -> Path:
-        return Path(".venv/bin/streamlit")
+        return self.ROOT_PATH / ".venv/bin/streamlit"
 
     @property
     def UI_ENTRYPOINT(self) -> Path:
@@ -33,11 +50,11 @@ class _Settings(BaseSettings):
 
     @property
     def API_PATH(self) -> Path:
-        return self.ROOT_PATH / "api"
+        return self.APP_PATH / "api"
 
     @property
     def API_HOST(self) -> str:
-        return self.HOST.format(port=self.API_PORT)
+        return self.SOCKET_URL.format(port=self.API_PORT)
 
 
 Settings = _Settings()

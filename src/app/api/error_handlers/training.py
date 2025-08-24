@@ -5,10 +5,10 @@ from app.services.training import DimensionalityMismatchError
 
 
 def dimensionality_mismatch_handler(
-    request: Request,  # noqa: ARG001 # pylint: disable=unused-argument
+    _: Request,
     exc: DimensionalityMismatchError,
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=400,
+        status_code=422,
         content={"detail": str(exc)},
     )
