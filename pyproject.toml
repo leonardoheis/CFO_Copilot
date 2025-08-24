@@ -12,6 +12,7 @@ dependencies = [
     "httpx>=0.28.1",
     "joblib>=1.5.1",
     "polyfactory>=2.22.2",
+    "py-automapper>=2.2.0",
     "pydantic-settings>=2.10.1",
     "requests>=2.32.4",
     "scikit-learn>=1.7.1",
@@ -32,11 +33,11 @@ test = [
     "syrupy==4.9.1",
 ]
 lint = [
-    "uv==0.8.9",
     "pre-commit==4.3.0",
     "pre-commit-uv==4.1.4",
 ]
 dev = [
+    "uv==0.8.9",
     "poethepoet==0.37.0",
     "joblib-stubs==1.5.0.1.20250510",
 ]

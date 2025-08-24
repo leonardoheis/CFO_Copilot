@@ -62,6 +62,7 @@ repos:
           - "pytest-cov==6.2.1"
           - "pytest-recording==0.13.4"
           - "syrupy==4.9.1"
+          - "py-automapper>=2.2.0"
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.17.1"
@@ -83,6 +84,7 @@ repos:
           - "pytest-recording==0.13.4"
           - "syrupy==4.9.1"
           - "polyfactory>=2.22.2"
+          - "py-automapper>=2.2.0"
           - "git+https://github.com/microsoft/python-type-stubs.git"
 
   - repo: https://github.com/nbQA-dev/nbQA
@@ -123,6 +125,7 @@ repos:
           - "pytest-recording==0.13.4"
           - "syrupy==4.9.1"
           - "polyfactory>=2.22.2"
+          - "py-automapper>=2.2.0"
           - "git+https://github.com/microsoft/python-type-stubs.git"
 
   - repo: https://github.com/kynan/nbstripout

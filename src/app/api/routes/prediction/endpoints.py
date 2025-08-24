@@ -1,3 +1,4 @@
+from automapper import mapper
 from dependency_injector.wiring import inject
 from fastapi import APIRouter
 
@@ -15,6 +16,6 @@ async def predict(
     body: PredictionRequest,
     prediction_service: PredictionServiceDependency,
 ) -> PredictionResponse:
-    prediction_input = PredictionInput(age=body.input_)
+    prediction_input = mapper.to(PredictionInput).map(body)
     prediction_output = prediction_service.predict(prediction_input)
-    return PredictionResponse(result=prediction_output.time_for_failure)
+    return mapper.to(PredictionResponse).map(prediction_output)
