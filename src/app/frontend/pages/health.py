@@ -14,4 +14,5 @@ def health_page() -> None:
     if response.ok:
         st.success(f"Prediction: {response.json()}")
         return
-    st.error(f"Error: {response.text}")
+
+    st.error(f"There was an error in the request: {response.text}")
