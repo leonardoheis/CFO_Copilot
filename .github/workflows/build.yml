@@ -55,7 +55,7 @@ jobs:
       with:
         name: Pytests Tests
         path: pytest-report.xml
-        reporter: java-junit
+        reporter: jest-junit
 
     - name: Check Coverage
       run: |
