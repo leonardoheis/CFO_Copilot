@@ -77,7 +77,7 @@ jobs:
           -Dsonar.sources=src
           -Dsonar.tests=tests
           -Dsonar.python.xunit.reportPath=pytest-report.xml
-          -Dsonar.coverage.exclusions="**/__main__.py", "src/app/api/__init__.py", "src/app/frontend/*", "src/app/settings.py"
+          -Dsonar.coverage.exclusions="**/__main__.py, src/app/api/__init__.py, src/app/frontend/*, src/app/settings.py"
 
     - name: Check Coverage
       run: |
