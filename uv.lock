@@ -55,7 +55,6 @@ dependencies = [
     { name = "httpx" },
     { name = "joblib" },
     { name = "polyfactory" },
-    { name = "py-automapper" },
     { name = "pydantic-settings" },
     { name = "requests" },
     { name = "scikit-learn" },
@@ -87,7 +86,6 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "joblib", specifier = ">=1.5.1" },
     { name = "polyfactory", specifier = ">=2.22.2" },
-    { name = "py-automapper", specifier = ">=2.2.0" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "requests", specifier = ">=2.32.4" },
     { name = "scikit-learn", specifier = ">=1.7.1" },
@@ -690,15 +688,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/76/a1/7a5a94032c83375e4fe7e7f56e3976ea6ac90c5e85fac8576409e25c39c3/protobuf-6.31.1-cp39-abi3-manylinux2014_aarch64.whl", hash = "sha256:a40fc12b84c154884d7d4c4ebd675d5b3b5283e155f324049ae396b95ddebc39", size = 322115, upload-time = "2025-05-28T19:25:47.128Z" },
     { url = "https://files.pythonhosted.org/packages/fa/b1/b59d405d64d31999244643d88c45c8241c58f17cc887e73bcb90602327f8/protobuf-6.31.1-cp39-abi3-manylinux2014_x86_64.whl", hash = "sha256:4ee898bf66f7a8b0bd21bce523814e6fbd8c6add948045ce958b73af7e8878c6", size = 321070, upload-time = "2025-05-28T19:25:50.036Z" },
     { url = "https://files.pythonhosted.org/packages/f7/af/ab3c51ab7507a7325e98ffe691d9495ee3d3aa5f589afad65ec920d39821/protobuf-6.31.1-py3-none-any.whl", hash = "sha256:720a6c7e6b77288b85063569baae8536671b39f15cc22037ec7045658d80489e", size = 168724, upload-time = "2025-05-28T19:25:53.926Z" },
-]
-
-[[package]]
-name = "py-automapper"
-version = "2.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a4/37/65d3d3c2700b3fd64a70792c49218f11e0c83d2417174f0b04c1f04761d9/py_automapper-2.2.0.tar.gz", hash = "sha256:6641e75807138fb7330384f391417c60b288f98dad6a0ad5b8e5ee5d48ef4f55", size = 20414, upload-time = "2025-03-09T20:59:55.938Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fd/39/1358b2f46ee65d810ccc2c98c7783d8c3a3507a63f30b1040b4a58fca259/py_automapper-2.2.0-py3-none-any.whl", hash = "sha256:5bf06bf4eaa333f3cb9cb57428d3f70e12f9199befad8839a27d66b48266b317", size = 13947, upload-time = "2025-03-09T20:59:54.811Z" },
 ]
 
 [[package]]

@@ -12,7 +12,6 @@ dependencies = [
     "httpx>=0.28.1",
     "joblib>=1.5.1",
     "polyfactory>=2.22.2",
-    "py-automapper>=2.2.0",
     "pydantic-settings>=2.10.1",
     "requests>=2.32.4",
     "scikit-learn>=1.7.1",
@@ -48,6 +47,8 @@ dev = [
 #########################
 
 [tool.poe.tasks]
+serve = "uv run python -m app.api"
+serve-ui = "uv run python -m app.frontend"
 test = "uv run pytest"
 format = "uv run pre-commit run --all-files --verbose"
 check-coverage = "uv run coverage report --fail-under=100"
