@@ -7,13 +7,13 @@ including CICD, deployment and multi-layered architecture.
 
 ## Getting Started
 
-1. Fork the repo
-2. Protect the default branch
-3. Install dependencies with `uv sync --all-groups`
+1. Fork the repo.
+2. Protect the default branch.
+3. Install dependencies with `uv sync --all-groups`.
 
-## Running tests
+### Running tests
 
-Tests can be run via the terminal or through the VS Code Testing Pane
+Tests can be run via the terminal or through the VS Code Testing Pane.
 
 To run them from the terminal use this command:
 
@@ -22,11 +22,11 @@ uv run poe test
 ```
 
 Check the coverage percentage, the CICD pipeline will fail if it is lower than 
-100%
+100%.
 
-## Linters and formatters
+### Linters and formatters
 
-There are multiple linters and formaters in this project
+There are multiple linters and formaters in this project.
 
 To run them from the terminal use this command:
 
@@ -34,31 +34,31 @@ To run them from the terminal use this command:
 uv run poe format
 ```
 
-## Serve the app
+### Serve the app
 
 The app consists of two independent servers, one for the backend API and one for
 the frontend. They can be executed independently or jointly. By using the 
 following commands:
 
-Backend + Frontend
+Backend + Frontend:
 
 ```
 uv run poe serve
 ```
 
-Backend Only
+Backend Only:
 
 ```
 uv run poe serve-api
 ```
 
-Froneend Only
+Frontend Only:
 
 ```
 uv run poe serve-ui
 ```
 
-## Deployment
+### Deployment
 
 Render.com is used as deployment platform, to ensure the deploy will be 
 successful. It is recommended to build and run docker locally when 
@@ -71,8 +71,10 @@ uv run poe docker-build
 ```
 
 Before running, ensure there is a `.env` with relevant environment variables 
-defined. Then, run the docker image with 
+defined. Then, run the docker image with:
 
 ```
 uv run poe docker-run
 ```
+
+The deployment to render occurs on every commit to the default branch.
