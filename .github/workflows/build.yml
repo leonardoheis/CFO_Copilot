@@ -38,6 +38,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
@@ -60,6 +62,21 @@ jobs:
         name: Pytests Tests
         path: pytest-report.xml
         reporter: jest-junit
+        
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v5
+      if: ${{ !cancelled() }}
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      with:
+        args: >
+          -Dsonar.organization=elc-github
+          -Dsonar.projectKey=ELC_fastapi-production-template
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+          -Dsonar.python.version=3.12
+          -Dsonar.sources=src
+          -Dsonar.tests=tests
+          -Dsonar.python.xunit.reportPath=pytest-report.xml
 
     - name: Check Coverage
       run: |
