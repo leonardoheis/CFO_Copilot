@@ -8,7 +8,7 @@ from app.services.training import DimensionalityMismatchError
 
 
 class TrainRequest(BaseSchema):
-    age: Sequence[float]
+    age: Sequence[Sequence[float]]
     time_for_failure: Sequence[float]
 
     @model_validator(mode="after")

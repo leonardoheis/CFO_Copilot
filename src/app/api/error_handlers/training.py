@@ -9,6 +9,6 @@ def dimensionality_mismatch_handler(
     exc: DimensionalityMismatchError,
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=422,
+        status_code=400,
         content={"detail": str(exc)},
     )
