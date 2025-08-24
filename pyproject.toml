@@ -47,11 +47,14 @@ dev = [
 #########################
 
 [tool.poe.tasks]
-serve = "uv run python -m app.api"
+serve = "uv run python -m app"
+serve-api = "uv run python -m app.api"
 serve-ui = "uv run python -m app.frontend"
 test = "uv run pytest"
 format = "uv run pre-commit run --all-files --verbose"
 check-coverage = "uv run coverage report --fail-under=100"
+docker-build = "docker buildx build --progress plain -t app ."
+docker-run = "docker container run --env-file .env --publish 8000:8000 --publish 10000:10000 app"
 
 #########################
 # Pytest
