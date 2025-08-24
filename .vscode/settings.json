@@ -55,4 +55,18 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.defaultInterpreterPath": ".venv/bin/python",
+    "scm.defaultViewMode": "tree",
+    "workbench.tree.indent": 18,
+    "gitlens.views.scm.grouped.views": {
+        "commits": false,
+        "branches": false,
+        "remotes": false,
+        "stashes": false,
+        "tags": false,
+        "worktrees": false,
+        "contributors": false,
+        "repositories": false,
+        "searchAndCompare": false,
+        "launchpad": false
+    }
 }

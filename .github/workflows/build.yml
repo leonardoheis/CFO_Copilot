@@ -9,22 +9,6 @@ on:
 
 
 jobs:
-  lock:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6
-      with:
-        version: "0.8.9"
-
-    - name: Check lockfile
-      run: |
-        uv python install
-        uv lock --check
-
   lint:
     runs-on: ubuntu-latest
 

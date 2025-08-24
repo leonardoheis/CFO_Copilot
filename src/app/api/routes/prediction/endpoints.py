@@ -12,7 +12,8 @@ router = APIRouter(prefix="/prediction", tags=["Prediction"])
 @router.post("/predict")
 @inject
 async def predict(
-    body: PredictionRequest, prediction_service: PredictionServiceDependency
+    body: PredictionRequest,
+    prediction_service: PredictionServiceDependency,
 ) -> PredictionResponse:
     prediction_input = PredictionInput(age=body.input_)
     prediction_output = prediction_service.predict(prediction_input)

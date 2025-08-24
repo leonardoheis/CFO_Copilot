@@ -8,4 +8,4 @@ from app.injections.test import TestContainer
 def injector_override() -> None:
     container = configure_container()
     container.override(TestContainer)
-    container.wire(packages=["tests"])
+    container.wire(packages=["tests"])  # pylint: disable=no-member

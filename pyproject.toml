@@ -49,7 +49,7 @@ dev = [
 [tool.poe.tasks]
 test = "uv run pytest"
 format = "uv run pre-commit run --all-files --verbose"
-check-coverage = "uv run coverage report --fail-under=80"
+check-coverage = "uv run coverage report --fail-under=100"
 
 #########################
 # Pytest
@@ -95,10 +95,19 @@ skip_covered = true
 
 [tool.mypy]
 strict = true
-ignore_missing_imports = true
+
+follow_imports = "normal"
+
+python_version = "3.12"
+
+disallow_any_unimported = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+
+ignore_missing_imports = false
 disallow_untyped_calls = true
 disallow_untyped_defs = true
-# disallow_untyped_decorators = true
+disallow_untyped_decorators = true
 
 
 #########################
@@ -108,54 +117,21 @@ disallow_untyped_defs = true
 [tool.ruff]
 fix = true
 preview = true
-exclude = [
-    'app\views\templates\books',
-    'books',
-]
+exclude = ['app\views\templates\books', 'books']
 target-version = "py312"
 unsafe-fixes = true
 
 [tool.ruff.lint]
-extend-select = [
-    #   "D",   # pydocstyle
-    # "FBT",   # flake8-boolean-trap
-    # "COM",   # flake8-commas
-    "E",    # pycodestyle
-    "UP",   # pyupgrade
-    "BLE",  # flake8-blind-except
-    "B",    # flake8-bugbear
-    "A",    # flake8-builtins
-    "C4",   # flake8-comprehensions
-    "ICN",  # flake8-import-conventions
-    "PIE",  # flake8-pie
-    "RSE",  # flake8-return
-    "SIM",  # flake8-simplify
-    "ANN",  # flake8-annotations
-    "ARG",  # flake8-unused-arguments
-    "G",    # flake8-logging-format
-    "ISC",  # flake8-implicit-str-concat
-    "T20",  # flake8-print
-    "EM",   # flake8-errmsg
-    "SLF",  # flake8-self
-    "PT",   # flake8-pytest-style
-    "RET",  # flake8-return
-    "TID",  # flake8-tidy-imports
-    "PTH",  # flake8-use-pathlib
-    "LOG",  # flake8-logging
-    "TD",   # flake8-todos
-    "FIX",  # flake8-fixme
-    "TRY",  # tryceratops
-    "I",    # isort
-    "ERA",  # erradicate
-    "PERF", # Perflint
-    "FURB", # refurb
-    "RUF",  # ruff
-]
+extend-select = ["ALL"]
 
 ignore = [
+    "D",      # pydocstyle
+    "N",      # variable names
+    "CPY",    # copyright notices
+    "S101",
     "ISC001",
     "ANN401",
-    "B008",  # Dependency Injector is not compatible with Annotated
+    "COM812",
 ]
 
 [tool.ruff.format]
@@ -165,15 +141,20 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
+
+#########################
+# Bandit
+#########################
+
+[tool.bandit]
+skips = ["B101"]
+
 #########################
 # Pylint
 #########################
 
 [tool.pylint.main]
-extension-pkg-whitelist=[
-    "mypy",
-    "dependency_injector"
-]
+extension-pkg-whitelist = ["mypy", "dependency_injector"]
 fail-on = ["I"]
 fail-under = 10
 ignore = []

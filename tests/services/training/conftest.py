@@ -9,7 +9,7 @@ from app.settings import Settings
 
 
 @pytest.fixture
-def model_path() -> Generator[Path, None, None]:
+def model_path() -> Generator[Path]:
     model_path = Settings.MODEL_DIRECTORY / "model_test.joblib"
     model_path.unlink(missing_ok=True)
     yield model_path
@@ -19,7 +19,8 @@ def model_path() -> Generator[Path, None, None]:
 @pytest.fixture
 @inject
 def training_service(
-    model_path: Path, training_service_: TrainingService = Provide["training_service"]
+    model_path: Path,
+    training_service_: TrainingService = Provide["training_service"],
 ) -> TrainingService:
     training_service_.model_path = model_path
     return training_service_

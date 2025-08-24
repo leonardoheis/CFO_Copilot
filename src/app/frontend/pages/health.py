@@ -6,9 +6,12 @@ API_BASE_URL = "http://localhost:8000/health"
 
 def health_page() -> None:
     st.write("# Health Page")
-    if st.button("Show Results"):
-        response = requests.get(API_BASE_URL, timeout=5)
-        if response.status_code == 200:
-            st.success(f"Prediction: {response.json()}")
-        else:
-            st.error(f"Error: {response.text}")
+
+    if not st.button("Show Results"):
+        return
+
+    response = requests.get(API_BASE_URL, timeout=5)
+    if response.ok:
+        st.success(f"Prediction: {response.json()}")
+        return
+    st.error(f"Error: {response.text}")

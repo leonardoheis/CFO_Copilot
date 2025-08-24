@@ -13,14 +13,18 @@ class ExamplerMixIn:
     def create_example(cls, *, seed: int | None = None, **kwargs: Any) -> Self:
         random_seed = seed or get_random_seed()
 
-        class Factory(ModelFactory[cls]):  # type: ignore[misc]
+        class Factory(ModelFactory[cls]):  # type: ignore[valid-type]
             __random_seed__ = random_seed
 
-        return Factory.build(**kwargs)  # type: ignore[no-any-return]
+        return Factory.build(**kwargs)
 
     @classmethod
     def create_examples(
-        cls, count: int, *, seed: int | None = None, **kwargs: Any
+        cls,
+        count: int,
+        *,
+        seed: int | None = None,
+        **kwargs: Any,
     ) -> list[Self]:
         random_seed = seed or get_random_seed()
 

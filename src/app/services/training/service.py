@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from sklearn.linear_model import LinearRegression
@@ -26,9 +25,9 @@ class TrainingService(BaseModel):
             if model:
                 return model
 
-        return make_pipeline([StandardScaler(), LinearRegression()])  # type: ignore[no-any-return]
+        return make_pipeline([StandardScaler(), LinearRegression()])  # type: ignore[return-value]
 
-    def train(self, X: Sequence[Any], y: Sequence[Any]) -> MLModel:
+    def train(self, X: Sequence[Sequence[float]], y: Sequence[float]) -> MLModel:
         if len(X) != len(y):
             raise DimensionalityMismatchError(x_dim=len(X), y_dim=len(y))
 
