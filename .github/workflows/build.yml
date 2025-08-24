@@ -49,6 +49,14 @@ jobs:
       run: |
         uv run --frozen --no-sync poe test
 
+    - name: Test Report
+      uses: dorny/test-reporter@v2
+      if: ${{ !cancelled() }}
+      with:
+        name: Pytests Tests
+        path: pytest-report.xml
+        reporter: java-junit
+
     - name: Check Coverage
       run: |
         uv run --frozen --no-sync poe check-coverage
