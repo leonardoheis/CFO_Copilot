@@ -98,14 +98,14 @@ sequenceDiagram
     u   ->>  ui:  Wants to train a new model
     ui  ->>  api: /train
     api ->>  ts:  Invokes train with data
-    activate ts
+    activate ts 
     ts  -->> ts:  Trains model
     ts  ->>  fs:  Save Model
-    fs  -->> ts:
-    ts  -->> api:
+    fs  -->> ts: 
+    ts  -->> api: 
     deactivate ts
-    api -->> ui:
-    ui  -->> u:
+    api -->> ui: 
+    ui  -->> u: 
 
     Note over u,fs: Prediction Flow
 
@@ -114,10 +114,81 @@ sequenceDiagram
     api ->>  ps:  Invokes predict with data
     activate ps
     ps  ->>  fs:  Loads Model
-    fs  -->> ps:
+    fs  -->> ps: 
     ps  -->> ps:  Generate Prediction
-    ps  -->> api:
+    ps  -->> api: 
     deactivate ps
-    api -->> ui:
-    ui  -->> u:
+    api -->> ui: 
+    ui  -->> u: 
+```
+
+### CI/CD Flow
+
+Below is an expanded sequence diagram illustrating the CI/CD flow implemented using GitHub Actions. It distinguishes between the workflows triggered by a Pull Request (PR) and those triggered by merging to the `master` branch:
+
+```mermaid
+sequenceDiagram
+    actor reviewer as Reviewer
+    actor dev as Developer
+    participant github as GitHub
+    participant cicd as GitHub CICD Runner
+    participant versioning as Versioning CICD Job
+    participant lint as Linter CICD Job
+    participant test as Test Runner CICD Job
+    participant publish as Publish CICD Job
+    participant deploy as Deploy CICD Job
+    participant render as Render.com Service
+
+    dev->>github: Clone Repo
+    github-->>dev: 
+    dev->>reviewer: Ask for next steps
+    reviewer-->>dev: 
+    dev->>dev: Works on a new feature
+    dev->>github: Open PR
+    github-->>dev: 
+
+    loop Repeats for every commit
+        dev->>github: Push changes 
+        github->>cicd: Trigger
+        activate cicd
+        cicd->>versioning: Trigger
+        versioning->>cicd: 
+        cicd->>lint: Trigger
+        lint-->>cicd: 
+        cicd->>test: Trigger
+        test-->>cicd: 
+        cicd-->>github: Update Checks in PR
+        deactivate cicd
+        github-->>dev: 
+        dev->>dev: Fix issues from CICD if any
+    end
+
+    loop Until all comments have been addressed
+        dev->>reviewer: Notify after CICD passes
+        reviewer->>github: Reviews PR and leaves comments
+        github-->>reviewer: 
+        reviewer-->>dev: Notify of comments
+        dev->>dev: Adress Comments if any
+        Note over dev, github: Above CICD process repeats
+    end
+
+
+    dev->>github: Merge PR to master
+    github->>cicd: Trigger
+    activate cicd
+    cicd->>lint: Trigger
+    lint-->>cicd: 
+    cicd->>test: Trigger
+    test-->>cicd: 
+    cicd->>publish: Trigger
+    publish->>github: Create Release
+    github-->>publish: 
+    publish-->>cicd: 
+    cicd->>deploy: Trigger
+    deploy->>render: Trigger Deploy
+    render-->>deploy: 
+    deploy-->>cicd: 
+    deactivate cicd
+    cicd-->>github: 
+    github-->>dev: 
 ```
