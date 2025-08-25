@@ -22,7 +22,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -61,7 +61,7 @@ jobs:
           git tag "v${{ env.PACKAGE_VERSION }}" $(git log -1 --pretty=format:"%H" --no-merges)
           git push origin --tags
 
-      - uses: actions/setup-node@4
+      - uses: actions/setup-node@v4
 
       - name: Extract Changelog for current version
         run: |
@@ -69,7 +69,7 @@ jobs:
           changelog-parser CHANGELOG.md | jq -r ".versions[0].body" >> changelog_body.md
 
       - name: Create Github release
-        uses: ncipollo/release-action@1
+        uses: ncipollo/release-action@v1
         with:
           tag: "v${{ env.PACKAGE_VERSION }}"
           bodyFile: "changelog_body.md"
