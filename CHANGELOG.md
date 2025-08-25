@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.2 (2025-08-25)
+
+### Bug Fixes
+
+- **cicd**: Update environment configuration in cicd yaml
+  ([`545756c`](https://github.com/ELC/fastapi-production-template/commit/545756c4d65bb477786b8b75cb04bab5242ec3ee))
+
+
 ## v0.3.1 (2025-08-25)
 
 ### Bug Fixes
