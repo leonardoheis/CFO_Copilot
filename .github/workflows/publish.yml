@@ -1,0 +1,76 @@
+name: Publish
+
+on:
+  workflow_run:
+    workflows:
+      - Lint and Test
+    branches: master
+    types: completed
+
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set Up Git Identity
+        run: |
+          git config --global user.email "$(git log -1 --pretty=format:'%ae' | xargs)"
+          git config --global user.name "${{ github.actor }}"
+          git remote set-url origin "https://${{ github.actor }}:${{ secrets.PUSH_TOKEN }}@github.com/${{ github.repository }}"
+
+      - name: Set up Python
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.9"
+
+      - name: Install Dependencies
+        run: |
+          uv python install
+
+      - name: Build package
+        run: |
+          uv build
+
+      - name: Determine Target Version
+        id: version
+        run: |
+          package_version=$(uv run semantic-release -v version --print)
+          echo "PACKAGE_VERSION=$package_version" >> $GITHUB_ENV
+
+      - name: Create Git Tag
+        run: |
+          git tag "v${{ env.PACKAGE_VERSION }}" $(git log -1 --pretty=format:"%H" --no-merges)
+          git push origin --tags
+
+      - uses: actions/setup-node@v4
+
+      - name: Extract Changelog for current version
+        run: |
+          npm install -g changelog-parser
+          changelog-parser CHANGELOG.md | jq -r ".versions[0].body" >> changelog_body.md
+
+      - name: Create Github release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: "v${{ env.PACKAGE_VERSION }}"
+          bodyFile: "changelog_body.md"
+          artifacts: "dist/*"
