@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.8.13
+    rev: "0.8.13"
     hooks:
       - id: uv-lock
 
@@ -88,7 +88,7 @@ repos:
           - "git+https://github.com/microsoft/python-type-stubs.git"
 
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.9.1
+    rev: "1.9.1"
     hooks:
       - id: nbqa-ruff
 

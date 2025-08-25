@@ -21,7 +21,7 @@ To run them from the terminal use this command:
 uv run poe test
 ```
 
-Check the coverage percentage, the CICD pipeline will fail if it is lower than 
+Check the coverage percentage, the CICD pipeline will fail if it is lower than
 100%.
 
 ### Linters and formatters
@@ -37,7 +37,7 @@ uv run poe format
 ### Serve the app
 
 The app consists of two independent servers, one for the backend API and one for
-the frontend. They can be executed independently or jointly. By using the 
+the frontend. They can be executed independently or jointly. By using the
 following commands:
 
 Backend + Frontend:
@@ -60,8 +60,8 @@ uv run poe serve-ui
 
 ### Deployment
 
-Render.com is used as deployment platform, to ensure the deploy will be 
-successful. It is recommended to build and run docker locally when 
+Render.com is used as deployment platform, to ensure the deploy will be
+successful. It is recommended to build and run docker locally when
 troubleshooting issues.
 
 Build the docker image with
@@ -70,7 +70,7 @@ Build the docker image with
 uv run poe docker-build
 ```
 
-Before running, ensure there is a `.env` with relevant environment variables 
+Before running, ensure there is a `.env` with relevant environment variables
 defined. Then, run the docker image with:
 
 ```
@@ -78,3 +78,44 @@ uv run poe docker-run
 ```
 
 The deployment to render occurs on every commit to the default branch.
+
+## Understanding data flow
+
+The following sequence diagram shows the data flow in the application.
+
+```mermaid
+sequenceDiagram
+    actor u as User
+    participant ui as Streamlit UI
+    participant api as FastAPI Backend
+    participant ts as Training Service
+    participant ps as Prediction Service
+    participant fs as File System
+
+    Note over u,fs: Training Flow
+    u   ->>  ui:  Wants to train a new model
+    ui  ->>  api: /train
+    api ->>  ts:  Invokes train with data
+    activate ts
+    ts  -->> ts:  Trains model
+    ts  ->>  fs:  Save Model
+    fs  -->> ts:
+    ts  -->> api:
+    deactivate ts
+    api -->> ui:
+    ui  -->> u:
+
+    Note over u,fs: Prediction Flow
+
+    u   ->>  ui:  Wants a prediction
+    ui  ->>  api: /predict
+    api ->>  ps:  Invokes predict with data
+    activate ps
+    ps  ->>  fs:  Loads Model
+    fs  -->> ps:
+    ps  -->> ps:  Generate Prediction
+    ps  -->> api:
+    deactivate ps
+    api -->> ui:
+    ui  -->> u:
+```
