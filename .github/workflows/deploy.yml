@@ -15,7 +15,7 @@ jobs:
 
     environment:
       name: Production
-      url: https://${{ github.repository }}.onrender.com/
+      url: https://${{ github.event.repository.name }}.onrender.com/
 
     steps:
     - name: Trigger deployment
