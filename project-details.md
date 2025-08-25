@@ -71,7 +71,7 @@
 
 #### NoSQL Database (Optional)
 
-- [ ] Firabase (recommended)
+- [ ] Firebase (recommended)
 - [ ] Other
 
 #### Storage

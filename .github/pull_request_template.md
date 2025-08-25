@@ -13,7 +13,7 @@ this PR?
 - [ ] Is the code self-explanatory without requiring comments or documentation?
 
 ### Machine Learning Specific
-- [ ] Are the data preprocessing steps are reproducible? (e.g., deterministic pipelines, seeds set).
+- [ ] Are the data preprocessing steps reproducible? (e.g., deterministic pipelines, seeds set).
 - [ ] Model changes are tracked with experiment tracker (e.g., versioned 
 artifacts, experiment logs).
 - [ ] Can all the notebooks be run top to bottom?
