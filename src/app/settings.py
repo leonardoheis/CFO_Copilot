@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -42,6 +43,8 @@ class _Settings(BaseSettings):
 
     @property
     def UI_EXECUTABLE(self) -> Path:
+        if sys.platform == "win32":
+            return self.ROOT_PATH / ".venv/Scripts/streamlit.exe"
         return self.ROOT_PATH / ".venv/bin/streamlit"
 
     @property
