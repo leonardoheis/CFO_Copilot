@@ -276,14 +276,15 @@ disable = [
     "missing-function-docstring",
     "missing-module-docstring",
     "subprocess-run-check",
-    "redefined-outer-name",           # Incompatible with PyTest fixtures
-    "consider-using-assignment-expr", # Too new syntax
-    "unused-import",                  # Check and fix by Ruff
-    "unused-variable",                # Too many false positives
-    "invalid-name",                   # Too many false positives
-    "not-an-iterable",                # Too many false positives
-    "assignment-from-no-return",      # Too many false positives
+    "redefined-outer-name",                   # Incompatible with PyTest fixtures
+    "consider-using-assignment-expr",         # Too new syntax
+    "unused-import",                          # Check and fix by Ruff
+    "unused-variable",                        # Too many false positives
+    "invalid-name",                           # Too many false positives
+    "not-an-iterable",                        # Too many false positives
+    "assignment-from-no-return",              # Too many false positives
     "magic-value-comparison",
+    "consider-using-namedtuple-or-dataclass",
 ]
 
 enable = [

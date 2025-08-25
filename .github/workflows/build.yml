@@ -62,7 +62,7 @@ jobs:
         name: Pytests Tests
         path: pytest-report.xml
         reporter: jest-junit
-        
+
     - name: SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v5
       if: ${{ !cancelled() }}
