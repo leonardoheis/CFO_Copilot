@@ -1,4 +1,4 @@
-name: Lint and Test Workflow
+name: Lint and Test
 
 on:
   push:
@@ -19,7 +19,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        persist-credentials: true
+        persist-credentials: false
+        fetch-tags: true
+
+    - name: Set Git Identity
+      run: |
+        git fetch -v -v -v --all --unshallow
+        git switch "${{ github.REF_NAME }}" || git switch "${{ github.HEAD_REF }}"
+        git config --global user.email "$(git log -1 --pretty=format:'%ae' | xargs)"
+        git config --global user.name "${{ github.actor }}"
+        git remote set-url origin "https://github.com/${{ github.repository }}"
+        git remote set-url origin "https://${{ github.actor }}:${{ secrets.PUSH_TOKEN }}@github.com/${{ github.repository }}"
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
@@ -33,7 +43,6 @@ jobs:
 
     - name: Update Version and Changelog
       run: |
-        rm -f CHANGELOG.md
         uv run --frozen --no-sync poe version-bump
 
         differences=$(git diff | xargs)

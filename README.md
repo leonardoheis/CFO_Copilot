@@ -8,8 +8,10 @@ including CICD, deployment and multi-layered architecture.
 ## Getting Started
 
 1. Fork the repo.
-2. Protect the default branch.
-3. Install dependencies with `uv sync --all-groups`.
+1. Protect the default branch.
+1. Install the UV package manager with `pip install uv==0.8.9`. Pipx can be used
+as well
+1. Install dependencies with `uv sync --all-groups`.
 
 ### Running tests
 

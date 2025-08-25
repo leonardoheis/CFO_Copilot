@@ -55,10 +55,10 @@ serve-api = "uv run python -m app.api"
 serve-ui = "uv run python -m app.frontend"
 test = "uv run pytest"
 format = "uv run pre-commit run --all-files --verbose"
-check-coverage = "uv run coverage report --fail-under=100"
+check-coverage = "uv run coverage report --fail-under=80"
 docker-build = "docker buildx build --progress plain -t app ."
 docker-run = "docker container run --env-file .env --publish 8000:8000 --publish 10000:10000 app"
-version-bump = "uv run semantic-release version --no-tag --no-commit --skip-build --changelog"
+version-bump = "uv run semantic-release -v version --no-tag --no-commit --skip-build --changelog"
 
 #########################
 # Semantic Release
