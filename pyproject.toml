@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "app"
-version = "0.0.0"
+version = "0.2.1"
 requires-python = "==3.12.*"
 dependencies = [
     "dependency-injector>=4.48.1",
@@ -71,6 +71,9 @@ match = "*"
 commit_message = "chore(release): bump version and update changelog"
 version_source = "tag"
 version_variables = ["src/app/__init__.py:__version__"]
+version_toml = [
+    "pyproject.toml:project.version:nf",
+]
 allow_zero_version = true
 
 [tool.semantic_release.changelog]

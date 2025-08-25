@@ -44,6 +44,7 @@ jobs:
     - name: Update Version and Changelog
       run: |
         uv run --frozen --no-sync poe version-bump
+        uv lock
 
         differences=$(git diff | xargs)
 
