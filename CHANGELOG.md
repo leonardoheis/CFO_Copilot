@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.2.1 (2025-08-25)
+
+### Bug Fixes
+
+- **workflows**: Update publish workflow configuration
+  ([`49bc0d5`](https://github.com/ELC/fastapi-production-template/commit/49bc0d515cc30f207c618059431ba23240778a6b))
+
+
 ## v0.2.0 (2025-08-25)
 
 ### Bug Fixes
