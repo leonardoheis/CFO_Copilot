@@ -1,16 +1,16 @@
-# Project Scoping Questions for ML Software Development  
+# Project Scoping Questions for ML Software Development
 
 ## 1. Problem Definition
 
-### What real-world problem are you addressing, and why is it important? 
+### What real-world problem are you addressing, and why is it important?
 
-### Who are the target users or stakeholders of your system?  
+### Who are the target users or stakeholders of your system?
 
 ### Is the problem supervised, unsupervised, reinforcement, or a hybrid ML task? Choose one and explain
 
-## 2. Data Considerations  
+## 2. Data Considerations
 
-### What kind of data will you use (structured, unstructured, multimodal)?  
+### What kind of data will you use (structured, unstructured, multimodal)?
 
 ### Do you already have access to the data? (Yes/No) - If not, look for a dataset you have access to.
 
@@ -18,7 +18,7 @@
 
 ### What is the expected size and quality of the dataset? Does the data require cleaning?
 
-## 3. System Design & Software Architecture  
+## 3. System Design & Software Architecture
 
 ### Which technology would you like to use for the different components of the ML Pipeline?
 
@@ -41,7 +41,7 @@
 - [ ] MLFlow
 - [ ] Weights and Biases (recommended)
 - [ ] Neptune
-  
+
 #### Hyperparameter Tuning
 
 - [ ] Optuna (recommended)
@@ -85,19 +85,18 @@
 - [ ] Unittest
 
 
-## 4. Model Development & Lifecycle  
+## 4. Model Development & Lifecycle
 
-### Do you plan to build models from scratch or leverage pre-trained models?  
+### Do you plan to build models from scratch or leverage pre-trained models?
 
-### What criteria will you use to define model success beyond accuracy (e.g., fairness, latency, robustness)?  
+### What criteria will you use to define model success beyond accuracy (e.g., fairness, latency, robustness)?
 
-## 5. Testing & Quality Assurance  
+## 5. Testing & Quality Assurance
 
-### How will you test your system end-to-end, especially around ML-specific challenges (e.g., non-determinism, drift)?  
+### How will you test your system end-to-end, especially around ML-specific challenges (e.g., non-determinism, drift)?
 
-## 6. Deployment & Operations  
+## 6. Deployment & Operations
 
-### Will your system run in batch mode, real-time, or hybrid?  
+### Will your system run in batch mode, real-time, or hybrid?
 
-### How will you monitor the system for performance degradation and data drift?  
-
+### How will you monitor the system for performance degradation and data drift?
