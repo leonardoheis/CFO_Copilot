@@ -13,8 +13,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    environment: Production
-    url: https://${{ github.repository }}.onrender.com/
+    environment:
+      name: Production
+      url: https://${{ github.repository }}.onrender.com/
 
     steps:
     - name: Trigger deployment
