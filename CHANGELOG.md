@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.3.0 (2025-08-25)
+
+### Features
+
+- **workflows**: Add production environment configuration
+  ([`723e8dc`](https://github.com/ELC/fastapi-production-template/commit/723e8dc597eb0709fa97afa791b1ce982075472f))
+
+
 ## v0.2.1 (2025-08-25)
 
 ### Bug Fixes
