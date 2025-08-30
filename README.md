@@ -1,3 +1,114 @@
+# CFO Copilot
+
+In the current landscape, finance departments and especially CFOs face 
+significant challenges in data-driven decision making. CFO Copilot was created 
+to optimize financial analysis through generative artificial intelligence 
+(GenAI) and machine learning models.
+
+Finance teams work with massive volumes of financial data and must make 
+strategic decisions quickly and with confidence. This tool helps reduce human 
+errors by automating information extraction and improving the accuracy of 
+financial forecasts based on discrete variables. It also addresses the demands 
+of market volatility and regulatory complexity by integrating real-time data and 
+delivering reliable predictive analytics.
+
+#### How it works
+
+CFO Copilot automates the collection, structuring, and analysis of financial 
+data from business documents (10-K reports, financial statements, annual 
+reports) and global economic data APIs. It applies time series models such as 
+ARIMA, SARIMA, and LSTM to project economic trends and support financial 
+planning. GenAI is also integrated to enable advanced queries on charts and 
+reports, providing contextual and explanatory answers about the forecasts.
+
+#### Architecture
+
+The solution combines Generative AI for information extraction with advanced 
+Machine Learning models for time series forecasting.
+
+GenAI (OpenAI, Gemini, Claude 3.5) interprets and extracts data from 
+unstructured documents.
+
+AutoML (PyCaret, StatsForecast) together with ARIMA and LSTM generates financial 
+forecasts from the collected data.
+
+NLP and GenAI enable interactive queries, making financial projections and 
+charts easier to interpret.
+
+#### Benefits
+
+* Reduced time required for financial analysis
+* Greater accuracy in economic forecasts
+* Automation of manual processes
+* Elimination of human errors through structured handling of unstructured data
+* Integration with global financial data APIs
+* Scalable design with modular components for corporations, SMBs, and government entities
+
+### High Level architecture diagram
+
+The following diagram illustrates the high-level architecture of the CFO Copilot 
+system, including the various components and their interactions.
+
+```mermaid
+flowchart LR
+  subgraph Sources
+    A1["SEC EDGAR 10-K/10-Q (HTML/PDF/XBRL)"]
+    A2["APIs Financieras (FMP/Finnhub/EODHD)"]
+    A3["Macroeconómicas (FRED/WorldBank/IMF)"]
+    A4["Repos CSV públicos (GitHub)"]
+  end
+
+  subgraph "Ingest & Parsing"
+    B1["OpenEDGAR (crawl + parse EDGAR)"]
+    B2["Extractores XBRL → JSON/frames"]
+    B3["Connectores REST → JSON/CSV"]
+  end
+
+  subgraph Storage
+    C1[(Data Lake: parquet/csv)]
+  end
+
+  subgraph "Training Pipeline"
+    D1["EDA + FE (lags, estacionalidad)"]
+    D2["Modelos: ARIMA/SARIMA · LSTM · ML · AutoML"]
+    D3["Val/Backtest + Mapie (PI)"]
+    D4["Registry (MLflow/W&B)"]
+  end
+
+  subgraph "Model Registry"
+    F1[(Artifacts/MLflow o W&B)]
+  end
+
+  subgraph "Front End"
+    E1["Frontend (Angular/Streamlit)"]
+  end
+
+  subgraph Serving
+    E2["FastAPI /train"]
+    E3["FastAPI /predict"]
+    E4["Q&A GenAI (OpenAI+LangChain)"]    
+  end
+
+  subgraph "Predict Pipeline"
+    G1["Preprocesamiento"]
+    G2["Ensemble prediction"]
+    G3["bootstrap CI"]
+  end  
+
+  A1 --> B1 --> C1
+  A1 --> B2 --> C1
+  A2 --> B3 --> C1
+  A3 --> B3 --> C1
+  A4 --> C1
+  E2 --> D1 --> D2 --> D3 --> D4
+  E1 --> E2
+  E1 --> E3
+  E1 --> E4
+  D4 --> F1
+  E3 --> G1 --> G2 --> G3
+  G3 --> E1
+```
+
 # FastApi Template for ML Projects
 
 [![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-dark.svg)](https://sonarcloud.io/summary/new_code?id=ELC_fastapi-production-template)
@@ -53,12 +164,14 @@ Backend Only:
 ```
 uv run poe serve-api
 ```
+For API Access you can visualize the OpenAPI documentation at `http://localhost:8000/docs`.
 
 Frontend Only:
 
 ```
 uv run poe serve-ui
 ```
+For Streamlit you can visualize the app at `http://localhost:100008501`.
 
 ### Deployment
 
