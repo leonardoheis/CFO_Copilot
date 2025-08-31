@@ -109,19 +109,17 @@ flowchart LR
   G3 --> E1
 ```
 
-# FastApi Template for ML Projects
+# FastApi Template for AI/ML Projects
 
-[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-dark.svg)](https://sonarcloud.io/summary/new_code?id=ELC_fastapi-production-template)
+[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-dark.svg)](https://sonarcloud.io/summary/overall?id=leonardoheis_CFO_Copilot)
 
 This is a template that provides the minimal scaffolding to support ML projects
 including CICD, deployment and multi-layered architecture.
 
-## Getting Started
+## Getting Started 
 
-1. Fork the repo.
-1. Protect the default branch.
 1. Install the UV package manager with `pip install uv==0.8.9`. Pipx can be used
-as well
+as well.
 1. Install dependencies with `uv sync --all-groups`.
 
 ### Running tests
