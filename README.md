@@ -109,7 +109,7 @@ flowchart LR
   G3 --> E1
 ```
 
-# FastApi Template for AI/ML Projects
+# Template for AI/ML Projects
 
 [![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-dark.svg)](https://sonarcloud.io/summary/overall?id=leonardoheis_CFO_Copilot)
 
