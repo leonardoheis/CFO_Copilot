@@ -120,8 +120,8 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
         args: >
-          -Dsonar.organization=elc-github
-          -Dsonar.projectKey=ELC_fastapi-production-template
+          -Dsonar.organization=leonardoheis
+          -Dsonar.projectKey=CFO_Copilot
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.python.version=3.12
           -Dsonar.sources=src
