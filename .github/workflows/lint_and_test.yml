@@ -120,7 +120,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
         args: >
-          -Dsonar.organization=leonardoheis-github
+          -Dsonar.organization=leonardoheis
           -Dsonar.projectKey=leonardoheis_CFO_Copilot
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.python.version=3.12
