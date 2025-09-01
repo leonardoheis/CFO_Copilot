@@ -68,6 +68,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+        fetch-tags: true
+
+    - name: Set Git Identity
+      run: |
+        git fetch -v -v -v --all --unshallow
+        git switch "${{ github.REF_NAME }}" || git switch "${{ github.HEAD_REF }}"
+        git config --global user.email "$(git log -1 --pretty=format:'%ae' | xargs)"
+        git config --global user.name "${{ github.actor }}"
+        git remote set-url origin "https://github.com/${{ github.repository }}"
+        git remote set-url origin "https://${{ github.actor }}:${{ secrets.PUSH_TOKEN }}@github.com/${{ github.repository }}"
 
     - name: Install uv
       uses: astral-sh/setup-uv@v6
@@ -82,6 +94,26 @@ jobs:
     - name: Run Linter
       run: |
         uv run --frozen --no-sync poe format
+
+    - name: Update Results if Needed
+      if: ${{ !cancelled() }}
+      run: |
+        differences=$(git diff | xargs)
+
+        if [ -z "$differences" ]; then
+          echo "No changes needed"
+          exit 0
+        fi
+
+        echo "::error::The linter changed some files"
+        echo "$differences"
+
+        git add --all
+        git commit -m "chore(format): apply lint fixes"
+        git push
+
+        sleep 30
+        exit 1
 
   test:
     runs-on: ubuntu-latest
