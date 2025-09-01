@@ -105,11 +105,11 @@ jobs:
           exit 0
         fi
 
-        echo "::error::The pre-commits changed some files"
+        echo "::error::The linter changed some files"
         echo "$differences"
 
         git add --all
-        git commit -m "chore(release): apply pre-commit fixes"
+        git commit -m "chore(format): apply lint fixes"
         git push
 
         sleep 30
