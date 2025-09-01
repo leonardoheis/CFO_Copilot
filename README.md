@@ -96,6 +96,11 @@ analysis on each push.
                 this open SonarQube and go to My Account - Security - Generate 
                 Tokens and create a new one.
             * Grab the SonarQube Key, you will need it later.
+    * Within the SonarQube project from the left side click on Administration
+        and then on Analysis Method. On the "Analysis Method" page, you will 
+        find a toggle or checkbox labeled "SonarCloud Automatic Analysis" or 
+        similar. Uncheck or toggle this option to disable automatic analysis for 
+        the project.
 
 * Wakatime: Wakatime is a tool that helps you track your coding activity. 
 You can sign up for an account and get an API key, which you will need to 
@@ -119,6 +124,8 @@ the free tier.
             This API key you can find it in your Render account. For this open
             your Render dashboard and navigate Account Settings and then search
             for API Keys. You will need to create a new key for this.
+    * Auto-deploy disabled: go to you recent project created and select settings
+        , then scroll down to Auto-Deploy option, edit it, and select Off.
 
 * Github PAT: You will need a GitHub Personal Access Token (PAT) to authenticate 
 with the Render. You can create a PAT by going to your GitHub account settings, 
