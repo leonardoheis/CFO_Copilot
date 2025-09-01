@@ -2,9 +2,13 @@
 
 <!-- version list -->
 
-## v0.1.0 (2025-08-31)
+## v0.4.0 (2025-09-01)
 
-- Initial Release
+### Features
+
+- **cicd**: Add auto-push in github actions when pre-commit changes files
+  ([`a6c2838`](https://github.com/ELC/fastapi-production-template/commit/a6c2838e832b72bfc6a168ac207b4a557fd5e26a))
+
 
 ## v0.3.2 (2025-08-25)
 
