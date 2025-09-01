@@ -95,6 +95,9 @@ jobs:
       run: |
         uv run --frozen --no-sync poe format
 
+    - name: Update Results if Needed
+      if: ${{ !cancelled() }}
+      run: |
         differences=$(git diff | xargs)
 
         if [ -z "$differences" ]; then
