@@ -1,146 +1,146 @@
 repos:
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "0.8.13"
+-   repo: https://github.com/astral-sh/uv-pre-commit
+    rev: "0.8.14"
     hooks:
-      - id: uv-lock
+    -   id: uv-lock
 
-  - repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
+-   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
     rev: v0.8.0
     hooks:
-      - id: pre-commit-update
+    -   id: pre-commit-update
 
-  - repo: https://github.com/pre-commit/pre-commit-hooks
+-   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: "v6.0.0"
     hooks:
-      - id: trailing-whitespace
+    -   id: trailing-whitespace
         exclude: README
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: debug-statements
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: debug-statements
 
-  - repo: https://github.com/gitleaks/gitleaks
+-   repo: https://github.com/gitleaks/gitleaks
     rev: "v8.28.0"
     hooks:
-      - id: gitleaks
+    -   id: gitleaks
 
-  - repo: https://github.com/PyCQA/bandit
+-   repo: https://github.com/PyCQA/bandit
     rev: "1.8.6"
     hooks:
-      - id: bandit
+    -   id: bandit
         args:
-          - "-c"
-          - "pyproject.toml"
+        -   "-c"
+        -   "pyproject.toml"
 
-  - repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
+-   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
     rev: v0.8.0
     hooks:
-      - id: pre-commit-update
+    -   id: pre-commit-update
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.12.10"
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: "v0.12.11"
     hooks:
-      - id: ruff-format
-      - id: ruff-check
+    -   id: ruff-format
+    -   id: ruff-check
         args:
-          - "--exit-non-zero-on-fix"
+        -   "--exit-non-zero-on-fix"
 
-  - repo: https://github.com/pycqa/pylint
+-   repo: https://github.com/pycqa/pylint
     rev: "v3.3.8"
     hooks:
-      - id: pylint
+    -   id: pylint
         additional_dependencies:
-          - "dependency-injector>=4.48.1"
-          - "fastapi==0.116.1"
-          - "joblib>=1.5.1"
-          - "pydantic-settings>=2.10.1"
-          - "scikit-learn>=1.7.1"
-          - "uvicorn[standard]==0.35.0"
-          - "requests>=2.32.4"
-          - "streamlit>=1.48.0"
-          - "pylint-pydantic>=0.3.5"
-          - "polyfactory>=2.22.2"
-          - "pytest==8.4.1"
-          - "pytest-cov==6.2.1"
-          - "pytest-recording==0.13.4"
-          - "syrupy==4.9.1"
-          - "py-automapper>=2.2.0"
+        -   "dependency-injector>=4.48.1"
+        -   "fastapi==0.116.1"
+        -   "joblib>=1.5.1"
+        -   "pydantic-settings>=2.10.1"
+        -   "scikit-learn>=1.7.1"
+        -   "uvicorn[standard]==0.35.0"
+        -   "requests>=2.32.4"
+        -   "streamlit>=1.48.0"
+        -   "pylint-pydantic>=0.3.5"
+        -   "polyfactory>=2.22.2"
+        -   "pytest==8.4.1"
+        -   "pytest-cov==6.2.1"
+        -   "pytest-recording==0.13.4"
+        -   "syrupy==4.9.1"
+        -   "py-automapper>=2.2.0"
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
+-   repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v1.17.1"
     hooks:
-      - id: mypy
+    -   id: mypy
         additional_dependencies:
-          - "dependency-injector>=4.48.1"
-          - "fastapi==0.116.1"
-          - "joblib>=1.5.1"
-          - "joblib-stubs==1.5.0.1.20250510"
-          - "pydantic-settings>=2.10.1"
-          - "scikit-learn>=1.7.1"
-          - "uvicorn[standard]==0.35.0"
-          - "requests>=2.32.4"
-          - "streamlit>=1.48.0"
-          - "types-requests"
-          - "pytest==8.4.1"
-          - "pytest-cov==6.2.1"
-          - "pytest-recording==0.13.4"
-          - "syrupy==4.9.1"
-          - "polyfactory>=2.22.2"
-          - "py-automapper>=2.2.0"
-          - "git+https://github.com/microsoft/python-type-stubs.git"
+        -   "dependency-injector>=4.48.1"
+        -   "fastapi==0.116.1"
+        -   "joblib>=1.5.1"
+        -   "joblib-stubs==1.5.0.1.20250510"
+        -   "pydantic-settings>=2.10.1"
+        -   "scikit-learn>=1.7.1"
+        -   "uvicorn[standard]==0.35.0"
+        -   "requests>=2.32.4"
+        -   "streamlit>=1.48.0"
+        -   "types-requests"
+        -   "pytest==8.4.1"
+        -   "pytest-cov==6.2.1"
+        -   "pytest-recording==0.13.4"
+        -   "syrupy==4.9.1"
+        -   "polyfactory>=2.22.2"
+        -   "py-automapper>=2.2.0"
+        -   "git+https://github.com/microsoft/python-type-stubs.git"
 
-  - repo: https://github.com/nbQA-dev/nbQA
+-   repo: https://github.com/nbQA-dev/nbQA
     rev: "1.9.1"
     hooks:
-      - id: nbqa-ruff
+    -   id: nbqa-ruff
 
-      - id: nbqa-pylint
+    -   id: nbqa-pylint
         additional_dependencies:
-          - "pylint==3.3.8"
-          - "dependency-injector>=4.48.1"
-          - "fastapi==0.116.1"
-          - "joblib>=1.5.1"
-          - "pydantic-settings>=2.10.1"
-          - "scikit-learn>=1.7.1"
-          - "uvicorn[standard]==0.35.0"
-          - "jupyter==1.1.1"
-          - "requests>=2.32.4"
-          - "streamlit>=1.48.0"
-          - "pylint-pydantic>=0.3.5"
+        -   "pylint==3.3.8"
+        -   "dependency-injector>=4.48.1"
+        -   "fastapi==0.116.1"
+        -   "joblib>=1.5.1"
+        -   "pydantic-settings>=2.10.1"
+        -   "scikit-learn>=1.7.1"
+        -   "uvicorn[standard]==0.35.0"
+        -   "jupyter==1.1.1"
+        -   "requests>=2.32.4"
+        -   "streamlit>=1.48.0"
+        -   "pylint-pydantic>=0.3.5"
 
-      - id: nbqa-mypy
+    -   id: nbqa-mypy
         additional_dependencies:
-          - "mypy==1.15.0"
-          - "dependency-injector>=4.48.1"
-          - "fastapi==0.116.1"
-          - "joblib>=1.5.1"
-          - "joblib-stubs==1.5.0.1.20250510"
-          - "pydantic-settings>=2.10.1"
-          - "scikit-learn>=1.7.1"
-          - "uvicorn[standard]==0.35.0"
-          - "jupyter==1.1.1"
-          - "requests>=2.32.4"
-          - "streamlit>=1.48.0"
-          - "types-requests"
-          - "pytest==8.4.1"
-          - "pytest-cov==6.2.1"
-          - "pytest-recording==0.13.4"
-          - "syrupy==4.9.1"
-          - "polyfactory>=2.22.2"
-          - "py-automapper>=2.2.0"
-          - "git+https://github.com/microsoft/python-type-stubs.git"
+        -   "mypy==1.15.0"
+        -   "dependency-injector>=4.48.1"
+        -   "fastapi==0.116.1"
+        -   "joblib>=1.5.1"
+        -   "joblib-stubs==1.5.0.1.20250510"
+        -   "pydantic-settings>=2.10.1"
+        -   "scikit-learn>=1.7.1"
+        -   "uvicorn[standard]==0.35.0"
+        -   "jupyter==1.1.1"
+        -   "requests>=2.32.4"
+        -   "streamlit>=1.48.0"
+        -   "types-requests"
+        -   "pytest==8.4.1"
+        -   "pytest-cov==6.2.1"
+        -   "pytest-recording==0.13.4"
+        -   "syrupy==4.9.1"
+        -   "polyfactory>=2.22.2"
+        -   "py-automapper>=2.2.0"
+        -   "git+https://github.com/microsoft/python-type-stubs.git"
 
-  - repo: https://github.com/kynan/nbstripout
+-   repo: https://github.com/kynan/nbstripout
     rev: "0.8.1"
     hooks:
-      - id: nbstripout
+    -   id: nbstripout
 
-  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+-   repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
     rev: "v9.22.0"
     hooks:
-      - id: commitlint
+    -   id: commitlint
         stages:
-          - commit-msg
+        -   commit-msg
         additional_dependencies:
-          - "@commitlint/config-conventional"
+        -   "@commitlint/config-conventional"
         args:
-          - "--config=.commitlintrc.json"
+        -   "--config=.commitlintrc.json"
