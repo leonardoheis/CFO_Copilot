@@ -117,7 +117,8 @@ parallel = true
 source = ["src", "tests"]
 omit = [
     "**/__main__.py",
-    "src/app/api/__init__.py",
+    "src/app/_bootstrap.py",
+    "src/app/api/runner.py",
     "src/app/frontend/*",
     "src/app/settings.py",
 ]
@@ -171,7 +172,6 @@ ignore = [
     "single-line-implicit-string-concatenation",
     "any-type",
     "missing-trailing-comma",
-    "non-empty-init-module", # __init__.py modules intentionally contain setup logic
 ]
 
 [tool.ruff.format]
