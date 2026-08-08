@@ -42,6 +42,7 @@ dev = [
     "uv==0.8.9",
     "poethepoet==0.37.0",
     "joblib-stubs==1.5.0.1.20250510",
+    "mypy>=2.3.0",
 ]
 
 
@@ -53,12 +54,15 @@ dev = [
 serve = "uv run python -m app"
 serve-api = "uv run python -m app.api"
 serve-ui = "uv run python -m app.frontend"
-test = "uv run pytest"
+lint       = { shell = "ruff check . && ruff format --check ." }
+typecheck  = "uv run --all-groups pre-commit run mypy --all-files"
+test = "uv run --all-groups pytest"
 format = "uv run pre-commit run --all-files --verbose"
 check-coverage = "uv run coverage report --fail-under=80"
 docker-build = "docker buildx build --progress plain -t app ."
 docker-run = "docker container run --env-file .env --publish 8000:8000 --publish 10000:10000 app"
 version-bump = "uv run semantic-release -v version --no-tag --no-commit --skip-build --changelog"
+check      = ["lint", "typecheck", "test"]
 
 #########################
 # Semantic Release
