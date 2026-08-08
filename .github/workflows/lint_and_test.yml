@@ -92,6 +92,8 @@ jobs:
         uv sync --group lint
 
     - name: Run Linter
+      env:
+        SKIP: pre-commit-update
       run: |
         uv run --frozen --no-sync poe format
 
@@ -147,7 +149,7 @@ jobs:
 
     - name: SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v5
-      if: ${{ !cancelled() }}
+      if: ${{ !cancelled() && secrets.SONAR_TOKEN != '' }}
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       with:
