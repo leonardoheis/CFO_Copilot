@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "app"
-version = "0.2.0"
+version = "0.3.0"
 requires-python = "==3.12.*"
 dependencies = [
     "dependency-injector>=4.48.1",
@@ -34,6 +34,7 @@ test = [
 lint = [
     "pre-commit==4.3.0",
     "pre-commit-uv==4.1.4",
+    "ruff>=0.16.2",
 ]
 versioning = [
     "python-semantic-release==10.3.1",
@@ -42,6 +43,7 @@ dev = [
     "uv==0.8.9",
     "poethepoet==0.37.0",
     "joblib-stubs==1.5.0.1.20250510",
+    "mypy>=2.3.0",
 ]
 
 
@@ -53,12 +55,15 @@ dev = [
 serve = "uv run python -m app"
 serve-api = "uv run python -m app.api"
 serve-ui = "uv run python -m app.frontend"
-test = "uv run pytest"
-format = "uv run pre-commit run --all-files --verbose"
+lint       = { shell = "uv run --all-groups ruff check . && uv run --all-groups ruff format --check ." }
+typecheck  = "uv run --all-groups pre-commit run mypy --all-files"
+test = "uv run --all-groups pytest"
+format = "uv run --all-groups pre-commit run --all-files --verbose"
 check-coverage = "uv run coverage report --fail-under=80"
 docker-build = "docker buildx build --progress plain -t app ."
 docker-run = "docker container run --env-file .env --publish 8000:8000 --publish 10000:10000 app"
 version-bump = "uv run semantic-release -v version --no-tag --no-commit --skip-build --changelog"
+check      = ["lint", "typecheck", "test"]
 
 #########################
 # Semantic Release
@@ -112,7 +117,8 @@ parallel = true
 source = ["src", "tests"]
 omit = [
     "**/__main__.py",
-    "src/app/api/__init__.py",
+    "src/app/_bootstrap.py",
+    "src/app/api/runner.py",
     "src/app/frontend/*",
     "src/app/settings.py",
 ]
@@ -151,7 +157,7 @@ disallow_untyped_decorators = true
 [tool.ruff]
 fix = true
 preview = true
-exclude = ['app\views\templates\books', 'books']
+exclude = ['app\views\templates\books', 'books', '.cursor']
 target-version = "py312"
 unsafe-fixes = true
 
@@ -162,10 +168,10 @@ ignore = [
     "D",      # pydocstyle
     "N",      # variable names
     "CPY",    # copyright notices
-    "S101",
-    "ISC001",
-    "ANN401",
-    "COM812",
+    "assert",
+    "single-line-implicit-string-concatenation",
+    "any-type",
+    "missing-trailing-comma",
 ]
 
 [tool.ruff.format]
@@ -217,7 +223,6 @@ load-plugins = [
     "pylint_pydantic",
 ]
 py-version = "3.12"
-suggestion-mode = true
 
 [tool.pylint.basic]
 argument-naming-style = "snake_case"
