@@ -1,11 +1,11 @@
-import subprocess  # nosec # noqa: S404
+import subprocess  # nosec # ruff: ignore[suspicious-subprocess-import]
 import sys
 
 from app.settings import Settings
 
 
 def run_streamlit() -> None:
-    subprocess.run(  # nosec # noqa: S603
+    subprocess.run(  # nosec # ruff: ignore[subprocess-without-shell-equals-true]
         [
             sys.executable,
             str(Settings.UI_EXECUTABLE),

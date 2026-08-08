@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class _Settings(BaseSettings):
     UI_PORT: int = 10000
     API_PORT: int = 8000
-    HOST: str = "0.0.0.0"  # nosec  # noqa: S104
+    HOST: str = "0.0.0.0"  # nosec  # ruff: ignore[hardcoded-bind-all-interfaces]
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
