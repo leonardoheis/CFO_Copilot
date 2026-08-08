@@ -120,6 +120,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
     steps:
     - uses: actions/checkout@v4
       with:
@@ -149,9 +152,7 @@ jobs:
 
     - name: SonarQube Scan
       uses: SonarSource/sonarqube-scan-action@v5
-      if: ${{ !cancelled() && secrets.SONAR_TOKEN != '' }}
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      if: ${{ !cancelled() && env.SONAR_TOKEN != '' }}
       with:
         args: >
           -Dsonar.organization=leonardoheis
