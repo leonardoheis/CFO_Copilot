@@ -117,8 +117,6 @@ parallel = true
 source = ["src", "tests"]
 omit = [
     "**/__main__.py",
-    "src/app/_bootstrap.py",
-    "src/app/api/runner.py",
     "src/app/frontend/*",
     "src/app/settings.py",
 ]
