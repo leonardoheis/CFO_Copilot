@@ -1,0 +1,57 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Connection:
+      - close
+      Host:
+      - api.stlouisfed.org
+      User-Agent:
+      - Python-urllib/3.12
+    method: GET
+    uri: https://api.stlouisfed.org/fred/series/observations?observation_end=2020-06-30&observation_start=2020-01-01&series_id=FEDFUNDS
+  response:
+    body:
+      string: "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<observations realtime_start=\"2026-08-09\"
+        realtime_end=\"2026-08-09\" observation_start=\"2020-01-01\" observation_end=\"2020-06-30\"
+        units=\"lin\" output_type=\"1\" file_type=\"xml\" order_by=\"observation_date\"
+        sort_order=\"asc\" count=\"6\" offset=\"0\" limit=\"100000\">\n  <observation
+        realtime_start=\"2026-08-09\" realtime_end=\"2026-08-09\" date=\"2020-01-01\"
+        value=\"1.55\"/>\n  <observation realtime_start=\"2026-08-09\" realtime_end=\"2026-08-09\"
+        date=\"2020-02-01\" value=\"1.58\"/>\n  <observation realtime_start=\"2026-08-09\"
+        realtime_end=\"2026-08-09\" date=\"2020-03-01\" value=\"0.65\"/>\n  <observation
+        realtime_start=\"2026-08-09\" realtime_end=\"2026-08-09\" date=\"2020-04-01\"
+        value=\"0.05\"/>\n  <observation realtime_start=\"2026-08-09\" realtime_end=\"2026-08-09\"
+        date=\"2020-05-01\" value=\"0.05\"/>\n  <observation realtime_start=\"2026-08-09\"
+        realtime_end=\"2026-08-09\" date=\"2020-06-01\" value=\"0.08\"/>\n</observations>\n\n\n\n"
+    headers:
+      Alt-Svc:
+      - h3=":443"; ma=93600
+      Cache-Control:
+      - max-age=0, no-cache
+      Connection:
+      - close
+      Content-Length:
+      - '925'
+      Content-Type:
+      - text/xml; charset=UTF-8
+      Date:
+      - Sun, 09 Aug 2026 18:48:02 GMT
+      Expires:
+      - Sun, 09 Aug 2026 18:48:02 GMT
+      Last-Modified:
+      - Mon, 03 Aug 2026 20:16:35 GMT
+      Pragma:
+      - no-cache
+      Server:
+      - Apache
+      Strict-Transport-Security:
+      - max-age=86400
+      Vary:
+      - Accept-Encoding
+      X-location:
+      - cfs
+    status:
+      code: 200
+      message: OK
+version: 1

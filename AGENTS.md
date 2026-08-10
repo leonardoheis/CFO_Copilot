@@ -46,6 +46,7 @@ CFO_Copilot/
 │   ├── frontend/            # Streamlit UI
 │   │   ├── home.py          # Navigation entrypoint
 │   │   └── pages/           # health.py, test.py
+│   ├── data/                # SEC, Yahoo Finance, and FRED ingestion
 │   ├── utils/               # ExamplerMixIn (OpenAPI example generation)
 │   ├── ml_binaries/         # Runtime model artifacts (model.joblib)
 │   └── playground/          # Notebooks (not in coverage)
