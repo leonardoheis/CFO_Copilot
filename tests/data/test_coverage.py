@@ -1,3 +1,4 @@
+import math
 from datetime import date
 
 import pandas as pd
@@ -36,7 +37,7 @@ def test_coverage_report_passes_all_gates_for_complete_data() -> None:
 
 def test_coverage_report_fails_when_pre_xbrl_field_is_missing() -> None:
     alpha = _panel(ALL_DATES)
-    alpha.loc[alpha["date"] == date(2007, 6, 30), "eps"] = float("nan")
+    alpha.loc[alpha["date"] == date(2007, 6, 30), "eps"] = math.nan
 
     report = evaluate_coverage("AMZN", alpha, _panel(SEC_DATES), ALL_DATES)
 

@@ -1,5 +1,6 @@
 from datetime import date
 
+import pandas as pd
 import pytest
 
 from app.data.dates import quarter_end_dates
@@ -44,7 +45,9 @@ def test_fetch_splits_returns_amazon_split_history(
 ) -> None:
     splits = yfinance_source.fetch_splits("AMZN")
 
-    split = splits.loc[splits.index.strftime("%Y-%m-%d") == "2022-06-06"]
+    split = splits.loc[
+        pd.to_datetime(splits.index).strftime("%Y-%m-%d") == "2022-06-06"
+    ]
     assert split.iloc[0] == pytest.approx(20.0)
 
 

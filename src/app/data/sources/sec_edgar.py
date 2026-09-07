@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Final, cast
@@ -81,6 +82,38 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
 }
 
 
+def _financial_panel_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
+    revenue = raw["revenue"]
+    cogs = raw["cogs"]
+    gross_profit = revenue - cogs
+    operating_income = raw["operating_income"]
+    net_income = raw["net_income"]
+    safe_revenue = revenue.where(revenue != 0)
+    reported_opex = raw["costs_and_expenses"] - cogs
+    derived_opex = revenue - operating_income - cogs
+    opex = reported_opex.where(reported_opex.notna(), derived_opex)
+
+    panel = pd.DataFrame(
+        {
+            "date": raw["date"],
+            "revenue_usd_m": revenue / MILLIONS_DIVISOR,
+            "gross_profit_usd_m": gross_profit / MILLIONS_DIVISOR,
+            "opex_usd_m": opex / MILLIONS_DIVISOR,
+            "operating_income_usd_m": operating_income / MILLIONS_DIVISOR,
+            "ebitda_usd_m": (operating_income + raw["dep_amort"]) / MILLIONS_DIVISOR,
+            "net_income_usd_m": net_income / MILLIONS_DIVISOR,
+            "free_cash_flow_usd_m": (raw["operating_cash_flow"] - raw["capex"])
+            / MILLIONS_DIVISOR,
+            "gross_margin": gross_profit / safe_revenue,
+            "operating_margin": operating_income / safe_revenue,
+            "net_margin": net_income / safe_revenue,
+            "eps": raw["eps"],
+            "shares_outstanding": raw["shares_outstanding"],
+        },
+    )
+    return panel.loc[:, ["date", *FINANCIAL_COLUMNS, "shares_outstanding"]]
+
+
 class SecEdgarSource:
     def __init__(self, user_agent: str) -> None:
         self._user_agent = user_agent
@@ -159,36 +192,7 @@ class SecEdgarSource:
         splits: pd.Series | None = None,
     ) -> pd.DataFrame:
         raw = self.fetch_quarterly_financials(ticker, start, end, splits)
-        revenue = raw["revenue"]
-        cogs = raw["cogs"]
-        gross_profit = revenue - cogs
-        operating_income = raw["operating_income"]
-        net_income = raw["net_income"]
-        safe_revenue = revenue.where(revenue != 0)
-        reported_opex = raw["costs_and_expenses"] - cogs
-        derived_opex = revenue - operating_income - cogs
-        opex = reported_opex.where(reported_opex.notna(), derived_opex)
-
-        panel = pd.DataFrame(
-            {
-                "date": raw["date"],
-                "revenue_usd_m": revenue / MILLIONS_DIVISOR,
-                "gross_profit_usd_m": gross_profit / MILLIONS_DIVISOR,
-                "opex_usd_m": opex / MILLIONS_DIVISOR,
-                "operating_income_usd_m": (operating_income / MILLIONS_DIVISOR),
-                "ebitda_usd_m": (operating_income + raw["dep_amort"])
-                / MILLIONS_DIVISOR,
-                "net_income_usd_m": net_income / MILLIONS_DIVISOR,
-                "free_cash_flow_usd_m": (raw["operating_cash_flow"] - raw["capex"])
-                / MILLIONS_DIVISOR,
-                "gross_margin": gross_profit / safe_revenue,
-                "operating_margin": operating_income / safe_revenue,
-                "net_margin": net_income / safe_revenue,
-                "eps": raw["eps"],
-                "shares_outstanding": raw["shares_outstanding"],
-            },
-        )
-        return panel.loc[:, ["date", *FINANCIAL_COLUMNS, "shares_outstanding"]]
+        return _financial_panel_from_raw(raw)
 
     def _fetch_tag_chain(
         self,
@@ -197,7 +201,7 @@ class SecEdgarSource:
         quarter_dates: list[date],
         splits: pd.Series | None,
     ) -> pd.Series:
-        combined = pd.Series(float("nan"), index=quarter_dates, dtype="float64")
+        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
         for tag in spec.tags:
             facts = self.fetch_concept(cik, tag, spec.unit)
             if facts:
@@ -248,7 +252,7 @@ class SecEdgarSource:
     ) -> pd.Series:
         if splits is None:
             return pd.Series(1.0, index=filed_dates.index)
-        parsed_dates = pd.to_datetime(filed_dates.replace({"": pd.NA}))
+        parsed_dates = pd.to_datetime(filed_dates.replace("", None))
         valid = parsed_dates.notna()
         factors = pd.Series(1.0, index=filed_dates.index)
         if valid.any():

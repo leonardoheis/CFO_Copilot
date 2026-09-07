@@ -36,6 +36,25 @@ FINANCIAL_COLUMNS: Final[tuple[str, ...]] = (
     "eps",
 )
 
+FINANCIAL_ACCUMULATOR_FIELDS: Final[tuple[str, ...]] = (
+    "revenue_usd_m",
+    "gross_profit_usd_m",
+    "opex_usd_m",
+    "operating_income_usd_m",
+    "ebitda_usd_m",
+    "net_income_usd_m",
+    "free_cash_flow_usd_m",
+    "eps",
+    "shares_outstanding",
+)
+
+FinancialQuarterValues = dict[str, float | None]
+
+
+def empty_financial_quarter_values() -> FinancialQuarterValues:
+    return dict.fromkeys(FINANCIAL_ACCUMULATOR_FIELDS, None)
+
+
 MARKET_COLUMNS: Final[tuple[str, ...]] = (
     "stock_price_usd",
     "dividend_yield",

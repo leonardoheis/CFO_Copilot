@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Any, Final
+from typing import Any, Final, Protocol, cast
 
 import pandas as pd
 from fredapi import Fred
@@ -25,20 +25,31 @@ MISSING_FRED_API_KEY_MESSAGE: Final = (
 )
 
 
+class _FredClient(Protocol):
+    def get_series(
+        self,
+        series_id: str,
+        *,
+        observation_start: str,
+        observation_end: str,
+        **kwargs: Any,
+    ) -> pd.Series: ...
+
+
 class FredSource:
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
-        self._client: Fred | None = None
+        self._client: _FredClient | None = None
 
     def _ensure_api_key(self) -> None:
         if not self._api_key:
             raise DataSourceUnavailableError(MISSING_FRED_API_KEY_MESSAGE)
 
     @property
-    def _fred(self) -> Fred:
+    def _fred(self) -> _FredClient:
         self._ensure_api_key()
         if self._client is None:
-            self._client = Fred(api_key=self._api_key)
+            self._client = cast("_FredClient", Fred(api_key=self._api_key))
         return self._client
 
     def fetch_macro_series(

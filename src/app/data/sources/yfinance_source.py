@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Protocol
 
 import pandas as pd
 import yfinance as yf
@@ -15,9 +16,17 @@ from app.data.schema import MARKET_COLUMNS
 TRAILING_DIVIDEND_DAYS = 365
 
 
+class _YahooTicker(Protocol):
+    @property
+    def splits(self) -> pd.Series: ...
+
+    @property
+    def dividends(self) -> pd.Series: ...
+
+
 class YfinanceSource:
-    def fetch_stock_history(  # ruff: ignore[no-self-use]
-        self,
+    @staticmethod
+    def fetch_stock_history(
         ticker: str,
         start: date,
         end: date,
@@ -40,7 +49,7 @@ class YfinanceSource:
             message = f"No Yahoo Finance history found for ticker {normalized_ticker}"
             raise TickerNotFoundError(message)
 
-        return history
+        return history  # type: ignore[no-any-return]
 
     def fetch_market_panel(self, ticker: str, start: date, end: date) -> pd.DataFrame:
         normalized_ticker = ticker.upper()
@@ -77,7 +86,7 @@ class YfinanceSource:
 
     @staticmethod
     def _fetch_splits(
-        yahoo_ticker: yf.Ticker,
+        yahoo_ticker: _YahooTicker,
         ticker: str,
     ) -> pd.Series:
         try:
@@ -92,7 +101,7 @@ class YfinanceSource:
 
     @staticmethod
     def _quarterly_dividend_yield(
-        yahoo_ticker: yf.Ticker,
+        yahoo_ticker: _YahooTicker,
         close: pd.Series,
         quarter_dates: list[date],
     ) -> pd.Series:

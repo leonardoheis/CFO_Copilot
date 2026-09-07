@@ -1,3 +1,4 @@
+import math
 from datetime import date
 
 import pandas as pd
@@ -36,7 +37,7 @@ EXPECTED_SHARES = 1_000_000_000.0
 class FakeMacroSource:
     @staticmethod
     def fetch_macro_panel(_start: date, _end: date) -> pd.DataFrame:
-        values = {column: [float("nan")] * 2 for column in MACRO_COLUMNS}
+        values = {column: [math.nan] * 2 for column in MACRO_COLUMNS}
         values["fed_funds"] = [EXPECTED_FED_FUNDS, 2.0]
         return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
 
@@ -48,7 +49,7 @@ class FakeMarketSource:
         _start: date,
         _end: date,
     ) -> pd.DataFrame:
-        values = {column: [float("nan")] * 2 for column in MARKET_COLUMNS}
+        values = {column: [math.nan] * 2 for column in MARKET_COLUMNS}
         values["stock_price_usd"] = [EXPECTED_STOCK_PRICE, 110.0]
         return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
 
@@ -67,7 +68,7 @@ class FakeFinancialsSource:
         _end: date,
         _splits: pd.Series,
     ) -> pd.DataFrame:
-        values = {column: [float("nan")] * 2 for column in FINANCIAL_COLUMNS}
+        values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
         values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
         values["eps"] = [EXPECTED_ADJUSTED_EPS, -1.0]
         return pd.DataFrame(

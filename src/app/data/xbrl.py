@@ -1,3 +1,4 @@
+import math
 import operator
 from collections import defaultdict
 from datetime import date
@@ -67,7 +68,7 @@ def quarterly_facts_from_facts(
 
         derived = _find_ytd_fact(values_by_period, quarter_date)
         records.append(
-            derived if derived is not None else {"value": float("nan"), "filed": ""},
+            derived if derived is not None else {"value": math.nan, "filed": ""},
         )
 
     return pd.DataFrame(records, index=quarter_dates)
@@ -87,7 +88,7 @@ def instant_series_from_facts(
     for quarter_date in quarter_dates:
         matching = [fact for end, fact in selected.items() if end <= quarter_date]
         if not matching:
-            records.append({"value": float("nan"), "filed": ""})
+            records.append({"value": math.nan, "filed": ""})
             continue
         latest = max(matching, key=operator.itemgetter("end"))
         records.append({"value": float(latest["val"]), "filed": latest["filed"]})
@@ -113,7 +114,7 @@ def quarterly_series_from_facts(
             continue
 
         derived = _find_ytd_fact(values_by_period, quarter_date)
-        result.append(derived["value"] if derived is not None else float("nan"))
+        result.append(derived["value"] if derived is not None else math.nan)
 
     return pd.Series(result, index=quarter_dates, dtype="float64")
 

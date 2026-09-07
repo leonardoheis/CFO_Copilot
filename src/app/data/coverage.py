@@ -1,3 +1,4 @@
+import math
 from dataclasses import asdict, dataclass
 from datetime import date
 from typing import Final
@@ -90,8 +91,12 @@ def report_as_dict(report: CoverageReport) -> dict[str, object]:
 
 def _indexed_panel(panel: pd.DataFrame) -> pd.DataFrame:
     indexed = panel.copy()
-    indexed["date"] = pd.to_datetime(indexed["date"]).dt.date
+    indexed["date"] = pd.to_datetime(indexed["date"])
     return indexed.set_index("date")
+
+
+def _quarter_timestamp(quarter_date: date) -> pd.Timestamp:
+    return pd.Timestamp(quarter_date)
 
 
 def _field_coverage(
@@ -117,11 +122,12 @@ def _missing_dates(
 ) -> list[date]:
     missing: list[date] = []
     for quarter_date in expected_dates:
-        if quarter_date not in panel.index:
+        quarter_timestamp = _quarter_timestamp(quarter_date)
+        if quarter_timestamp not in panel.index:
             missing.append(quarter_date)
             continue
         if any(
-            field not in panel.columns or pd.isna(panel.loc[quarter_date, field])
+            field not in panel.columns or pd.isna(panel.loc[quarter_timestamp, field])
             for field in fields
         ):
             missing.append(quarter_date)
@@ -132,10 +138,12 @@ def _overlap_errors(
     alpha: pd.DataFrame,
     sec: pd.DataFrame,
 ) -> dict[str, float]:
+    overlap_start = _quarter_timestamp(OVERLAP_START)
+    overlap_end = _quarter_timestamp(OVERLAP_END)
     dates = [
         value
         for value in alpha.index
-        if OVERLAP_START <= value <= OVERLAP_END and value in sec.index
+        if overlap_start <= value <= overlap_end and value in sec.index
     ]
     errors: dict[str, float] = {}
     for field in COVERAGE_FIELDS:
@@ -149,7 +157,7 @@ def _overlap_errors(
                 continue
             denominator = max(abs(float(right)), MIN_ABSOLUTE_TOLERANCE)
             differences.append(abs(float(left) - float(right)) / denominator)
-        errors[field] = max(differences, default=float("nan"))
+        errors[field] = max(differences, default=math.nan)
     return errors
 
 
@@ -168,10 +176,10 @@ def _overlap_passes(errors: dict[str, float]) -> bool:
 def _oldest_date(panel: pd.DataFrame) -> str | None:
     if panel.empty:
         return None
-    return min(panel.index).isoformat()
+    return min(panel.index).date().isoformat()  # type: ignore[no-any-return]
 
 
 def _newest_date(panel: pd.DataFrame) -> str | None:
     if panel.empty:
         return None
-    return max(panel.index).isoformat()
+    return max(panel.index).date().isoformat()  # type: ignore[no-any-return]

@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import Final, cast
@@ -9,7 +8,11 @@ import requests
 
 from app.data.dates import nearest_quarter_end, quarter_end_dates
 from app.data.exceptions import DataSourceError, DataSourceUnavailableError
-from app.data.schema import FINANCIAL_COLUMNS
+from app.data.schema import (
+    FINANCIAL_COLUMNS,
+    FinancialQuarterValues,
+    empty_financial_quarter_values,
+)
 
 ALPHA_VANTAGE_URL: Final = "https://www.alphavantage.co/query"
 REQUEST_TIMEOUT: Final = 30
@@ -24,19 +27,6 @@ MISSING_API_KEY_MESSAGE: Final = (
 )
 
 JsonObject = dict[str, object]
-
-
-@dataclass(slots=True)
-class QuarterlyValues:
-    revenue_usd_m: float | None = None
-    gross_profit_usd_m: float | None = None
-    opex_usd_m: float | None = None
-    operating_income_usd_m: float | None = None
-    ebitda_usd_m: float | None = None
-    net_income_usd_m: float | None = None
-    free_cash_flow_usd_m: float | None = None
-    eps: float | None = None
-    shares_outstanding: float | None = None
 
 
 class AlphaVantageSource:
@@ -66,7 +56,7 @@ class AlphaVantageSource:
         balance = self._request(BALANCE_SHEET, normalized_ticker)
         earnings = self._request(EARNINGS, normalized_ticker)
 
-        values_by_date: dict[date, QuarterlyValues] = {}
+        values_by_date: dict[date, FinancialQuarterValues] = {}
         self._merge_income(values_by_date, income)
         self._merge_cash_flow(values_by_date, cash_flow)
         self._merge_balance_sheet(values_by_date, balance)
@@ -137,31 +127,34 @@ class AlphaVantageSource:
 
     def _merge_income(
         self,
-        values_by_date: dict[date, QuarterlyValues],
+        values_by_date: dict[date, FinancialQuarterValues],
         payload: JsonObject,
     ) -> None:
         for report in self._reports(payload, "quarterlyReports"):
             quarter_date = self._report_date(report)
             if quarter_date is None:
                 continue
-            values = values_by_date.setdefault(quarter_date, QuarterlyValues())
-            values.revenue_usd_m = self._millions(report, "totalRevenue")
-            values.gross_profit_usd_m = self._millions(report, "grossProfit")
-            values.opex_usd_m = self._millions(report, "operatingExpenses")
-            values.operating_income_usd_m = self._millions(
+            values = values_by_date.setdefault(
+                quarter_date,
+                empty_financial_quarter_values(),
+            )
+            values["revenue_usd_m"] = self._millions(report, "totalRevenue")
+            values["gross_profit_usd_m"] = self._millions(report, "grossProfit")
+            values["opex_usd_m"] = self._millions(report, "operatingExpenses")
+            values["operating_income_usd_m"] = self._millions(
                 report,
                 "operatingIncome",
             )
-            values.ebitda_usd_m = self._millions(report, "ebitda")
-            values.net_income_usd_m = self._millions(report, "netIncome")
-            values.eps = self._number(report, "dilutedEPS") or self._number(
+            values["ebitda_usd_m"] = self._millions(report, "ebitda")
+            values["net_income_usd_m"] = self._millions(report, "netIncome")
+            values["eps"] = self._number(report, "dilutedEPS") or self._number(
                 report,
                 "basicEPS",
             )
 
     def _merge_cash_flow(
         self,
-        values_by_date: dict[date, QuarterlyValues],
+        values_by_date: dict[date, FinancialQuarterValues],
         payload: JsonObject,
     ) -> None:
         for report in self._reports(payload, "quarterlyReports"):
@@ -172,14 +165,17 @@ class AlphaVantageSource:
             capital_expenditures = self._number(report, "capitalExpenditures")
             if operating_cash_flow is None or capital_expenditures is None:
                 continue
-            values = values_by_date.setdefault(quarter_date, QuarterlyValues())
-            values.free_cash_flow_usd_m = (
+            values = values_by_date.setdefault(
+                quarter_date,
+                empty_financial_quarter_values(),
+            )
+            values["free_cash_flow_usd_m"] = (
                 operating_cash_flow - abs(capital_expenditures)
             ) / MILLIONS_DIVISOR
 
     def _merge_balance_sheet(
         self,
-        values_by_date: dict[date, QuarterlyValues],
+        values_by_date: dict[date, FinancialQuarterValues],
         payload: JsonObject,
     ) -> None:
         for report in self._reports(payload, "quarterlyReports"):
@@ -188,12 +184,12 @@ class AlphaVantageSource:
             if quarter_date is not None and shares is not None:
                 values_by_date.setdefault(
                     quarter_date,
-                    QuarterlyValues(),
-                ).shares_outstanding = shares
+                    empty_financial_quarter_values(),
+                )["shares_outstanding"] = shares
 
     def _merge_earnings(
         self,
-        values_by_date: dict[date, QuarterlyValues],
+        values_by_date: dict[date, FinancialQuarterValues],
         payload: JsonObject,
     ) -> None:
         for report in self._reports(payload, "quarterlyEarnings"):
@@ -201,9 +197,12 @@ class AlphaVantageSource:
             earnings_per_share = self._number(report, "reportedEPS")
             if quarter_date is None or earnings_per_share is None:
                 continue
-            values = values_by_date.setdefault(quarter_date, QuarterlyValues())
-            if values.eps is None:
-                values.eps = earnings_per_share
+            values = values_by_date.setdefault(
+                quarter_date,
+                empty_financial_quarter_values(),
+            )
+            if values["eps"] is None:
+                values["eps"] = earnings_per_share
 
     @staticmethod
     def _reports(payload: JsonObject, key: str) -> list[JsonObject]:
@@ -243,24 +242,24 @@ class AlphaVantageSource:
 
     @staticmethod
     def _row_for_date(
-        values: QuarterlyValues | None,
+        values: FinancialQuarterValues | None,
         quarter_date: date,
     ) -> dict[str, date | float | None]:
-        values = values or QuarterlyValues()
-        revenue = values.revenue_usd_m
-        gross_profit = values.gross_profit_usd_m
-        operating_income = values.operating_income_usd_m
-        net_income = values.net_income_usd_m
+        values = values or empty_financial_quarter_values()
+        revenue = values["revenue_usd_m"]
+        gross_profit = values["gross_profit_usd_m"]
+        operating_income = values["operating_income_usd_m"]
+        net_income = values["net_income_usd_m"]
         safe_revenue = revenue if revenue not in {None, 0.0} else None
         return {
             "date": quarter_date,
             "revenue_usd_m": revenue,
             "gross_profit_usd_m": gross_profit,
-            "opex_usd_m": values.opex_usd_m,
+            "opex_usd_m": values["opex_usd_m"],
             "operating_income_usd_m": operating_income,
-            "ebitda_usd_m": values.ebitda_usd_m,
+            "ebitda_usd_m": values["ebitda_usd_m"],
             "net_income_usd_m": net_income,
-            "free_cash_flow_usd_m": values.free_cash_flow_usd_m,
+            "free_cash_flow_usd_m": values["free_cash_flow_usd_m"],
             "gross_margin": (
                 gross_profit / safe_revenue
                 if gross_profit is not None and safe_revenue is not None
@@ -276,6 +275,6 @@ class AlphaVantageSource:
                 if net_income is not None and safe_revenue is not None
                 else None
             ),
-            "eps": values.eps,
-            "shares_outstanding": values.shares_outstanding,
+            "eps": values["eps"],
+            "shares_outstanding": values["shares_outstanding"],
         }

@@ -1,3 +1,4 @@
+import math
 from datetime import date, timedelta
 
 import pandas as pd
@@ -43,7 +44,7 @@ def align_series_to_quarters(
     quarter_dates: list[date],
 ) -> pd.Series:
     if series.empty:
-        return pd.Series([float("nan")] * len(quarter_dates), index=quarter_dates)
+        return pd.Series([math.nan] * len(quarter_dates), index=quarter_dates)
 
     normalized = series.sort_index()
     normalized.index = normalize_datetime_index(normalized.index)
