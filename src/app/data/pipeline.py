@@ -3,11 +3,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from app.data.companies import resolve_company_metadata
 from app.data.dates import quarter_end_dates
 from app.data.schema import (
     METADATA_COLUMNS,
     PANEL_COLUMNS,
-    resolve_company_metadata,
 )
 from app.data.sources_bundle import IngestionSources
 

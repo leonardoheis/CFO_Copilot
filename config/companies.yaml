@@ -1,0 +1,63 @@
+companies:
+  - tickers:
+      - AMZN
+    panel:
+      company: Amazon
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001018724"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - GOOGL
+      - GOOG
+    panel:
+      company: Alphabet
+      sector: Communication Services
+      is_public: true
+    sec:
+      type: dual_cik
+      legacy_cik: "0001288776"
+      current_cik: "0001652044"
+    market:
+      type: history_ticker
+      history_ticker: GOOG
+
+  - tickers:
+      - MSFT
+    panel:
+      company: Microsoft
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000789019"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - GLOB
+    panel:
+      company: Globant
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001557860"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - TSLA
+    panel:
+      company: Tesla
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001318605"
+    market:
+      type: from_ticker

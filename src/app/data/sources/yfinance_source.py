@@ -4,6 +4,7 @@ from typing import Protocol
 import pandas as pd
 import yfinance as yf
 
+from app.data.companies import resolve_market_history_tickers
 from app.data.dates import (
     align_series_to_quarters,
     inclusive_history_end,
@@ -54,11 +55,8 @@ class YfinanceSource:
     def fetch_market_panel(self, ticker: str, start: date, end: date) -> pd.DataFrame:
         normalized_ticker = ticker.upper()
         quarter_dates = quarter_end_dates(start, end)
-        history = self.fetch_stock_history(normalized_ticker, start, end)
+        close = self._combined_close_history(normalized_ticker, start, end)
         yahoo_ticker = yf.Ticker(normalized_ticker)
-
-        close = history["Close"].copy()
-        close.index = normalize_datetime_index(close.index)
 
         stock_price = align_series_to_quarters(close, quarter_dates)
         dividend_yield = self._quarterly_dividend_yield(
@@ -82,7 +80,38 @@ class YfinanceSource:
             A series indexed by split effective date and valued by ratio.
         """
         normalized_ticker = ticker.upper()
-        return self._fetch_splits(yf.Ticker(normalized_ticker), normalized_ticker)
+        splits = pd.Series(dtype=float)
+        for market_ticker in resolve_market_history_tickers(normalized_ticker):
+            ticker_splits = self._fetch_splits(
+                yf.Ticker(market_ticker),
+                market_ticker,
+            )
+            if splits.empty:
+                splits = ticker_splits
+            else:
+                splits = pd.concat([splits, ticker_splits]).sort_index()
+        return splits[~splits.index.duplicated(keep="last")]
+
+    def _combined_close_history(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+    ) -> pd.Series:
+        combined = pd.Series(dtype=float)
+        for market_ticker in reversed(resolve_market_history_tickers(ticker)):
+            try:
+                history = self.fetch_stock_history(market_ticker, start, end)
+            except TickerNotFoundError:
+                continue
+            close = history["Close"].copy()
+            close.index = normalize_datetime_index(close.index)
+            combined = close if combined.empty else close.combine_first(combined)
+
+        if combined.empty:
+            message = f"No Yahoo Finance history found for ticker {ticker}"
+            raise TickerNotFoundError(message)
+        return combined
 
     @staticmethod
     def _fetch_splits(

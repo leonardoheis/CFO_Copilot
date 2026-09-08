@@ -52,6 +52,20 @@ def test_fetch_splits_returns_amazon_split_history(
 
 
 @pytest.mark.vcr
+def test_fetch_market_panel_uses_goog_history_for_googl(
+    yfinance_source: YfinanceSource,
+) -> None:
+    start = date(2010, 1, 1)
+    end = date(2010, 6, 30)
+    panel = yfinance_source.fetch_market_panel("GOOGL", start, end)
+
+    stock_prices = panel["stock_price_usd"].astype(float)
+
+    assert stock_prices.notna().all()
+    assert stock_prices.gt(0.0).all()
+
+
+@pytest.mark.vcr
 def test_fetch_stock_history_raises_for_unknown_ticker(
     yfinance_source: YfinanceSource,
 ) -> None:

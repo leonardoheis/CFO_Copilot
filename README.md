@@ -122,6 +122,34 @@ including CICD, deployment and multi-layered architecture.
 as well.
 1. Install dependencies with `uv sync --all-groups`.
 
+### Company registry
+
+Company-specific ingestion rules are stored in
+[`config/companies.yaml`](config/companies.yaml). Add a new item under
+`companies` when a ticker needs a custom name, sector, SEC CIK, or market
+history symbol. The registry is validated when the data package is imported.
+
+Use `known_cik` for a company with one stable SEC entity:
+
+```yaml
+- tickers: [MSFT]
+  panel:
+    company: Microsoft
+    sector: Technology
+    is_public: true
+  sec:
+    type: known_cik
+    cik: "0000789019"
+  market:
+    type: from_ticker
+```
+
+Use `dual_cik` when historical filings belong to a prior SEC entity, as with
+Google and Alphabet. Use `history_ticker` when the requested Yahoo symbol does
+not cover the company's full market history. For ordinary tickers, no registry
+entry is required: SEC resolves the CIK dynamically and Yahoo uses the
+requested ticker.
+
 ### Running tests
 
 Tests can be run via the terminal or through the VS Code Testing Pane.

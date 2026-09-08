@@ -1,8 +1,11 @@
-from dataclasses import dataclass
 from datetime import date
 from typing import Final
 
 from pydantic import BaseModel, ConfigDict
+
+from app.data.companies import CompanyPanelMetadata
+
+CompanyMetadata = CompanyPanelMetadata
 
 METADATA_COLUMNS: Final[tuple[str, ...]] = (
     "date",
@@ -73,24 +76,6 @@ PANEL_COLUMNS: Final[tuple[str, ...]] = (
 )
 
 
-@dataclass(frozen=True, slots=True)
-class CompanyMetadata:
-    company: str
-    sector: str
-    is_public: bool
-    cik: str = ""
-
-
-COMPANY_METADATA: Final[dict[str, CompanyMetadata]] = {
-    "AMZN": CompanyMetadata(
-        company="Amazon",
-        sector="Consumer Cyclical",
-        is_public=True,
-        cik="0001018724",
-    ),
-}
-
-
 class PanelRow(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -121,15 +106,3 @@ class PanelRow(BaseModel):
     dxy: float | None = None
     vix: float | None = None
     wti_oil: float | None = None
-
-
-def resolve_company_metadata(ticker: str) -> CompanyMetadata:
-    normalized_ticker = ticker.upper()
-    if normalized_ticker in COMPANY_METADATA:
-        return COMPANY_METADATA[normalized_ticker]
-
-    return CompanyMetadata(
-        company=normalized_ticker,
-        sector="Unknown",
-        is_public=True,
-    )

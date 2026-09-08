@@ -6,9 +6,10 @@ from typing import Final, cast
 import pandas as pd
 import requests
 
+from app.data.companies import resolve_primary_sec_cik, resolve_sec_ciks
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
-from app.data.schema import COMPANY_METADATA, FINANCIAL_COLUMNS
+from app.data.schema import FINANCIAL_COLUMNS
 from app.data.splits import cumulative_split_factors
 from app.data.xbrl import (
     InstantXbrlFact,
@@ -82,6 +83,18 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
 }
 
 
+def merge_raw_financial_frames(
+    preferred: pd.DataFrame,
+    fallback: pd.DataFrame,
+) -> pd.DataFrame:
+    merged = preferred.copy()
+    for column in preferred.columns:
+        if column == "date":
+            continue
+        merged[column] = preferred[column].combine_first(fallback[column])
+    return merged
+
+
 def _financial_panel_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
     revenue = raw["revenue"]
     cogs = raw["cogs"]
@@ -120,11 +133,13 @@ class SecEdgarSource:
         self._ticker_ciks: dict[str, str] | None = None
 
     def resolve_cik(self, ticker: str) -> str:
-        normalized_ticker = ticker.upper()
-        metadata = COMPANY_METADATA.get(normalized_ticker)
-        if metadata is not None and metadata.cik:
-            return metadata.cik
+        return resolve_primary_sec_cik(ticker, self._lookup_ticker_cik)
 
+    def resolve_ciks(self, ticker: str) -> tuple[str, ...]:
+        return resolve_sec_ciks(ticker, self._lookup_ticker_cik)
+
+    def _lookup_ticker_cik(self, ticker: str) -> str:
+        normalized_ticker = ticker.upper()
         ticker_ciks = self._load_ticker_ciks()
         cik = ticker_ciks.get(normalized_ticker)
         if cik is None:
@@ -166,7 +181,25 @@ class SecEdgarSource:
         splits: pd.Series | None = None,
     ) -> pd.DataFrame:
         quarter_dates = quarter_end_dates(start, end)
-        cik = self.resolve_cik(ticker)
+        merged: pd.DataFrame | None = None
+        for cik in self.resolve_ciks(ticker):
+            raw = self._fetch_quarterly_financials_for_cik(
+                cik,
+                quarter_dates,
+                splits,
+            )
+            merged = raw if merged is None else merge_raw_financial_frames(raw, merged)
+        if merged is None:
+            msg = f"No SEC EDGAR CIKs resolved for ticker {ticker.upper()}"
+            raise TickerNotFoundError(msg)
+        return merged
+
+    def _fetch_quarterly_financials_for_cik(
+        self,
+        cik: str,
+        quarter_dates: list[date],
+        splits: pd.Series | None,
+    ) -> pd.DataFrame:
         series_by_name = {
             name: self._fetch_tag_chain(cik, spec, quarter_dates, splits)
             for name, spec in TAG_CHAINS.items()
