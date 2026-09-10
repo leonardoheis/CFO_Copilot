@@ -1,142 +1,62 @@
+"""SEC EDGAR HTTP client: CIK resolution and us-gaap concept retrieval."""
+
 import math
-from dataclasses import dataclass, field
 from datetime import date
 from typing import Final, cast
 
 import pandas as pd
 import requests
 
-from app.data.companies import resolve_primary_sec_cik, resolve_sec_ciks
+from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
-from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
-from app.data.schema import FINANCIAL_COLUMNS
-from app.data.splits import cumulative_split_factors
+from app.data.exceptions import (
+    DataSourceUnavailableError,
+    MalformedPayloadError,
+    TickerNotFoundError,
+)
 from app.data.xbrl import (
     InstantXbrlFact,
     XbrlFact,
     instant_series_from_facts,
     quarterly_facts_from_facts,
 )
+from app.settings import Settings
+
+from .concepts import (
+    DILUTED_SHARES_FALLBACK,
+    PER_SHARE_UNIT,
+    SHARES_UNIT,
+    TAG_CHAINS,
+    USD_UNIT,
+    ConceptSpec,
+)
+from .parsing import (
+    financial_panel_from_raw,
+    merge_raw_financial_frames,
+    split_factors_for_filing_dates,
+)
 
 SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
 SEC_CONCEPT_URL: Final = (
     "https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/us-gaap/{tag}.json"
 )
-REQUEST_TIMEOUT: Final = 30
 NOT_FOUND_STATUS: Final = 404
-MILLIONS_DIVISOR: Final = 1_000_000
-USD_UNIT: Final = "USD"
-PER_SHARE_UNIT: Final = "USD/shares"
-SHARES_UNIT: Final = "shares"
 MISSING_USER_AGENT_MESSAGE: Final = (
     "SEC_USER_AGENT is not set. Add it to your .env file (see .env.example)."
 )
 
 
-@dataclass(frozen=True, slots=True)
-class ConceptSpec:
-    """An ordered set of us-gaap tags reported under a single XBRL unit."""
-
-    tags: tuple[str, ...]
-    unit: str = field(default=USD_UNIT)
-
-
-TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
-    "revenue": ConceptSpec(
-        (
-            "RevenueFromContractWithCustomerExcludingAssessedTax",
-            "SalesRevenueNet",
-            "Revenues",
-        ),
-    ),
-    "cogs": ConceptSpec(("CostOfGoodsAndServicesSold", "CostOfRevenue")),
-    "costs_and_expenses": ConceptSpec(("CostsAndExpenses",)),
-    "operating_income": ConceptSpec(("OperatingIncomeLoss",)),
-    "net_income": ConceptSpec(("NetIncomeLoss",)),
-    "dep_amort": ConceptSpec(
-        (
-            "DepreciationDepletionAndAmortization",
-            "DepreciationAndAmortization",
-            "Depreciation",
-        ),
-    ),
-    "operating_cash_flow": ConceptSpec(
-        (
-            "NetCashProvidedByUsedInOperatingActivities",
-            "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations",
-        ),
-    ),
-    "capex": ConceptSpec(
-        (
-            "PaymentsToAcquireProductiveAssets",
-            "PaymentsToAcquirePropertyPlantAndEquipment",
-        ),
-    ),
-    "eps": ConceptSpec(
-        ("EarningsPerShareDiluted", "EarningsPerShareBasic"),
-        unit=PER_SHARE_UNIT,
-    ),
-    "shares_outstanding": ConceptSpec(
-        ("CommonStockSharesOutstanding",),
-        unit=SHARES_UNIT,
-    ),
-}
-
-
-def merge_raw_financial_frames(
-    preferred: pd.DataFrame,
-    fallback: pd.DataFrame,
-) -> pd.DataFrame:
-    merged = preferred.copy()
-    for column in preferred.columns:
-        if column == "date":
-            continue
-        merged[column] = preferred[column].combine_first(fallback[column])
-    return merged
-
-
-def _financial_panel_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
-    revenue = raw["revenue"]
-    cogs = raw["cogs"]
-    gross_profit = revenue - cogs
-    operating_income = raw["operating_income"]
-    net_income = raw["net_income"]
-    safe_revenue = revenue.where(revenue != 0)
-    reported_opex = raw["costs_and_expenses"] - cogs
-    derived_opex = revenue - operating_income - cogs
-    opex = reported_opex.where(reported_opex.notna(), derived_opex)
-
-    panel = pd.DataFrame(
-        {
-            "date": raw["date"],
-            "revenue_usd_m": revenue / MILLIONS_DIVISOR,
-            "gross_profit_usd_m": gross_profit / MILLIONS_DIVISOR,
-            "opex_usd_m": opex / MILLIONS_DIVISOR,
-            "operating_income_usd_m": operating_income / MILLIONS_DIVISOR,
-            "ebitda_usd_m": (operating_income + raw["dep_amort"]) / MILLIONS_DIVISOR,
-            "net_income_usd_m": net_income / MILLIONS_DIVISOR,
-            "free_cash_flow_usd_m": (raw["operating_cash_flow"] - raw["capex"])
-            / MILLIONS_DIVISOR,
-            "gross_margin": gross_profit / safe_revenue,
-            "operating_margin": operating_income / safe_revenue,
-            "net_margin": net_income / safe_revenue,
-            "eps": raw["eps"],
-            "shares_outstanding": raw["shares_outstanding"],
-        },
-    )
-    return panel.loc[:, ["date", *FINANCIAL_COLUMNS, "shares_outstanding"]]
-
-
 class SecEdgarSource:
-    def __init__(self, user_agent: str) -> None:
+    def __init__(self, user_agent: str, registry: CompanyRegistry) -> None:
         self._user_agent = user_agent
+        self._registry = registry
         self._ticker_ciks: dict[str, str] | None = None
 
     def resolve_cik(self, ticker: str) -> str:
-        return resolve_primary_sec_cik(ticker, self._lookup_ticker_cik)
+        return self._registry.primary_sec_cik(ticker, self._lookup_ticker_cik)
 
     def resolve_ciks(self, ticker: str) -> tuple[str, ...]:
-        return resolve_sec_ciks(ticker, self._lookup_ticker_cik)
+        return self._registry.sec_ciks(ticker, self._lookup_ticker_cik)
 
     def _lookup_ticker_cik(self, ticker: str) -> str:
         normalized_ticker = ticker.upper()
@@ -225,7 +145,7 @@ class SecEdgarSource:
         splits: pd.Series | None = None,
     ) -> pd.DataFrame:
         raw = self.fetch_quarterly_financials(ticker, start, end, splits)
-        return _financial_panel_from_raw(raw)
+        return financial_panel_from_raw(raw)
 
     def _fetch_tag_chain(
         self,
@@ -241,7 +161,7 @@ class SecEdgarSource:
                 records = quarterly_facts_from_facts(facts, quarter_dates)
                 values = records["value"]
                 if spec.unit == PER_SHARE_UNIT:
-                    values /= self._split_factors_for_filing_dates(
+                    values /= split_factors_for_filing_dates(
                         records["filed"],
                         splits,
                     )
@@ -261,7 +181,7 @@ class SecEdgarSource:
                     cast("list[InstantXbrlFact]", facts),
                     quarter_dates,
                 )
-                values = records["value"] * self._split_factors_for_filing_dates(
+                values = records["value"] * split_factors_for_filing_dates(
                     records["filed"],
                     splits,
                 )
@@ -270,30 +190,10 @@ class SecEdgarSource:
 
         return self._fetch_tag_chain(
             cik,
-            ConceptSpec(
-                ("WeightedAverageNumberOfDilutedSharesOutstanding",),
-                unit=SHARES_UNIT,
-            ),
+            DILUTED_SHARES_FALLBACK,
             quarter_dates,
             splits,
         )
-
-    @staticmethod
-    def _split_factors_for_filing_dates(
-        filed_dates: pd.Series,
-        splits: pd.Series | None,
-    ) -> pd.Series:
-        if splits is None:
-            return pd.Series(1.0, index=filed_dates.index)
-        parsed_dates = pd.to_datetime(filed_dates.replace("", None))
-        valid = parsed_dates.notna()
-        factors = pd.Series(1.0, index=filed_dates.index)
-        if valid.any():
-            factors.loc[valid] = cumulative_split_factors(
-                splits,
-                pd.DatetimeIndex(parsed_dates.loc[valid]),
-            ).to_numpy()
-        return factors
 
     def _load_ticker_ciks(self) -> dict[str, str]:
         if self._ticker_ciks is not None:
@@ -303,8 +203,14 @@ class SecEdgarSource:
         ticker_ciks: dict[str, str] = {}
         for entry in payload.values():
             ticker_entry = cast("dict[str, object]", entry)
-            ticker = str(ticker_entry["ticker"]).upper()
-            cik = str(ticker_entry["cik_str"]).zfill(10)
+            try:
+                ticker = str(ticker_entry["ticker"]).upper()
+                cik = str(ticker_entry["cik_str"]).zfill(10)
+            except KeyError as error:
+                msg = f"Malformed SEC ticker entry: {ticker_entry!r}"
+                raise MalformedPayloadError(
+                    msg,
+                ) from error
             ticker_ciks[ticker] = cik
         self._ticker_ciks = ticker_ciks
         return ticker_ciks
@@ -316,7 +222,7 @@ class SecEdgarSource:
             response = requests.get(
                 url,
                 headers={"User-Agent": self._user_agent},
-                timeout=REQUEST_TIMEOUT,
+                timeout=Settings.REQUEST_TIMEOUT,
             )
             response.raise_for_status()
             return response.json()
@@ -329,7 +235,3 @@ class SecEdgarSource:
             raise DataSourceUnavailableError(
                 msg,
             ) from error
-
-    @property
-    def financial_columns(self) -> tuple[str, ...]:
-        return FINANCIAL_COLUMNS

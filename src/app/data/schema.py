@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from app.data.companies import CompanyPanelMetadata
 
 CompanyMetadata = CompanyPanelMetadata
+MILLIONS_DIVISOR: Final = 1_000_000
 
 METADATA_COLUMNS: Final[tuple[str, ...]] = (
     "date",
@@ -39,23 +40,49 @@ FINANCIAL_COLUMNS: Final[tuple[str, ...]] = (
     "eps",
 )
 
-FINANCIAL_ACCUMULATOR_FIELDS: Final[tuple[str, ...]] = (
-    "revenue_usd_m",
-    "gross_profit_usd_m",
-    "opex_usd_m",
-    "operating_income_usd_m",
-    "ebitda_usd_m",
-    "net_income_usd_m",
-    "free_cash_flow_usd_m",
-    "eps",
-    "shares_outstanding",
-)
 
-FinancialQuarterValues = dict[str, float | None]
+class FinancialQuarterValues(BaseModel):
+    """Mutable accumulator for one quarter, filled from several source payloads.
+
+    A field is ``None`` until some payload reports it. Attribute assignment keeps
+    a mistyped field name a type error rather than a silently ignored dict key.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    revenue_usd_m: float | None = None
+    gross_profit_usd_m: float | None = None
+    opex_usd_m: float | None = None
+    operating_income_usd_m: float | None = None
+    ebitda_usd_m: float | None = None
+    net_income_usd_m: float | None = None
+    free_cash_flow_usd_m: float | None = None
+    eps: float | None = None
+    shares_outstanding: float | None = None
 
 
-def empty_financial_quarter_values() -> FinancialQuarterValues:
-    return dict.fromkeys(FINANCIAL_ACCUMULATOR_FIELDS, None)
+class FinancialsRow(BaseModel):
+    """One row of the financial panel, before macro and market columns are merged.
+
+    Field order matches ``["date", *FINANCIAL_COLUMNS, "shares_outstanding"]`` so
+    ``model_dump()`` can be handed straight to ``pandas.DataFrame``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date
+    revenue_usd_m: float | None = None
+    gross_profit_usd_m: float | None = None
+    opex_usd_m: float | None = None
+    operating_income_usd_m: float | None = None
+    ebitda_usd_m: float | None = None
+    net_income_usd_m: float | None = None
+    free_cash_flow_usd_m: float | None = None
+    gross_margin: float | None = None
+    operating_margin: float | None = None
+    net_margin: float | None = None
+    eps: float | None = None
+    shares_outstanding: float | None = None
 
 
 MARKET_COLUMNS: Final[tuple[str, ...]] = (

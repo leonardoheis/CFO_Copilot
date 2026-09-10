@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class _Settings(BaseSettings):
     UI_PORT: int = 10000
     API_PORT: int = 8000
+    REQUEST_TIMEOUT: int = 30
     HOST: str = "0.0.0.0"  # nosec  # ruff: ignore[hardcoded-bind-all-interfaces]
     FRED_API_KEY: str = ""
     SEC_USER_AGENT: str = ""
@@ -67,6 +68,10 @@ class _Settings(BaseSettings):
         data_directory = self.ROOT_PATH / "data"
         data_directory.mkdir(parents=True, exist_ok=True)
         return data_directory
+
+    @property
+    def COMPANY_REGISTRY_PATH(self) -> Path:
+        return self.ROOT_PATH / "config" / "companies.yaml"
 
     def panel_output_path(self, ticker: str) -> Path:
         processed_directory = self.DATA_DIRECTORY / "processed"

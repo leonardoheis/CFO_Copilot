@@ -4,6 +4,8 @@ from typing import Protocol
 
 import pandas as pd
 
+from app.data.companies import CompanyRegistry
+
 
 class MacroSource(Protocol):
     def fetch_macro_panel(self, start: date, end: date) -> pd.DataFrame: ...
@@ -35,3 +37,4 @@ class IngestionSources:
     fred: MacroSource
     yfinance: MarketSource
     sec_edgar: FinancialsSource
+    registry: CompanyRegistry

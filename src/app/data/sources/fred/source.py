@@ -2,6 +2,7 @@ from datetime import date
 from typing import Any, Final, Protocol, cast
 
 import pandas as pd
+import requests
 from fredapi import Fred
 
 from app.data.dates import align_series_to_quarters, quarter_end_dates
@@ -67,7 +68,7 @@ class FredSource:
                 observation_end=end.isoformat(),
                 **kwargs,
             )
-        except ValueError as error:
+        except (ValueError, requests.RequestException) as error:
             message = f"Failed to fetch FRED series {series_id}: {error}"
             raise DataSourceUnavailableError(message) from error
 

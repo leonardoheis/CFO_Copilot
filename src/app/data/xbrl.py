@@ -1,3 +1,4 @@
+import logging
 import math
 import operator
 from collections import defaultdict
@@ -6,12 +7,14 @@ from typing import Final, NotRequired, TypedDict
 
 import pandas as pd
 
-from app.data.dates import nearest_quarter_end
+from app.data.dates import QUARTER_END_TOLERANCE_DAYS, nearest_quarter_end
+from app.data.exceptions import MalformedPayloadError
 
 MIN_QUARTER_DAYS: Final = 80
 MAX_QUARTER_DAYS: Final = 100
 MIN_YEAR_TO_DATE_DAYS: Final = 160
 MIN_REJECTED_PERIODS: Final = 2
+logger = logging.getLogger(__name__)
 
 
 class XbrlFact(TypedDict):
@@ -32,20 +35,6 @@ class InstantXbrlFact(TypedDict):
 class QuarterlyFact(TypedDict):
     value: float
     filed: str
-
-
-def deduplicate_facts(
-    facts: list[XbrlFact],
-) -> dict[tuple[date, date], float]:
-    """Select trusted values for each XBRL period.
-
-    Returns:
-        A mapping from each reported period to its trusted value.
-    """
-    return {
-        period: fact["value"]
-        for period, fact in _deduplicate_fact_records(facts).items()
-    }
 
 
 def quarterly_facts_from_facts(
@@ -91,32 +80,8 @@ def instant_series_from_facts(
             records.append({"value": math.nan, "filed": ""})
             continue
         latest = max(matching, key=operator.itemgetter("end"))
-        records.append({"value": float(latest["val"]), "filed": latest["filed"]})
+        records.append({"value": _fact_value(latest), "filed": latest["filed"]})
     return pd.DataFrame(records, index=quarter_dates)
-
-
-def quarterly_series_from_facts(
-    facts: list[XbrlFact],
-    quarter_dates: list[date],
-) -> pd.Series:
-    """Convert SEC duration facts, including YTD facts, to calendar quarters.
-
-    Returns:
-        A series indexed by the requested quarter-end dates.
-    """
-    values_by_period = _deduplicate_fact_records(facts)
-    result: list[float] = []
-
-    for quarter_date in quarter_dates:
-        native = _find_native_fact(values_by_period, quarter_date)
-        if native is not None:
-            result.append(native["value"])
-            continue
-
-        derived = _find_ytd_fact(values_by_period, quarter_date)
-        result.append(derived["value"] if derived is not None else math.nan)
-
-    return pd.Series(result, index=quarter_dates, dtype="float64")
 
 
 def _find_native_fact(
@@ -184,7 +149,16 @@ def _deduplicate_fact_records(
 ) -> dict[tuple[date, date], QuarterlyFact]:
     grouped: dict[tuple[date, date], list[XbrlFact]] = defaultdict(list)
     for fact in facts:
-        period = (date.fromisoformat(fact["start"]), date.fromisoformat(fact["end"]))
+        try:
+            period = (
+                date.fromisoformat(fact["start"]),
+                date.fromisoformat(fact["end"]),
+            )
+        except ValueError as error:
+            msg = f"Malformed SEC duration fact dates: {fact!r}"
+            raise MalformedPayloadError(
+                msg,
+            ) from error
         grouped[period].append(fact)
 
     outvoted_counts: dict[str, int] = defaultdict(int)
@@ -194,7 +168,7 @@ def _deduplicate_fact_records(
             continue
         for fact in period_facts:
             accession = fact.get("accn")
-            if accession and not _values_match(float(fact["val"]), majority):
+            if accession and not _values_match(_fact_value(fact), majority):
                 outvoted_counts[accession] += 1
     rejected = {
         accession
@@ -209,7 +183,7 @@ def _deduplicate_fact_records(
             candidates = period_facts
         fact = max(candidates, key=operator.itemgetter("filed"))
         selected[period] = {
-            "value": float(fact["val"]),
+            "value": _fact_value(fact),
             "filed": fact["filed"],
         }
     return selected
@@ -220,7 +194,14 @@ def _deduplicate_instant_facts(
 ) -> dict[date, InstantXbrlFact]:
     grouped: dict[date, list[InstantXbrlFact]] = defaultdict(list)
     for fact in facts:
-        grouped[date.fromisoformat(fact["end"])].append(fact)
+        try:
+            end = date.fromisoformat(fact["end"])
+        except ValueError as error:
+            msg = f"Malformed SEC instant fact date: {fact!r}"
+            raise MalformedPayloadError(
+                msg,
+            ) from error
+        grouped[end].append(fact)
     selected: dict[date, InstantXbrlFact] = {}
     for end, period_facts in grouped.items():
         selected[end] = max(period_facts, key=operator.itemgetter("filed"))
@@ -228,7 +209,7 @@ def _deduplicate_instant_facts(
 
 
 def _majority_value(facts: list[XbrlFact]) -> float | None:
-    values = [float(fact["val"]) for fact in facts]
+    values = [_fact_value(fact) for fact in facts]
     for candidate in values:
         matches = sum(_values_match(candidate, value) for value in values)
         if matches > len(values) / 2:
@@ -240,16 +221,30 @@ def _values_match(left: float, right: float) -> bool:
     return abs(left - right) <= max(0.01, abs(right) * 0.001)
 
 
-_FISCAL_TOLERANCE_DAYS: Final = 46
+def _fact_value(fact: XbrlFact | InstantXbrlFact) -> float:
+    try:
+        return float(fact["val"])
+    except (TypeError, ValueError) as error:
+        msg = f"Malformed SEC fact value: {fact!r}"
+        raise MalformedPayloadError(
+            msg,
+        ) from error
 
 
 def _matches_quarter(value: date, quarter_date: date) -> bool:
     try:
         return (
-            nearest_quarter_end(value, tolerance_days=_FISCAL_TOLERANCE_DAYS)
+            nearest_quarter_end(
+                value,
+                tolerance_days=QUARTER_END_TOLERANCE_DAYS,
+            )
             == quarter_date
         )
     except ValueError:
+        logger.warning(
+            "SEC fact date %s cannot be placed on a calendar quarter",
+            value,
+        )
         return False
 
 

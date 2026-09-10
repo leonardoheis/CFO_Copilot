@@ -3,13 +3,15 @@ from datetime import date, timedelta
 
 import pandas as pd
 
+QUARTER_END_TOLERANCE_DAYS = 46
+
 
 def quarter_end_dates(start: date, end: date) -> list[date]:
     periods = pd.date_range(start=start, end=end, freq="QE")
     return [period.date() for period in periods]
 
 
-def nearest_quarter_end(value: date, tolerance_days: int = 15) -> date:
+def nearest_quarter_end(value: date, tolerance_days: int) -> date:
     """Return the nearest calendar quarter end within the allowed tolerance.
 
     Returns:

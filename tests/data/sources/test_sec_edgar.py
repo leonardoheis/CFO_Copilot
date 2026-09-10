@@ -4,6 +4,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
+from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
 from app.data.schema import FINANCIAL_COLUMNS
@@ -13,8 +14,8 @@ TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 
 
 @pytest.fixture
-def sec_source() -> SecEdgarSource:
-    return SecEdgarSource(user_agent=TEST_USER_AGENT)
+def sec_source(company_registry: CompanyRegistry) -> SecEdgarSource:
+    return SecEdgarSource(user_agent=TEST_USER_AGENT, registry=company_registry)
 
 
 def test_resolve_cik_for_amazon(sec_source: SecEdgarSource) -> None:
@@ -58,8 +59,10 @@ def test_resolve_cik_raises_for_unknown_ticker(
         sec_source.resolve_cik("INVALIDTICKER123")
 
 
-def test_fetch_concept_raises_without_user_agent() -> None:
-    source = SecEdgarSource(user_agent="")
+def test_fetch_concept_raises_without_user_agent(
+    company_registry: CompanyRegistry,
+) -> None:
+    source = SecEdgarSource(user_agent="", registry=company_registry)
 
     with pytest.raises(DataSourceUnavailableError, match="SEC_USER_AGENT"):
         source.fetch_concept("0001018724", "NetIncomeLoss")

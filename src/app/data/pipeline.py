@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.data.companies import resolve_company_metadata
+from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.schema import (
     METADATA_COLUMNS,
@@ -46,8 +46,13 @@ def resolve_date_range(
     return resolved_start, resolved_end
 
 
-def build_panel_skeleton(ticker: str, start: date, end: date) -> pd.DataFrame:
-    metadata = resolve_company_metadata(ticker)
+def build_panel_skeleton(
+    ticker: str,
+    start: date,
+    end: date,
+    registry: CompanyRegistry,
+) -> pd.DataFrame:
+    metadata = registry.company_metadata(ticker)
     normalized_ticker = ticker.upper()
     rows: list[dict[str, object]] = []
 
@@ -69,7 +74,10 @@ def merge_panel(
     end: date,
     sources: IngestionSources,
 ) -> pd.DataFrame:
-    panel = build_panel_skeleton(ticker, start, end).loc[:, list(METADATA_COLUMNS)]
+    panel = build_panel_skeleton(ticker, start, end, sources.registry).loc[
+        :,
+        list(METADATA_COLUMNS),
+    ]
     splits = sources.yfinance.fetch_splits(ticker)
     financials = sources.sec_edgar.fetch_financials_panel(
         ticker,

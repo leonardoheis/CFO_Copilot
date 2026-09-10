@@ -41,12 +41,21 @@ CFO_Copilot/
 │   │   ├── prediction/      # PredictionService, NoTrainedModelError
 │   │   └── helper.py        # load_model / save_model (joblib)
 │   ├── injections/          # DI containers
-│   │   ├── production.py    # Container — service factories
+│   │   ├── production.py    # Container — service + data-source factories
 │   │   └── test.py          # TestContainer (overrides for tests)
 │   ├── frontend/            # Streamlit UI
 │   │   ├── home.py          # Navigation entrypoint
 │   │   └── pages/           # health.py, test.py
-│   ├── data/                # SEC, Yahoo Finance, and FRED ingestion
+│   ├── data/                # SEC, Yahoo Finance, FRED, Alpha Vantage ingestion
+│   │   ├── companies.py     # CompanyRegistry (loads config/companies.yaml)
+│   │   ├── dates.py         # Shared quarter/date helpers
+│   │   ├── splits.py        # Shared split-adjustment helpers
+│   │   ├── xbrl.py          # Shared XBRL fact handling
+│   │   └── sources/         # One package per external source
+│   │       ├── alpha_vantage/   # source.py, parsing.py
+│   │       ├── fred/            # source.py
+│   │       ├── sec_edgar/       # source.py, parsing.py, concepts.py
+│   │       └── yfinance_source/ # source.py, fetching.py
 │   ├── utils/               # ExamplerMixIn (OpenAPI example generation)
 │   ├── ml_binaries/         # Runtime model artifacts (model.joblib)
 │   └── playground/          # Notebooks (not in coverage)
@@ -100,6 +109,11 @@ OpenAPI docs: `http://localhost:8000/docs`
 - **CamelCase JSON**: `BaseSchema` applies `to_camel` alias generator.
 - **DI wiring**: Services injected via `@inject` + `Provide["service_name"]` in endpoints. Container wired in `app/injections/__init__.py`.
 - **Model persistence**: `Settings.MODEL_PATH` → `ml_binaries/model.joblib`.
+- **Company registry**: ingestion rules live in `config/companies.yaml`, loaded
+  into a `CompanyRegistry` by a `Singleton` provider and injected into
+  `YfinanceSource`, `SecEdgarSource`, and `IngestionSources`. Never read the
+  registry from module-level state; accept it as a constructor argument.
+  Add a company by editing the YAML file only.
 - **Strict typing**: mypy strict mode enabled; all new code must type-check.
 - **Coverage**: CI expects high coverage; `frontend/` and `settings.py` are omitted from coverage.
 
@@ -128,6 +142,61 @@ uv run poe docker-run         # Run container (.env required)
   - Only use `# type: ignore` as a last resort for an untyped third-party
     return that cannot be cast, and always name a specific error code
     (e.g. `# type: ignore[return-value]`) with a comment explaining why
+
+## External source packages
+
+Each external data source is a **package** under `src/app/data/sources/`, not a
+single module. The split separates the stateful adapter from pure translation:
+
+| File | Holds | May touch |
+|------|-------|-----------|
+| `source.py` | The `*Source` class | HTTP, cache, credentials, instance state |
+| `parsing.py` | Pure payload → panel translation | Only its arguments |
+| `concepts.py` | Vendor tag/field declarations (`sec_edgar`) | Nothing |
+| `fetching.py` | Calls against an injected client (`yfinance_source`) | The injected object only |
+| `__init__.py` | Re-exports the public names | — |
+
+Rules:
+
+- **Import direction is one-way**: `source.py` imports from `parsing.py`, never
+  the reverse. Keep it acyclic.
+- **Vendor field names stay inside the package.** This is an Anti-Corruption
+  Layer: `fiscalDateEnding`, `totalRevenue` and us-gaap tags must not appear
+  outside their own source package. Logic genuinely shared across sources goes
+  in `app/data/` (`dates.py`, `splits.py`, `xbrl.py`), never a vendor's quirks.
+- **Names crossing a module boundary drop the leading underscore.** Ruff's
+  `import-private-name` rejects importing `_foo` from a sibling module, so
+  package-internal helpers are public within the package and kept out of the
+  public API by simply not being re-exported in `__init__.py`.
+- **Only `__init__.py` defines the public surface.** Outside code imports
+  `from app.data.sources import SecEdgarSource`, never a submodule path.
+- **Tests patch the submodule that owns the import**, e.g.
+  `app.data.sources.yfinance_source.source.yf.Ticker` — not the package root.
+- `fred/` has no `parsing.py` because it has nothing pure to separate; add one
+  only when there is real translation logic, not for symmetry.
+
+## Static helpers and model types
+
+- **Do not use `@staticmethod`.** A helper that never reads `self` belongs at
+  **module level** as a private function, not on the class. Ruff's
+  `no-self-use` (PLR6301) enforces the same thing from the other direction, so
+  a self-less method fails lint either way.
+  - Extraction cascades: once a helper moves out, callers that only used `self`
+    to reach it become self-less too. Re-run lint after each extraction.
+  - Exception: **public** methods on a source class must stay methods even when
+    they ignore `self`. Mark them `# noqa: PLR6301` with a short reason.
+- **Prefer Pydantic over `@dataclass`** for types that are validated,
+  configured, or serialized. Use `ConfigDict(frozen=True, extra="forbid")` and
+  add `@field_validator` guards for invariants the type system cannot express.
+  Serialize with `model_dump(mode="json")`, never `dataclasses.asdict`.
+- **Keep `@dataclass`** in three cases:
+  - fields typed as a `Protocol` (`IngestionSources`) or holding live service
+    objects (`ProbeContext`) — Pydantic needs `arbitrary_types_allowed`, which
+    is a weaker guarantee than mypy already gives;
+  - exception types — `BaseModel` does not subclass `Exception` cleanly;
+  - domain types in `companies.py`, which are deliberately kept separate from
+    the `_*Config` Pydantic models that validate the YAML shape.
+- Pydantic models are **keyword-only** at construction.
 
 ## Error-handling conventions
 
@@ -163,6 +232,10 @@ uv run poe docker-run         # Run container (.env required)
   - Log with `logger.warning` before any intentional `continue`.
   - Use `logger.error` or re-raise for unexpected failures that indicate a bug.
   - Module-level logger: `logger = logging.getLogger(__name__)`.
+  - For external payload parsing, warn and return `None` for an unusable field,
+    raise `MalformedPayloadError` for an unusable record or structurally invalid
+    payload, and never let a bare `ValueError`, `KeyError`, or `TypeError`
+    escape the data layer.
 
 ## Pre-commit quality gate
 

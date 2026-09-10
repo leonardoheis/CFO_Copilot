@@ -9,8 +9,7 @@ from app.data.pipeline import (
     resolve_date_range,
     write_panel,
 )
-from app.data.sources import FredSource, SecEdgarSource, YfinanceSource
-from app.data.sources_bundle import IngestionSources
+from app.injections import configure_container
 from app.settings import Settings
 
 
@@ -70,18 +69,20 @@ def ingest_data(
             f"on {resolved_start.isoformat()}.",
         )
 
+    container = configure_container()
     if skeleton:
-        panel = build_panel_skeleton(ticker, resolved_start, resolved_end)
+        panel = build_panel_skeleton(
+            ticker,
+            resolved_start,
+            resolved_end,
+            container.company_registry(),
+        )
     else:
         panel = merge_panel(
             ticker=ticker,
             start=resolved_start,
             end=resolved_end,
-            sources=IngestionSources(
-                fred=FredSource(api_key=Settings.FRED_API_KEY),
-                yfinance=YfinanceSource(),
-                sec_edgar=SecEdgarSource(user_agent=Settings.SEC_USER_AGENT),
-            ),
+            sources=container.ingestion_sources(),
         )
 
     destination = output_path or Settings.panel_output_path(ticker)

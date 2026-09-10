@@ -1,9 +1,9 @@
 import math
-from dataclasses import asdict, dataclass
 from datetime import date
 from typing import Final
 
 import pandas as pd
+from pydantic import BaseModel, ConfigDict
 
 from app.data.pipeline import XBRL_HISTORY_START
 from app.data.schema import FINANCIAL_COLUMNS
@@ -19,16 +19,18 @@ DEFAULT_RELATIVE_TOLERANCE: Final = 0.02
 MIN_ABSOLUTE_TOLERANCE: Final = 1.0
 
 
-@dataclass(frozen=True, slots=True)
-class FieldCoverage:
+class FieldCoverage(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     expected_quarters: int
     available_quarters: int
     completeness: float
     missing_dates: tuple[str, ...]
 
 
-@dataclass(frozen=True, slots=True)
-class CoverageReport:
+class CoverageReport(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     ticker: str
     oldest_alpha_quarter: str | None
     newest_alpha_quarter: str | None
@@ -86,7 +88,12 @@ def evaluate_coverage(
 
 
 def report_as_dict(report: CoverageReport) -> dict[str, object]:
-    return asdict(report)
+    """Render a coverage report as a JSON-serializable dictionary.
+
+    Returns:
+        A nested dictionary mirroring the report structure.
+    """
+    return report.model_dump(mode="json")
 
 
 def _indexed_panel(panel: pd.DataFrame) -> pd.DataFrame:
@@ -176,10 +183,10 @@ def _overlap_passes(errors: dict[str, float]) -> bool:
 def _oldest_date(panel: pd.DataFrame) -> str | None:
     if panel.empty:
         return None
-    return min(panel.index).date().isoformat()  # type: ignore[no-any-return]
+    return str(min(panel.index).date().isoformat())
 
 
 def _newest_date(panel: pd.DataFrame) -> str | None:
     if panel.empty:
         return None
-    return max(panel.index).date().isoformat()  # type: ignore[no-any-return]
+    return str(max(panel.index).date().isoformat())

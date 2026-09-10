@@ -19,6 +19,7 @@ from app.data.pipeline import most_recent_completed_quarter
 from app.data.sources.alpha_vantage import AlphaVantageSource
 from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.sources.yfinance_source import YfinanceSource
+from app.injections import configure_container
 from app.settings import Settings
 
 DEFAULT_PROBE_YEARS = 20
@@ -63,6 +64,7 @@ def _write_coverage_report(
 
 
 def _build_probe_context(start: date, end: date, *, refresh: bool) -> ProbeContext:
+    container = configure_container()
     return ProbeContext(
         start=start,
         end=end,
@@ -71,8 +73,8 @@ def _build_probe_context(start: date, end: date, *, refresh: bool) -> ProbeConte
             cache_directory=Settings.DATA_DIRECTORY / "raw" / "alpha_vantage",
             refresh=refresh,
         ),
-        sec_source=SecEdgarSource(user_agent=Settings.SEC_USER_AGENT),
-        market_source=YfinanceSource(),
+        sec_source=container.sec_edgar_source(),
+        market_source=container.yfinance_source(),
     )
 
 

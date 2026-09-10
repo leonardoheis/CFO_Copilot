@@ -210,3 +210,6 @@ marimo/_lsp/
 __marimo__/
 pytest-report.xml
 .cursor/rules/from-injecti.mdc
+
+# Memory
+MEMORY.md

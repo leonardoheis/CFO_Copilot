@@ -3,22 +3,20 @@ from pathlib import Path
 import pytest
 
 from app.data.companies import (
-    SCRAPED_COMPANIES,
+    CompanyRegistry,
     DualCikFiling,
     KnownCik,
     MarketFromTicker,
     MarketWithHistoryTicker,
     SecTickerLookup,
     load_company_registry,
-    resolve_company_metadata,
-    resolve_market_history_tickers,
-    resolve_scraped_company,
-    resolve_sec_ciks,
 )
 
 
-def test_scraped_companies_lists_each_profile_once() -> None:
-    company_names = {company.panel.company for company in SCRAPED_COMPANIES}
+def test_scraped_companies_lists_each_profile_once(
+    company_registry: CompanyRegistry,
+) -> None:
+    company_names = {company.panel.company for company in company_registry.companies}
 
     assert company_names == {
         "Amazon",
@@ -29,20 +27,24 @@ def test_scraped_companies_lists_each_profile_once() -> None:
         "Globant",
         "Apple",
     }
-    assert len(company_names) == len(SCRAPED_COMPANIES)
+    assert len(company_names) == len(company_registry.companies)
 
 
-def test_resolve_company_metadata_for_googl() -> None:
-    metadata = resolve_company_metadata("googl")
+def test_resolve_company_metadata_for_googl(
+    company_registry: CompanyRegistry,
+) -> None:
+    metadata = company_registry.company_metadata("googl")
 
     assert metadata.company == "Alphabet"
     assert metadata.sector == "Communication Services"
     assert metadata.is_public is True
 
 
-def test_resolve_scraped_company_for_alphabet_tickers_share_profile() -> None:
-    googl = resolve_scraped_company("GOOGL")
-    goog = resolve_scraped_company("GOOG")
+def test_resolve_scraped_company_for_alphabet_tickers_share_profile(
+    company_registry: CompanyRegistry,
+) -> None:
+    googl = company_registry.scraped_company("GOOGL")
+    goog = company_registry.scraped_company("GOOG")
 
     assert googl is goog
     assert isinstance(googl.sec, DualCikFiling)
@@ -52,16 +54,20 @@ def test_resolve_scraped_company_for_alphabet_tickers_share_profile() -> None:
     assert googl.market.history_ticker == "GOOG"
 
 
-def test_resolve_scraped_company_for_amazon_uses_known_cik() -> None:
-    amazon = resolve_scraped_company("AMZN")
+def test_resolve_scraped_company_for_amazon_uses_known_cik(
+    company_registry: CompanyRegistry,
+) -> None:
+    amazon = company_registry.scraped_company("AMZN")
 
     assert isinstance(amazon.sec, KnownCik)
     assert amazon.sec.cik == "0001018724"
     assert isinstance(amazon.market, MarketFromTicker)
 
 
-def test_resolve_scraped_company_for_unknown_ticker_uses_runtime_lookup() -> None:
-    unknown = resolve_scraped_company("UNKNOWN_XYZ")
+def test_resolve_scraped_company_for_unknown_ticker_uses_runtime_lookup(
+    company_registry: CompanyRegistry,
+) -> None:
+    unknown = company_registry.scraped_company("UNKNOWN_XYZ")
 
     assert isinstance(unknown.sec, SecTickerLookup)
     assert isinstance(unknown.market, MarketFromTicker)
@@ -69,19 +75,41 @@ def test_resolve_scraped_company_for_unknown_ticker_uses_runtime_lookup() -> Non
     assert unknown.panel.sector == "Unknown"
 
 
-def test_resolve_sec_ciks_for_alphabet_returns_legacy_then_current() -> None:
-    assert resolve_sec_ciks("GOOGL", lambda _ticker: "0000000000") == (
+def test_resolve_sec_ciks_for_alphabet_returns_legacy_then_current(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.sec_ciks("GOOGL", lambda _ticker: "0000000000") == (
         "0001288776",
         "0001652044",
     )
 
 
-def test_resolve_market_history_tickers_for_googl_includes_goog_fallback() -> None:
-    assert resolve_market_history_tickers("GOOGL") == ("GOOGL", "GOOG")
+def test_resolve_sec_ciks_for_unknown_ticker_uses_runtime_lookup(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.sec_ciks("UNKNOWN_XYZ", lambda _t: "0000000123") == (
+        "0000000123",
+    )
 
 
-def test_resolve_market_history_tickers_for_goog_does_not_duplicate() -> None:
-    assert resolve_market_history_tickers("GOOG") == ("GOOG",)
+def test_primary_sec_cik_returns_current_cik_for_dual_filer(
+    company_registry: CompanyRegistry,
+) -> None:
+    primary = company_registry.primary_sec_cik("GOOGL", lambda _t: "0000000000")
+
+    assert primary == "0001652044"
+
+
+def test_resolve_market_history_tickers_for_googl_includes_goog_fallback(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.market_history_tickers("GOOGL") == ("GOOGL", "GOOG")
+
+
+def test_resolve_market_history_tickers_for_goog_does_not_duplicate(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.market_history_tickers("GOOG") == ("GOOG",)
 
 
 def test_load_company_registry_supports_runtime_sec_lookup(tmp_path: Path) -> None:

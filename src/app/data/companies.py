@@ -1,12 +1,11 @@
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Literal
+from typing import Literal, assert_never
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from app.data.exceptions import TickerNotFoundError
 
 CIK_LENGTH = 10
 
@@ -122,14 +121,9 @@ class _RegistryConfig(BaseModel):
     companies: tuple[_CompanyConfig, ...]
 
 
-REGISTRY_PATH: Final[Path] = (
-    Path(__file__).resolve().parents[3] / "config" / "companies.yaml"
-)
-
-
 def _validate_cik(cik: str) -> str:
     if len(cik) != CIK_LENGTH or not cik.isdigit():
-        msg = "CIK must contain exactly 10 digits"
+        msg = f"CIK must contain exactly {CIK_LENGTH} digits"
         raise ValueError(msg)
     return cik
 
@@ -152,6 +146,8 @@ def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
             )
         case _SecTickerLookupConfig():
             sec = SecTickerLookup()
+        case _ as unreachable:
+            assert_never(unreachable)
 
     match config.market:
         case _FromTickerConfig():
@@ -160,6 +156,8 @@ def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
             market = MarketWithHistoryTicker(
                 history_ticker=history_ticker.upper(),
             )
+        case _ as unreachable_market:
+            assert_never(unreachable_market)
 
     return ScrapedCompany(
         tickers=config.tickers,
@@ -169,7 +167,15 @@ def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
     )
 
 
-def load_company_registry(path: Path = REGISTRY_PATH) -> tuple[ScrapedCompany, ...]:
+def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
+    """Load and validate every company profile from a YAML registry file.
+
+    Returns:
+        A tuple of validated company profiles.
+
+    Raises:
+        ValueError: If the file is unreadable, malformed, or has duplicate tickers.
+    """
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
         config = _RegistryConfig.model_validate(raw)
@@ -178,85 +184,114 @@ def load_company_registry(path: Path = REGISTRY_PATH) -> tuple[ScrapedCompany, .
         msg = f"Invalid company registry {path}: {error}"
         raise ValueError(msg) from error
 
-    tickers = [ticker for company in companies for ticker in company.tickers]
-    duplicates = {ticker for ticker in tickers if tickers.count(ticker) > 1}
+    ticker_counts = Counter(
+        ticker for company in companies for ticker in company.tickers
+    )
+    duplicates = sorted(ticker for ticker, count in ticker_counts.items() if count > 1)
     if duplicates:
-        duplicate_list = ", ".join(sorted(duplicates))
-        msg_0 = f"Duplicate company ticker aliases: {duplicate_list}"
-        raise ValueError(msg_0)
+        duplicate_msg = f"Duplicate company ticker aliases: {', '.join(duplicates)}"
+        raise ValueError(duplicate_msg)
     return companies
 
 
-SCRAPED_COMPANIES: Final[tuple[ScrapedCompany, ...]] = load_company_registry()
+class CompanyRegistry:
+    """Resolve ingestion rules for a ticker from a loaded company registry."""
 
+    def __init__(self, companies: tuple[ScrapedCompany, ...]) -> None:
+        self._companies = companies
+        self._index: dict[str, ScrapedCompany] = {
+            ticker: company for company in companies for ticker in company.tickers
+        }
 
-def _build_ticker_index(
-    companies: tuple[ScrapedCompany, ...],
-) -> dict[str, ScrapedCompany]:
-    index: dict[str, ScrapedCompany] = {}
-    for company in companies:
-        for ticker in company.tickers:
-            index[ticker] = company
-    return index
+    @classmethod
+    def from_path(cls, path: Path) -> "CompanyRegistry":
+        """Build a registry from a YAML configuration file.
 
+        Returns:
+            A registry holding every validated company profile in the file.
+        """
+        return cls(load_company_registry(path))
 
-TICKER_INDEX: Final[dict[str, ScrapedCompany]] = _build_ticker_index(SCRAPED_COMPANIES)
+    @property
+    def companies(self) -> tuple[ScrapedCompany, ...]:
+        return self._companies
 
+    def scraped_company(self, ticker: str) -> ScrapedCompany:
+        """Return the profile for a ticker, falling back to runtime lookup.
 
-def resolve_scraped_company(ticker: str) -> ScrapedCompany:
-    normalized_ticker = ticker.upper()
-    if normalized_ticker in TICKER_INDEX:
-        return TICKER_INDEX[normalized_ticker]
+        Returns:
+            The configured profile, or a default profile for unknown tickers.
+        """
+        normalized_ticker = ticker.upper()
+        known_company = self._index.get(normalized_ticker)
+        if known_company is not None:
+            return known_company
 
-    return ScrapedCompany(
-        tickers=(normalized_ticker,),
-        panel=CompanyPanelMetadata(
-            company=normalized_ticker,
-            sector="Unknown",
-            is_public=True,
-        ),
-        sec=SecTickerLookup(),
-        market=MarketFromTicker(),
-    )
+        return ScrapedCompany(
+            tickers=(normalized_ticker,),
+            panel=CompanyPanelMetadata(
+                company=normalized_ticker,
+                sector="Unknown",
+                is_public=True,
+            ),
+            sec=SecTickerLookup(),
+            market=MarketFromTicker(),
+        )
 
+    def company_metadata(self, ticker: str) -> CompanyPanelMetadata:
+        """Return the panel metadata for a ticker.
 
-def resolve_company_metadata(ticker: str) -> CompanyPanelMetadata:
-    return resolve_scraped_company(ticker).panel
+        Returns:
+            The company name, sector, and public status.
+        """
+        return self.scraped_company(ticker).panel
 
+    def market_history_tickers(self, ticker: str) -> tuple[str, ...]:
+        """Return the Yahoo Finance symbols to try, current symbol first.
 
-def resolve_market_history_tickers(ticker: str) -> tuple[str, ...]:
-    company = resolve_scraped_company(ticker)
-    normalized_ticker = ticker.upper()
-    tickers: list[str] = [normalized_ticker]
-    match company.market:
-        case MarketWithHistoryTicker(history_ticker=history_ticker):
-            tickers.append(history_ticker)
-        case MarketFromTicker():
-            pass
-    return tuple(dict.fromkeys(tickers))
+        Returns:
+            A de-duplicated tuple of market tickers.
+        """
+        company = self.scraped_company(ticker)
+        tickers: list[str] = [ticker.upper()]
+        match company.market:
+            case MarketWithHistoryTicker(history_ticker=history_ticker):
+                tickers.append(history_ticker)
+            case MarketFromTicker():
+                pass
+            case _ as unreachable:
+                assert_never(unreachable)
+        return tuple(dict.fromkeys(tickers))
 
+    def sec_ciks(
+        self,
+        ticker: str,
+        lookup_cik: Callable[[str], str],
+    ) -> tuple[str, ...]:
+        """Return every SEC CIK for a ticker, oldest filer first.
 
-def resolve_sec_ciks(
-    ticker: str,
-    lookup_cik: Callable[[str], str],
-) -> tuple[str, ...]:
-    company = resolve_scraped_company(ticker)
-    normalized_ticker = ticker.upper()
-    match company.sec:
-        case DualCikFiling(legacy_cik=legacy_cik, current_cik=current_cik):
-            return (legacy_cik, current_cik)
-        case KnownCik(cik=cik):
-            return (cik,)
-        case SecTickerLookup():
-            return (lookup_cik(normalized_ticker),)
+        Returns:
+            A tuple of zero-padded CIK strings.
+        """
+        company = self.scraped_company(ticker)
+        match company.sec:
+            case DualCikFiling(legacy_cik=legacy_cik, current_cik=current_cik):
+                return (legacy_cik, current_cik)
+            case KnownCik(cik=cik):
+                return (cik,)
+            case SecTickerLookup():
+                return (lookup_cik(ticker.upper()),)
+            case _ as unreachable:
+                assert_never(unreachable)
 
+    def primary_sec_cik(
+        self,
+        ticker: str,
+        lookup_cik: Callable[[str], str],
+    ) -> str:
+        """Return the current SEC CIK for a ticker.
 
-def resolve_primary_sec_cik(
-    ticker: str,
-    lookup_cik: Callable[[str], str],
-) -> str:
-    ciks = resolve_sec_ciks(ticker, lookup_cik)
-    if not ciks:
-        msg = f"No SEC EDGAR CIK found for ticker {ticker.upper()}"
-        raise TickerNotFoundError(msg)
-    return ciks[-1]
+        Returns:
+            The most recent CIK, which is the last entry for dual filers.
+        """
+        return self.sec_ciks(ticker, lookup_cik)[-1]

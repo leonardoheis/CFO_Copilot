@@ -4,6 +4,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
+from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError
 from app.data.pipeline import (
@@ -109,10 +110,12 @@ def test_quarter_end_dates_returns_quarterly_periods() -> None:
     ]
 
 
-def test_build_panel_skeleton_has_expected_columns_and_metadata() -> None:
+def test_build_panel_skeleton_has_expected_columns_and_metadata(
+    company_registry: CompanyRegistry,
+) -> None:
     start = date(2020, 1, 1)
     end = date(2020, 6, 30)
-    panel = build_panel_skeleton("AMZN", start, end)
+    panel = build_panel_skeleton("AMZN", start, end, company_registry)
     expected_rows = len(quarter_end_dates(start, end))
 
     assert list(panel.columns) == list(PANEL_COLUMNS)
@@ -124,7 +127,9 @@ def test_build_panel_skeleton_has_expected_columns_and_metadata() -> None:
     assert pd.isna(panel.loc[0, "revenue_usd_m"])
 
 
-def test_merge_panel_fills_columns_from_every_source() -> None:
+def test_merge_panel_fills_columns_from_every_source(
+    company_registry: CompanyRegistry,
+) -> None:
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
@@ -133,6 +138,7 @@ def test_merge_panel_fills_columns_from_every_source() -> None:
             fred=FakeMacroSource(),
             yfinance=FakeMarketSource(),
             sec_edgar=FakeFinancialsSource(),
+            registry=company_registry,
         ),
     )
 
@@ -144,7 +150,9 @@ def test_merge_panel_fills_columns_from_every_source() -> None:
     assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
 
 
-def test_merge_panel_derives_pe_ratio_from_price_and_earnings() -> None:
+def test_merge_panel_derives_pe_ratio_from_price_and_earnings(
+    company_registry: CompanyRegistry,
+) -> None:
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
@@ -153,6 +161,7 @@ def test_merge_panel_derives_pe_ratio_from_price_and_earnings() -> None:
             fred=FakeMacroSource(),
             yfinance=FakeMarketSource(),
             sec_edgar=FakeFinancialsSource(),
+            registry=company_registry,
         ),
     )
 
@@ -160,7 +169,9 @@ def test_merge_panel_derives_pe_ratio_from_price_and_earnings() -> None:
     assert pd.isna(panel.loc[1, "pe_ratio"])
 
 
-def test_merge_panel_adjusts_eps_to_current_share_basis() -> None:
+def test_merge_panel_adjusts_eps_to_current_share_basis(
+    company_registry: CompanyRegistry,
+) -> None:
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
@@ -169,13 +180,16 @@ def test_merge_panel_adjusts_eps_to_current_share_basis() -> None:
             fred=FakeMacroSource(),
             yfinance=FakeMarketSource(),
             sec_edgar=FakeFinancialsSource(),
+            registry=company_registry,
         ),
     )
 
     assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
 
 
-def test_merge_panel_propagates_source_errors() -> None:
+def test_merge_panel_propagates_source_errors(
+    company_registry: CompanyRegistry,
+) -> None:
     with pytest.raises(DataSourceUnavailableError, match="macro source unavailable"):
         merge_panel(
             ticker="AMZN",
@@ -185,22 +199,27 @@ def test_merge_panel_propagates_source_errors() -> None:
                 fred=FailingMacroSource(),
                 yfinance=FakeMarketSource(),
                 sec_edgar=FakeFinancialsSource(),
+                registry=company_registry,
             ),
         )
 
 
 @pytest.mark.vcr
-def test_merge_panel_returns_panel_after_all_sources_are_implemented() -> None:
+def test_merge_panel_returns_panel_after_all_sources_are_implemented(
+    company_registry: CompanyRegistry,
+) -> None:
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
         sources=IngestionSources(
             fred=FredSource(api_key=Settings.FRED_API_KEY or "test-key"),
-            yfinance=YfinanceSource(),
+            yfinance=YfinanceSource(registry=company_registry),
             sec_edgar=SecEdgarSource(
                 user_agent=Settings.SEC_USER_AGENT or TEST_USER_AGENT,
+                registry=company_registry,
             ),
+            registry=company_registry,
         ),
     )
 
