@@ -1,5 +1,6 @@
+import logging
 from datetime import date
-from typing import Protocol
+from typing import Protocol, cast
 
 import pandas as pd
 import yfinance as yf
@@ -13,6 +14,9 @@ from app.data.dates import (
 )
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
 from app.data.schema import MARKET_COLUMNS
+
+logger = logging.getLogger(__name__)
+
 
 TRAILING_DIVIDEND_DAYS = 365
 
@@ -78,18 +82,25 @@ class YfinanceSource:
 
         Returns:
             A series indexed by split effective date and valued by ratio.
+
+        Raises:
+            TickerNotFoundError: If Yahoo Finance has no data for any market ticker.
         """
         normalized_ticker = ticker.upper()
         splits = pd.Series(dtype=float)
         for market_ticker in resolve_market_history_tickers(normalized_ticker):
-            ticker_splits = self._fetch_splits(
-                yf.Ticker(market_ticker),
-                market_ticker,
+            ticker_splits = self._fetch_splits(yf.Ticker(market_ticker), market_ticker)
+            if ticker_splits.empty:
+                logger.warning("No split data available for %s", market_ticker)
+                continue
+            splits = (
+                ticker_splits
+                if splits.empty
+                else pd.concat([splits, ticker_splits]).sort_index()
             )
-            if splits.empty:
-                splits = ticker_splits
-            else:
-                splits = pd.concat([splits, ticker_splits]).sort_index()
+        if splits.empty:
+            message = f"No Yahoo Finance data found for ticker {normalized_ticker}"
+            raise TickerNotFoundError(message)
         return splits[~splits.index.duplicated(keep="last")]
 
     def _combined_close_history(
@@ -100,9 +111,9 @@ class YfinanceSource:
     ) -> pd.Series:
         combined = pd.Series(dtype=float)
         for market_ticker in reversed(resolve_market_history_tickers(ticker)):
-            try:
-                history = self.fetch_stock_history(market_ticker, start, end)
-            except TickerNotFoundError:
+            history = self._try_stock_history(market_ticker, start, end)
+            if history.empty:
+                logger.warning("No price history available for %s", market_ticker)
                 continue
             close = history["Close"].copy()
             close.index = normalize_datetime_index(close.index)
@@ -114,15 +125,53 @@ class YfinanceSource:
         return combined
 
     @staticmethod
+    def _try_stock_history(ticker: str, start: date, end: date) -> pd.DataFrame:
+        """Fetch price history; return an empty DataFrame when the ticker has no data.
+
+        Unlike ``fetch_stock_history``, this method never raises
+        ``TickerNotFoundError`` — callers check emptiness instead of catching.
+
+        Returns:
+            A DataFrame with OHLCV columns, or an empty DataFrame if no data exists.
+
+        Raises:
+            DataSourceUnavailableError: If the API call itself fails.
+        """
+        try:
+            history = yf.Ticker(ticker).history(
+                start=start.isoformat(),
+                end=inclusive_history_end(end).isoformat(),
+                auto_adjust=False,
+            )
+        except Exception as error:
+            message = f"Failed to fetch Yahoo Finance history for {ticker}: {error}"
+            raise DataSourceUnavailableError(message) from error
+        return cast("pd.DataFrame", history)
+
+    @staticmethod
     def _fetch_splits(
         yahoo_ticker: _YahooTicker,
         ticker: str,
     ) -> pd.Series:
+        """Fetch split history; return an empty Series when the ticker has no data.
+
+        Unlike ``fetch_splits``, this method never raises ``TickerNotFoundError``
+        — callers check emptiness instead of catching.
+
+        Returns:
+            A float Series indexed by split date, or an empty Series if no data exists.
+
+        Raises:
+            DataSourceUnavailableError: If the API call itself fails.
+        """
         try:
-            return yahoo_ticker.splits
+            result = yahoo_ticker.splits
         except Exception as error:
             message = f"Failed to fetch Yahoo Finance splits for {ticker}: {error}"
             raise DataSourceUnavailableError(message) from error
+        if result is None:
+            return pd.Series(dtype=float)
+        return result
 
     @property
     def market_columns(self) -> tuple[str, ...]:

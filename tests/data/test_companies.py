@@ -23,6 +23,11 @@ def test_scraped_companies_lists_each_profile_once() -> None:
     assert company_names == {
         "Amazon",
         "Alphabet",
+        "PepsiCo",
+        "Microsoft",
+        "Tesla",
+        "Globant",
+        "Apple",
     }
     assert len(company_names) == len(SCRAPED_COMPANIES)
 
@@ -56,11 +61,11 @@ def test_resolve_scraped_company_for_amazon_uses_known_cik() -> None:
 
 
 def test_resolve_scraped_company_for_unknown_ticker_uses_runtime_lookup() -> None:
-    unknown = resolve_scraped_company("MSFT")
+    unknown = resolve_scraped_company("UNKNOWN_XYZ")
 
     assert isinstance(unknown.sec, SecTickerLookup)
     assert isinstance(unknown.market, MarketFromTicker)
-    assert unknown.panel.company == "MSFT"
+    assert unknown.panel.company == "UNKNOWN_XYZ"
     assert unknown.panel.sector == "Unknown"
 
 

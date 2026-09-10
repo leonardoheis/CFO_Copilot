@@ -61,3 +61,27 @@ companies:
       cik: "0001318605"
     market:
       type: from_ticker
+
+  - tickers:
+      - PEP
+    panel:
+      company: PepsiCo
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000077476"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - AAPL
+    panel:
+      company: Apple
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000320193"
+    market:
+      type: from_ticker
