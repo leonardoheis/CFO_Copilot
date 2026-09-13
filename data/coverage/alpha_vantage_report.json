@@ -1,0 +1,111 @@
+{
+  "start": "2006-06-30",
+  "end": "2026-06-30",
+  "reports": [
+    {
+      "ticker": "GOOGL",
+      "oldest_alpha_quarter": "2006-06-30",
+      "newest_alpha_quarter": "2026-06-30",
+      "pre_xbrl": {
+        "revenue_usd_m": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "gross_profit_usd_m": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "opex_usd_m": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "operating_income_usd_m": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "ebitda_usd_m": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "net_income_usd_m": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "free_cash_flow_usd_m": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "gross_margin": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "operating_margin": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "net_margin": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "eps": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        },
+        "shares_outstanding": {
+          "expected_quarters": 8,
+          "available_quarters": 8,
+          "completeness": 1.0,
+          "missing_dates": []
+        }
+      },
+      "handoff_missing_dates": [
+        "2008-06-30",
+        "2012-06-30",
+        "2012-09-30",
+        "2012-12-31"
+      ],
+      "overlap_max_relative_error": {
+        "revenue_usd_m": 0.08350093626465081,
+        "gross_profit_usd_m": 0.000125879043600624,
+        "opex_usd_m": 0.0002913165266106341,
+        "operating_income_usd_m": 0.23187108325872874,
+        "ebitda_usd_m": 0.13212510961707102,
+        "net_income_usd_m": 0.00037116032034793903,
+        "free_cash_flow_usd_m": 0.00046992481203007516,
+        "gross_margin": 6.734181192680211e-05,
+        "operating_margin": 0.05016404213163378,
+        "net_margin": 0.01823561877107696,
+        "eps": 0.6404691494501846,
+        "shares_outstanding": 0.5016648352038063
+      },
+      "gates": {
+        "pre_xbrl_complete": true,
+        "handoff_complete": false,
+        "overlap_agreement": false
+      },
+      "passed": false
+    }
+  ]
+}
