@@ -32,6 +32,7 @@ from .concepts import (
 )
 from .parsing import (
     financial_panel_from_raw,
+    implied_shares_from_earnings,
     merge_raw_financial_frames,
     split_factors_for_filing_dates,
 )
@@ -125,11 +126,17 @@ class SecEdgarSource:
             for name, spec in TAG_CHAINS.items()
             if name != "shares_outstanding"
         }
-        series_by_name["shares_outstanding"] = self._fetch_shares_chain(
-            cik,
-            quarter_dates,
-            splits,
-        )
+        shares = self._fetch_shares_chain(cik, quarter_dates, splits)
+        if not shares.notna().all():
+            # Some filers (e.g. Google's legacy CIK) report no share-count fact
+            # of any kind for their earliest quarters, but do report net income
+            # and diluted EPS. Recover the implied share count for those gaps.
+            implied = implied_shares_from_earnings(
+                series_by_name["net_income"],
+                series_by_name["eps"],
+            )
+            shares = shares.combine_first(implied)
+        series_by_name["shares_outstanding"] = shares
         return pd.DataFrame(
             {
                 "date": quarter_dates,
@@ -174,6 +181,7 @@ class SecEdgarSource:
         quarter_dates: list[date],
         splits: pd.Series | None,
     ) -> pd.Series:
+        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
         for tag in TAG_CHAINS["shares_outstanding"].tags:
             facts = self.fetch_concept(cik, tag, SHARES_UNIT)
             if facts:
@@ -185,15 +193,34 @@ class SecEdgarSource:
                     records["filed"],
                     splits,
                 )
-                if values.notna().any():
-                    return values
+                combined = combined.combine_first(values)
 
-        return self._fetch_tag_chain(
-            cik,
-            DILUTED_SHARES_FALLBACK,
-            quarter_dates,
-            splits,
-        )
+        if combined.notna().all():
+            return combined
+
+        # Instant shares-outstanding tags cover fewer early quarters than the
+        # weighted-average diluted-share duration facts, so fill any remaining
+        # gaps rather than only falling back when the primary is wholly empty.
+        fallback = self._fetch_diluted_shares_fallback(cik, quarter_dates, splits)
+        return combined.combine_first(fallback)
+
+    def _fetch_diluted_shares_fallback(
+        self,
+        cik: str,
+        quarter_dates: list[date],
+        splits: pd.Series | None,
+    ) -> pd.Series:
+        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
+        for tag in DILUTED_SHARES_FALLBACK.tags:
+            facts = self.fetch_concept(cik, tag, DILUTED_SHARES_FALLBACK.unit)
+            if facts:
+                records = quarterly_facts_from_facts(facts, quarter_dates)
+                values = records["value"] * split_factors_for_filing_dates(
+                    records["filed"],
+                    splits,
+                )
+                combined = combined.combine_first(values)
+        return combined
 
     def _load_ticker_ciks(self) -> dict[str, str]:
         if self._ticker_ciks is not None:

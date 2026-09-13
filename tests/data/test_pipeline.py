@@ -1,3 +1,4 @@
+import logging
 import math
 from datetime import date
 
@@ -33,6 +34,7 @@ EXPECTED_SPLIT_FACTOR = 20.0
 EXPECTED_ADJUSTED_EPS = EXPECTED_EPS / EXPECTED_SPLIT_FACTOR
 EXPECTED_PE_RATIO = EXPECTED_STOCK_PRICE / EXPECTED_ADJUSTED_EPS
 EXPECTED_SHARES = 1_000_000_000.0
+EXPECTED_FALLBACK_EBITDA = 275.0
 
 
 class FakeMacroSource:
@@ -71,12 +73,33 @@ class FakeFinancialsSource:
     ) -> pd.DataFrame:
         values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
         values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
+        values["net_income_usd_m"] = [100.0, 110.0]
         values["eps"] = [EXPECTED_ADJUSTED_EPS, -1.0]
         return pd.DataFrame(
             {
                 "date": TEST_QUARTER_DATES,
                 **values,
                 "shares_outstanding": [EXPECTED_SHARES] * 2,
+            },
+        )
+
+
+class FakeFallbackFinancialsSource:
+    @staticmethod
+    def fetch_financials_panel(
+        _ticker: str,
+        _start: date,
+        _end: date,
+    ) -> pd.DataFrame:
+        values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
+        values["revenue_usd_m"] = [900.0, 950.0]
+        values["ebitda_usd_m"] = [EXPECTED_FALLBACK_EBITDA, 300.0]
+        values["eps"] = [10.0, 2.0]
+        return pd.DataFrame(
+            {
+                "date": TEST_QUARTER_DATES,
+                **values,
+                "shares_outstanding": [900_000_000.0] * 2,
             },
         )
 
@@ -167,6 +190,49 @@ def test_merge_panel_derives_pe_ratio_from_price_and_earnings(
 
     assert panel.loc[0, "pe_ratio"] == pytest.approx(EXPECTED_PE_RATIO)
     assert pd.isna(panel.loc[1, "pe_ratio"])
+
+
+def test_merge_panel_fills_only_missing_sec_values_from_fallback(
+    company_registry: CompanyRegistry,
+) -> None:
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=IngestionSources(
+            fred=FakeMacroSource(),
+            yfinance=FakeMarketSource(),
+            sec_edgar=FakeFinancialsSource(),
+            registry=company_registry,
+            financials_fallback=FakeFallbackFinancialsSource(),
+        ),
+    )
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(EXPECTED_REVENUE)
+    assert panel.loc[0, "ebitda_usd_m"] == pytest.approx(EXPECTED_FALLBACK_EBITDA)
+    assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
+    assert panel.loc[1, "eps"] == pytest.approx(2.0)
+
+
+def test_merge_panel_warns_when_gaps_remain_without_a_fallback(
+    company_registry: CompanyRegistry,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        panel = merge_panel(
+            ticker="AMZN",
+            start=date(2020, 1, 1),
+            end=date(2020, 6, 30),
+            sources=IngestionSources(
+                fred=FakeMacroSource(),
+                yfinance=FakeMarketSource(),
+                sec_edgar=FakeFinancialsSource(),
+                registry=company_registry,
+            ),
+        )
+
+    assert pd.isna(panel.loc[0, "ebitda_usd_m"])
+    assert "No financials fallback configured for AMZN" in caplog.text
 
 
 def test_merge_panel_adjusts_eps_to_current_share_basis(

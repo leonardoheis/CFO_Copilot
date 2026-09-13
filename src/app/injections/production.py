@@ -1,7 +1,12 @@
 from dependency_injector import containers, providers
 
 from app.data.companies import CompanyRegistry
-from app.data.sources import FredSource, SecEdgarSource, YfinanceSource
+from app.data.sources import (
+    AlphaVantageSource,
+    FredSource,
+    SecEdgarSource,
+    YfinanceSource,
+)
 from app.data.sources_bundle import IngestionSources
 from app.services import PredictionService, TrainingService
 from app.settings import Settings
@@ -23,6 +28,11 @@ class Container(containers.DeclarativeContainer):
         user_agent=Settings.SEC_USER_AGENT,
         registry=company_registry,
     )
+    alpha_vantage_source = providers.Factory(
+        AlphaVantageSource,
+        api_key=Settings.ALPHA_VANTAGE_API_KEY,
+        cache_directory=Settings.DATA_DIRECTORY / "raw" / "alpha_vantage",
+    )
 
     ingestion_sources = providers.Factory(
         IngestionSources,
@@ -30,4 +40,7 @@ class Container(containers.DeclarativeContainer):
         yfinance=yfinance_source,
         sec_edgar=sec_edgar_source,
         registry=company_registry,
+        financials_fallback=(
+            alpha_vantage_source if Settings.ALPHA_VANTAGE_API_KEY else None
+        ),
     )

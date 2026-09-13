@@ -26,6 +26,24 @@ def merge_raw_financial_frames(
     return merged
 
 
+def implied_shares_from_earnings(
+    net_income: pd.Series,
+    eps: pd.Series,
+) -> pd.Series:
+    """Recover a diluted share count from net income and diluted EPS.
+
+    A last-resort fallback for quarters where a filer reports no share-count
+    fact at all. Because ``eps`` is already split-adjusted, the quotient
+    ``net income / EPS`` lands on the current split-adjusted share basis,
+    matching the primary shares chain. Zero EPS yields no estimate.
+
+    Returns:
+        Implied shares outstanding, NaN where EPS is zero or missing.
+    """
+    safe_eps = eps.where(eps != 0)
+    return net_income / safe_eps
+
+
 def split_factors_for_filing_dates(
     filed_dates: pd.Series,
     splits: pd.Series | None,

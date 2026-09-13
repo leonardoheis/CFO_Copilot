@@ -39,18 +39,6 @@ companies:
       type: from_ticker
 
   - tickers:
-      - GLOB
-    panel:
-      company: Globant
-      sector: Technology
-      is_public: true
-    sec:
-      type: known_cik
-      cik: "0001557860"
-    market:
-      type: from_ticker
-
-  - tickers:
       - TSLA
     panel:
       company: Tesla
@@ -83,5 +71,17 @@ companies:
     sec:
       type: known_cik
       cik: "0000320193"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - PG
+    panel:
+      company: Procter & Gamble
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000080424"
     market:
       type: from_ticker

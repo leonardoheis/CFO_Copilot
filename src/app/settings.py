@@ -3,6 +3,12 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The container sets WORKDIR to the directory holding .env, so the bare relative
+# name must stay. It resolves against the current directory though, which leaves
+# every credential empty when the CLI is run from anywhere but the repo root, so
+# the checkout's own .env is offered alongside it.
+_REPOSITORY_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class _Settings(BaseSettings):
     UI_PORT: int = 10000
@@ -13,7 +19,10 @@ class _Settings(BaseSettings):
     SEC_USER_AGENT: str = ""
     ALPHA_VANTAGE_API_KEY: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(_REPOSITORY_ENV_FILE, ".env"),
+        extra="ignore",
+    )
 
     @property
     def MODEL_DIRECTORY(self) -> Path:

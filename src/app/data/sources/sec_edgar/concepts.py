@@ -47,7 +47,13 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "Revenues",
         ),
     ),
-    "cogs": ConceptSpec(tags=("CostOfGoodsAndServicesSold", "CostOfRevenue")),
+    "cogs": ConceptSpec(
+        tags=(
+            "CostOfGoodsAndServicesSold",
+            "CostOfGoodsSold",
+            "CostOfRevenue",
+        ),
+    ),
     "costs_and_expenses": ConceptSpec(tags=("CostsAndExpenses",)),
     "operating_income": ConceptSpec(tags=("OperatingIncomeLoss",)),
     "net_income": ConceptSpec(tags=("NetIncomeLoss",)),
@@ -55,6 +61,7 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
         tags=(
             "DepreciationDepletionAndAmortization",
             "DepreciationAndAmortization",
+            "DepreciationAmortizationAndAccretionNet",
             "Depreciation",
         ),
     ),

@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -6,10 +7,13 @@ import pandas as pd
 from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.schema import (
+    FINANCIAL_COLUMNS,
     METADATA_COLUMNS,
     PANEL_COLUMNS,
 )
 from app.data.sources_bundle import IngestionSources
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_HISTORY_YEARS = 20
 XBRL_HISTORY_START = date(2008, 4, 1)
@@ -85,6 +89,13 @@ def merge_panel(
         end,
         splits,
     )
+    financials = _fill_missing_financials(
+        financials,
+        ticker,
+        start,
+        end,
+        sources,
+    )
     market = sources.yfinance.fetch_market_panel(ticker, start, end)
     macro = sources.fred.fetch_macro_panel(start, end)
 
@@ -99,6 +110,46 @@ def merge_panel(
         panel["eps"],
     )
     return panel.loc[:, list(PANEL_COLUMNS)]
+
+
+def _fill_missing_financials(
+    financials: pd.DataFrame,
+    ticker: str,
+    start: date,
+    end: date,
+    sources: IngestionSources,
+) -> pd.DataFrame:
+    fallback_source = sources.financials_fallback
+    value_columns = [*FINANCIAL_COLUMNS, "shares_outstanding"]
+    missing_count = int(financials[value_columns].isna().to_numpy().sum())
+    if missing_count == 0:
+        return financials
+
+    if fallback_source is None:
+        # Without this the panel is written with the gaps still in it and no
+        # trace of why, which reads as missing source data rather than as a
+        # fallback that was never wired (an unset ALPHA_VANTAGE_API_KEY).
+        logger.warning(
+            "No financials fallback configured for %s; leaving %d missing values",
+            ticker.upper(),
+            missing_count,
+        )
+        return financials
+
+    fallback = fallback_source.fetch_financials_panel(ticker, start, end)
+    preferred = financials.set_index("date")
+    supplemental = fallback.set_index("date")
+    combined = preferred.combine_first(supplemental)
+
+    # Positive net income and non-positive EPS cannot describe the same common
+    # earnings period. This occurs when SEC annual EPS was split-restated but
+    # its nine-month comparator was not, producing a false negative Q4 value.
+    # Prefer a positive fallback EPS only for that internally inconsistent case.
+    inconsistent_eps = preferred["net_income_usd_m"].gt(0) & preferred["eps"].le(0)
+    positive_fallback_eps = supplemental["eps"].where(supplemental["eps"].gt(0))
+    replacement_eps = positive_fallback_eps.loc[inconsistent_eps]
+    combined.loc[replacement_eps.dropna().index, "eps"] = replacement_eps.dropna()
+    return combined.reset_index()
 
 
 def price_earnings_ratio(stock_price: pd.Series, eps: pd.Series) -> pd.Series:

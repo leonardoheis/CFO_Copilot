@@ -24,8 +24,8 @@ def test_scraped_companies_lists_each_profile_once(
         "PepsiCo",
         "Microsoft",
         "Tesla",
-        "Globant",
         "Apple",
+        "Procter & Gamble",
     }
     assert len(company_names) == len(company_registry.companies)
 

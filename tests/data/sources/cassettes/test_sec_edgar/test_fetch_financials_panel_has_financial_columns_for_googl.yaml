@@ -1479,4 +1479,148 @@ interactions:
     status:
       code: 200
       message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsSold.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsSold.json</Key><RequestId>G8YFK1VPNMKPHFYT</RequestId><HostId>cZdGQu3et/TLaxJpqGZKa2j7qFfBSx+zyq6pJtE3UV1gB0bEqoQ26+cLkYhwnc0udqbop4x91YM=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '337'
+      Content-Type:
+      - application/xml
+      Date:
+      - Thu, 10 Sep 2026 18:29:19 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aa2f6ff-c5ecf0367c0434264882dc3a
+      x-amz-apigw-id:
+      - DfuH7ExJoAMEBQw=
+      x-amzn-RequestId:
+      - 171ec420-302f-4db1-9e77-a7406695d86f
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsSold.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsSold.json</Key><RequestId>JGMP11KNY3ATA57D</RequestId><HostId>1TT2Tb0ld47hgRInJCkkf4Dgwzb/KmonAxZARBAaqAZ36Vm4bpnHp7VIIMsgvXoYA+S5zsrMQRI=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '337'
+      Content-Type:
+      - application/xml
+      Date:
+      - Thu, 10 Sep 2026 18:29:20 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aa2f700-277ec7eda001db01d3986288
+      x-amz-apigw-id:
+      - DfuILEdqIAMEAoQ=
+      x-amzn-RequestId:
+      - 82b3442f-44fb-4f8f-8354-70a04838b45f
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndAccretionNet.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>NJ1YB9YWWYAC5V03</RequestId><HostId>M1D5DQ9VVWqXUwrEya/dPcXdjIgD12mKW5j1sWz82XKmj/142yzXSwFHTYVPhih2Q0IXm0JUKro=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '361'
+      Content-Type:
+      - application/xml
+      Date:
+      - Fri, 11 Sep 2026 01:55:17 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aa35f85-0b88d54d7a5412272f9de486
+      x-amz-apigw-id:
+      - Dgvc7EVioAMEdUw=
+      x-amzn-RequestId:
+      - bd78bdac-e9d2-4dcf-8b41-27cffef468ad
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndAccretionNet.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>9B6F8SNHVCND0RF8</RequestId><HostId>F3AcB9okl4PtWpRhDxDZHCMdO8TPrIcUT2TRDnFh16oV/pOp00HzZVuaAwVQAq3Q7DKdqv5yJ80=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '361'
+      Content-Type:
+      - application/xml
+      Date:
+      - Fri, 11 Sep 2026 01:55:19 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aa35f87-b5c17695624775938dd1244b
+      x-amz-apigw-id:
+      - DgvdQF3hoAMEZNQ=
+      x-amzn-RequestId:
+      - 7835ca11-7dc2-41ea-94fe-e5c5c4ebeef5
+    status:
+      code: 404
+      message: Not Found
 version: 1

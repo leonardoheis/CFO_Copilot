@@ -32,9 +32,19 @@ class FinancialsSource(Protocol):
     ) -> pd.DataFrame: ...
 
 
+class FallbackFinancialsSource(Protocol):
+    def fetch_financials_panel(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+    ) -> pd.DataFrame: ...
+
+
 @dataclass(frozen=True, slots=True)
 class IngestionSources:
     fred: MacroSource
     yfinance: MarketSource
     sec_edgar: FinancialsSource
     registry: CompanyRegistry
+    financials_fallback: FallbackFinancialsSource | None = None
