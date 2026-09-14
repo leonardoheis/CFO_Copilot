@@ -1623,4 +1623,76 @@ interactions:
     status:
       code: 404
       message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndOther.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndOther.json</Key><RequestId>9B6F8SNHVCND0RF8</RequestId><HostId>F3AcB9okl4PtWpRhDxDZHCMdO8TPrIcUT2TRDnFh16oV/pOp00HzZVuaAwVQAq3Q7DKdqv5yJ80=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '361'
+      Content-Type:
+      - application/xml
+      Date:
+      - Fri, 11 Sep 2026 01:55:19 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aa35f87-b5c17695624775938dd1244b
+      x-amz-apigw-id:
+      - DgvdQF3hoAMEZNQ=
+      x-amzn-RequestId:
+      - 7835ca11-7dc2-41ea-94fe-e5c5c4ebeef5
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/OtherDepreciationAndAmortization.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/OtherDepreciationAndAmortization.json</Key><RequestId>9B6F8SNHVCND0RF8</RequestId><HostId>F3AcB9okl4PtWpRhDxDZHCMdO8TPrIcUT2TRDnFh16oV/pOp00HzZVuaAwVQAq3Q7DKdqv5yJ80=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '361'
+      Content-Type:
+      - application/xml
+      Date:
+      - Fri, 11 Sep 2026 01:55:19 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aa35f87-b5c17695624775938dd1244b
+      x-amz-apigw-id:
+      - DgvdQF3hoAMEZNQ=
+      x-amzn-RequestId:
+      - 7835ca11-7dc2-41ea-94fe-e5c5c4ebeef5
+    status:
+      code: 404
+      message: Not Found
 version: 1

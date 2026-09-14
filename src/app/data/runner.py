@@ -4,6 +4,7 @@ from pathlib import Path
 import click
 
 from app.data.pipeline import (
+    XBRL_HISTORY_START,
     build_panel_skeleton,
     merge_panel,
     resolve_date_range,
@@ -62,11 +63,11 @@ def ingest_data(
         end_date.strftime("%Y-%m-%d") if end_date is not None else None,
     )
     resolved_start, resolved_end = resolve_date_range(start, end)
-    if start is not None and resolved_start != start:
+    if resolved_start < XBRL_HISTORY_START:
         click.echo(
-            f"Adjusted start date from {start.isoformat()} to "
-            f"{resolved_start.isoformat()} because SEC XBRL coverage begins "
-            f"on {resolved_start.isoformat()}.",
+            "SEC XBRL facts are typically empty before "
+            f"{XBRL_HISTORY_START.isoformat()}; Alpha Vantage fills that window "
+            "when ALPHA_VANTAGE_API_KEY is set.",
         )
 
     container = configure_container()

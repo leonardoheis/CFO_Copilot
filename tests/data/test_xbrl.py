@@ -15,6 +15,7 @@ from app.data.xbrl import (
 EXPECTED_Q4_VALUE = 250
 EXPECTED_NATIVE_Q2_VALUE = 140
 EXPECTED_LATEST_FILING_VALUE = 110.0
+EXPECTED_JUNE_FISCAL_Q4 = 40
 
 
 def _fact(
@@ -83,6 +84,31 @@ def test_quarterly_facts_derives_q4_from_fy_and_nine_months() -> None:
     result = quarterly_facts_from_facts(facts, [date(2020, 12, 31)])
 
     assert result["value"].iloc[0] == EXPECTED_Q4_VALUE
+
+
+def test_quarterly_facts_derives_q4_from_annual_minus_three_native_quarters() -> None:
+    facts = [
+        _fact("2019-07-01", "2019-09-30", 300),
+        _fact("2019-10-01", "2019-12-31", 310),
+        _fact("2020-01-01", "2020-03-31", 350),
+        _fact("2019-07-01", "2020-06-30", 1_000),
+    ]
+
+    result = quarterly_facts_from_facts(facts, [date(2020, 6, 30)])
+
+    assert result["value"].iloc[0] == EXPECTED_JUNE_FISCAL_Q4
+
+
+def test_quarterly_facts_skips_annual_minus_three_when_year_is_sparse() -> None:
+    facts = [
+        _fact("2019-07-01", "2019-09-30", 300),
+        _fact("2019-10-01", "2019-12-31", 310),
+        _fact("2019-07-01", "2020-06-30", 1_000),
+    ]
+
+    result = quarterly_facts_from_facts(facts, [date(2020, 6, 30)])
+
+    assert pd.isna(result["value"].iloc[0])
 
 
 def test_quarterly_facts_prefers_native_quarter_over_ytd_difference() -> None:

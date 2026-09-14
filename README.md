@@ -52,54 +52,54 @@ system, including the various components and their interactions.
 ```mermaid
 flowchart LR
   subgraph Sources
-    A1["SEC EDGAR 10-K/10-Q (HTML/PDF/XBRL)"]
-    A2["APIs Financieras (FMP/Finnhub/EODHD)"]
-    A3["Macroeconómicas (FRED/WorldBank/IMF)"]
-    A4["Repos CSV públicos (GitHub)"]
+    A1["SEC EDGAR companyconcept XBRL"]
+    A2["Alpha Vantage financials"]
+    A3["Yahoo Finance prices and splits"]
+    A4["FRED macros"]
   end
 
-  subgraph "Ingest & Parsing"
-    B1["OpenEDGAR (crawl + parse EDGAR)"]
-    B2["Extractores XBRL → JSON/frames"]
-    B3["Connectores REST → JSON/CSV"]
+  subgraph "Ingest and parsing"
+    B1["SEC concept tag chains"]
+    B2["XBRL duration and instant facts"]
+    B3["Alpha Vantage / Yahoo / FRED adapters"]
   end
 
   subgraph Storage
-    C1[(Data Lake: parquet/csv)]
+    C1[(data/processed parquet panels)]
   end
 
   subgraph "Training Pipeline"
-    D1["EDA + FE (lags, estacionalidad)"]
-    D2["Modelos: ARIMA/SARIMA · LSTM · ML · AutoML"]
-    D3["Val/Backtest + Mapie (PI)"]
-    D4["Registry (MLflow/W&B)"]
+    D1["EDA + FE (lags, estacionalidad) — planned"]
+    D2["Modelos: ARIMA/SARIMA · LSTM · ML · AutoML — planned"]
+    D3["Val/Backtest + Mapie (PI) — planned"]
+    D4["Registry (MLflow/W&B) — planned"]
   end
 
   subgraph "Model Registry"
-    F1[(Artifacts/MLflow o W&B)]
+    F1[(Artifacts/MLflow o W&B) — planned]
   end
 
   subgraph "Front End"
-    E1["Frontend (Angular/Streamlit)"]
+    E1["Frontend (Streamlit)"]
   end
 
   subgraph Serving
     E2["FastAPI /train"]
     E3["FastAPI /predict"]
-    E4["Q&A GenAI (OpenAI+LangChain)"]    
+    E4["Q&A GenAI (OpenAI+LangChain) — planned"]
   end
 
   subgraph "Predict Pipeline"
     G1["Preprocesamiento"]
     G2["Ensemble prediction"]
     G3["bootstrap CI"]
-  end  
+  end
 
   A1 --> B1 --> C1
   A1 --> B2 --> C1
   A2 --> B3 --> C1
   A3 --> B3 --> C1
-  A4 --> C1
+  A4 --> B3 --> C1
   E2 --> D1 --> D2 --> D3 --> D4
   E1 --> E2
   E1 --> E3
@@ -150,6 +150,45 @@ not cover the company's full market history. For ordinary tickers, no registry
 entry is required: SEC resolves the CIK dynamically and Yahoo uses the
 requested ticker.
 
+### Data panel
+
+Ingestion is implemented. Training models (ARIMA/LSTM/AutoML) and GenAI Q&A in
+the diagram above are still planned.
+
+**Sources in use**
+
+* SEC EDGAR `companyconcept` XBRL (income statement, cash flow, EPS, shares)
+* Alpha Vantage (income, cash flow, earnings, balance sheet) — fills pre-XBRL
+  history and remaining SEC gaps
+* Yahoo Finance (quarter-end price, dividend yield, split history)
+* FRED (macro series: GDP, fed funds, unemployment, CPI, DXY, VIX, WTI)
+
+**Universe** is the seven companies in
+[`config/companies.yaml`](config/companies.yaml): Amazon, Alphabet, Microsoft,
+Tesla, PepsiCo, Apple, and Procter & Gamble.
+
+**Shape:** one row per calendar quarter. Columns are defined in
+[`src/app/data/schema.py`](src/app/data/schema.py). Output path:
+`data/processed/<TICKER>_panel.parquet`.
+
+**Window:** default start is 20 years before the latest completed quarter. The
+panel is not clamped to 2008; SEC facts are usually empty before interactive
+XBRL, and Alpha Vantage fills that span when `ALPHA_VANTAGE_API_KEY` is set.
+
+**Completeness:** accounting fields come from SEC, then Alpha Vantage
+`combine_first`. Market cap is `price × shares`. P/E is `price / EPS` only when
+EPS is positive. Tesla has no public price before its June 2010 IPO; those
+market fields stay null on purpose. Do not interpolate revenue, FCF, or prices.
+
+Copy [`.env.example`](.env.example) to `.env` and set `SEC_USER_AGENT`,
+`ALPHA_VANTAGE_API_KEY`, and `FRED_API_KEY`. Then ingest a ticker:
+
+```
+uv run poe ingest-data --ticker AMZN
+```
+
+Repeat for `AAPL`, `GOOGL`, `MSFT`, `PEP`, `PG`, and `TSLA`.
+
 ### Running tests
 
 Tests can be run via the terminal or through the VS Code Testing Pane.
@@ -197,7 +236,7 @@ Frontend Only:
 ```
 uv run poe serve-ui
 ```
-For Streamlit you can visualize the app at `http://localhost:100008501`.
+For Streamlit you can visualize the app at `http://localhost:10000`.
 
 ### Deployment
 

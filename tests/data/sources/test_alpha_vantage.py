@@ -7,6 +7,11 @@ import pytest
 from app.data.exceptions import DataSourceError, MalformedPayloadError
 from app.data.sources.alpha_vantage import AlphaVantageSource
 from app.data.sources.alpha_vantage.parsing import number, report_date, reports
+from app.data.sources.alpha_vantage.source import MIN_REQUEST_INTERVAL_SECONDS
+
+SLEEP_TARGET = "app.data.sources.alpha_vantage.source.time.sleep"
+GET_TARGET = "app.data.sources.alpha_vantage.source.requests.get"
+EXPECTED_HTTP_CALLS_AFTER_ONE_RETRY = 5
 
 
 class FakeResponse:
@@ -74,7 +79,8 @@ def _source(
         del timeout
         return FakeResponse(payloads[params["function"]])
 
-    monkeypatch.setattr("app.data.sources.alpha_vantage.source.requests.get", get)
+    monkeypatch.setattr(GET_TARGET, get)
+    monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
     return AlphaVantageSource("test-key", tmp_path)
 
 
@@ -108,7 +114,7 @@ def test_cache_is_reused_without_second_http_request(
         msg = "cache should avoid HTTP"
         raise AssertionError(msg)
 
-    monkeypatch.setattr("app.data.sources.alpha_vantage.source.requests.get", fail_get)
+    monkeypatch.setattr(GET_TARGET, fail_get)
     cached = AlphaVantageSource("test-key", tmp_path)
     panel = cached.fetch_financials_panel(
         "AMZN",
@@ -132,7 +138,8 @@ def test_api_quota_payload_raises_data_source_error(
         del params, timeout
         return FakeResponse({"Note": "Thank you for using Alpha Vantage!"})
 
-    monkeypatch.setattr("app.data.sources.alpha_vantage.source.requests.get", get)
+    monkeypatch.setattr(GET_TARGET, get)
+    monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
     source = AlphaVantageSource("test-key", tmp_path)
 
     with pytest.raises(DataSourceError, match="Alpha Vantage Note"):
@@ -141,6 +148,76 @@ def test_api_quota_payload_raises_data_source_error(
             date(2006, 1, 1),
             date(2006, 3, 31),
         )
+
+
+def test_rate_limit_information_retries_then_succeeds(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payloads = _payloads()
+    attempts = {"count": 0}
+
+    def get(_url: str, *, params: dict[str, str], timeout: int) -> FakeResponse:
+        del timeout
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            return FakeResponse(
+                {
+                    "Information": (
+                        "Thank you for using Alpha Vantage! Please consider "
+                        "spreading out your free API requests more sparingly "
+                        "(1 request per second)."
+                    ),
+                },
+            )
+        return FakeResponse(payloads[params["function"]])
+
+    monkeypatch.setattr(GET_TARGET, get)
+    monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
+    source = AlphaVantageSource("test-key", tmp_path)
+    panel = source.fetch_financials_panel(
+        "AMZN",
+        date(2006, 1, 1),
+        date(2006, 3, 31),
+    )
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(1000.0)
+    assert attempts["count"] == EXPECTED_HTTP_CALLS_AFTER_ONE_RETRY
+
+
+def test_throttle_waits_between_uncached_requests(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payloads = _payloads()
+    slept: list[float] = []
+    clock = {"value": 0.0}
+
+    def get(_url: str, *, params: dict[str, str], timeout: int) -> FakeResponse:
+        del timeout
+        return FakeResponse(payloads[params["function"]])
+
+    monkeypatch.setattr(GET_TARGET, get)
+    monkeypatch.setattr(
+        "app.data.sources.alpha_vantage.source.time.monotonic",
+        lambda: clock["value"],
+    )
+
+    def fake_sleep(seconds: float) -> None:
+        slept.append(seconds)
+        clock["value"] += seconds
+
+    monkeypatch.setattr(SLEEP_TARGET, fake_sleep)
+    source = AlphaVantageSource("test-key", tmp_path)
+    source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
+
+    assert slept == pytest.approx(
+        [
+            MIN_REQUEST_INTERVAL_SECONDS,
+            MIN_REQUEST_INTERVAL_SECONDS,
+            MIN_REQUEST_INTERVAL_SECONDS,
+        ],
+    )
 
 
 def test_missing_api_key_fails_before_http(
