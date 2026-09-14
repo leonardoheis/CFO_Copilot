@@ -13,6 +13,7 @@ dependencies = [
     "fredapi>=0.5.2",
     "httpx>=0.28.1",
     "joblib>=1.5.1",
+    "matplotlib>=3.11.2",
     "pandas>=2.3.1",
     "polyfactory>=2.22.2",
     "pyarrow>=21.0.0",
@@ -20,6 +21,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "requests>=2.32.4",
     "scikit-learn>=1.7.1",
+    "statsmodels>=0.15.0",
     "streamlit>=1.48.0",
     "uvicorn[standard]==0.35.0",
     "yfinance>=0.2.65",
@@ -176,7 +178,7 @@ ignore_missing_imports = true
 [tool.ruff]
 fix = true
 preview = true
-exclude = ['app\views\templates\books', 'books', '.cursor']
+exclude = ['app\views\templates\books', 'books', '.cursor', '.claude']
 target-version = "py312"
 unsafe-fixes = true
 
