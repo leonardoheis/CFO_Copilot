@@ -119,7 +119,7 @@ def test_resolve_date_range_defaults_to_twenty_years() -> None:
     start, end = resolve_date_range(None, date(2026, 6, 30))
 
     assert end == date(2026, 6, 30)
-    assert start == date(2008, 4, 1)
+    assert start == date(2006, 6, 30)
 
 
 def test_quarter_end_dates_returns_quarterly_periods() -> None:

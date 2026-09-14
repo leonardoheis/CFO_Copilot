@@ -9,6 +9,8 @@ from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
 from app.data.schema import FINANCIAL_COLUMNS
 from app.data.sources.sec_edgar import SecEdgarSource, merge_raw_financial_frames
+from app.data.sources.sec_edgar.concepts import TAG_CHAINS
+from app.data.xbrl import XbrlFact
 
 TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 
@@ -123,3 +125,41 @@ def test_fetch_financials_panel_recovers_early_opex_and_shares(
 
     assert panel["opex_usd_m"].notna().all()
     assert panel["shares_outstanding"].notna().all()
+
+
+def test_dep_amort_chain_uses_later_tag_when_earlier_tags_are_empty(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected_value = 42.0
+    quarter = date(2020, 3, 31)
+    requested_tags: list[str] = []
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        requested_tags.append(tag)
+        if tag != "DepreciationAmortizationAndOther":
+            return []
+        return [
+            {
+                "start": "2020-01-01",
+                "end": "2020-03-31",
+                "val": expected_value,
+                "filed": "2020-05-01",
+            },
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
+        "0000789019",
+        TAG_CHAINS["dep_amort"],
+        [quarter],
+        None,
+    )
+
+    assert values.loc[quarter] == pytest.approx(expected_value)
+    assert "DepreciationAmortizationAndOther" in requested_tags
+    assert "OtherDepreciationAndAmortization" not in requested_tags

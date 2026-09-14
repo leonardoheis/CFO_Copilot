@@ -173,6 +173,8 @@ class SecEdgarSource:
                         splits,
                     )
                 combined = combined.combine_first(values)
+            if combined.notna().all():
+                break
         return combined
 
     def _fetch_shares_chain(

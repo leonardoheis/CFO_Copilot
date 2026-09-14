@@ -63,6 +63,8 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "DepreciationAndAmortization",
             "DepreciationAmortizationAndAccretionNet",
             "Depreciation",
+            "DepreciationAmortizationAndOther",
+            "OtherDepreciationAndAmortization",
         ),
     ),
     "operating_cash_flow": ConceptSpec(

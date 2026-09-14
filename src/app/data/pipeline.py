@@ -41,12 +41,11 @@ def resolve_date_range(
 ) -> tuple[date, date]:
     reference_date = as_of or datetime.now(tz=UTC).date()
     resolved_end = end or most_recent_completed_quarter(reference_date)
-    requested_start = start or date(
+    resolved_start = start or date(
         resolved_end.year - DEFAULT_HISTORY_YEARS,
         resolved_end.month,
         resolved_end.day,
     )
-    resolved_start = max(requested_start, XBRL_HISTORY_START)
     return resolved_start, resolved_end
 
 

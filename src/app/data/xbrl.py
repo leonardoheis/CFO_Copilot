@@ -13,6 +13,7 @@ from app.data.exceptions import MalformedPayloadError
 MIN_QUARTER_DAYS: Final = 80
 MAX_QUARTER_DAYS: Final = 100
 MIN_YEAR_TO_DATE_DAYS: Final = 160
+NATIVE_QUARTERS_BEFORE_YEAR_END: Final = 3
 MIN_REJECTED_PERIODS: Final = 2
 logger = logging.getLogger(__name__)
 
@@ -56,8 +57,18 @@ def quarterly_facts_from_facts(
             continue
 
         derived = _find_ytd_fact(values_by_period, quarter_date)
+        if derived is not None:
+            records.append(derived)
+            continue
+
+        fiscal_quarter = _find_annual_minus_three_quarters(
+            values_by_period,
+            quarter_date,
+        )
         records.append(
-            derived if derived is not None else {"value": math.nan, "filed": ""},
+            fiscal_quarter
+            if fiscal_quarter is not None
+            else {"value": math.nan, "filed": ""},
         )
 
     return pd.DataFrame(records, index=quarter_dates)
@@ -142,6 +153,42 @@ def _find_ytd_fact(
     if not candidates:
         return None
     return min(candidates, key=operator.itemgetter(0))[1]
+
+
+def _find_annual_minus_three_quarters(
+    values_by_period: dict[tuple[date, date], QuarterlyFact],
+    quarter_date: date,
+) -> QuarterlyFact | None:
+    """Derive a fiscal year-end quarter as annual minus three native quarters.
+
+    Returns:
+        The residual quarter value, or ``None`` when the year is incomplete.
+    """
+    annual_candidates: list[tuple[int, date, date, QuarterlyFact]] = []
+    for (start, end), current_value in values_by_period.items():
+        duration = (end - start).days
+        if _matches_quarter(end, quarter_date) and duration >= MIN_YEAR_TO_DATE_DAYS:
+            annual_candidates.append((duration, start, end, current_value))
+    if not annual_candidates:
+        return None
+
+    _duration, fiscal_start, fiscal_end, annual = max(
+        annual_candidates,
+        key=operator.itemgetter(0),
+    )
+    native_values = [
+        value
+        for (start, end), value in values_by_period.items()
+        if MIN_QUARTER_DAYS <= (end - start).days <= MAX_QUARTER_DAYS
+        and fiscal_start <= start
+        and fiscal_start < end < fiscal_end
+    ]
+    if len(native_values) != NATIVE_QUARTERS_BEFORE_YEAR_END:
+        return None
+    return {
+        "value": annual["value"] - sum(item["value"] for item in native_values),
+        "filed": annual["filed"],
+    }
 
 
 def _deduplicate_fact_records(
