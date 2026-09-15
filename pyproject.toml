@@ -74,8 +74,6 @@ typecheck  = "uv run --all-groups pre-commit run mypy --all-files"
 test = "uv run --all-groups pytest"
 format = "uv run --all-groups pre-commit run --all-files --verbose"
 check-coverage = "uv run coverage report --fail-under=80"
-check-skills = "uv run python scripts/check_skills.py"
-sync-skills = "uv run python scripts/sync_skills.py"
 docker-build = "docker buildx build --progress plain -t app ."
 docker-run = "docker container run --env-file .env --publish 8000:8000 --publish 10000:10000 app"
 version-bump = "uv run semantic-release -v version --no-tag --no-commit --skip-build --changelog"
@@ -150,9 +148,10 @@ skip_covered = true
 [tool.mypy]
 strict = true
 
-# Vendored agent-skill scripts, not application code. Both editor directories
-# hold the same files, so type-checking them also collides on module names.
-exclude = '^\.(cursor|claude)[/\\]'
+# Vendored agent-skill scripts and repo tooling, not application code. Both
+# editor directories hold the same files, so type-checking them also collides
+# on module names.
+exclude = '^(\.(cursor|claude)|scripts)[/\\]'
 
 follow_imports = "normal"
 
@@ -185,7 +184,7 @@ ignore_missing_imports = true
 [tool.ruff]
 fix = true
 preview = true
-exclude = ['app\views\templates\books', 'books', '.cursor', '.claude']
+exclude = ['app\views\templates\books', 'books', '.cursor', '.claude', 'scripts']
 target-version = "py312"
 unsafe-fixes = true
 
@@ -201,10 +200,6 @@ ignore = [
     "any-type",
     "missing-trailing-comma",
 ]
-
-[tool.ruff.lint.per-file-ignores]
-# Standalone CLI tools: printing to stdout is the interface, not a debug leftover.
-"scripts/*.py" = ["T201"]
 
 [tool.ruff.format]
 # Set Ruff to imitate Black

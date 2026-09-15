@@ -211,3 +211,7 @@ pytest-report.xml
 
 # Memory
 MEMORY.md
+
+# Internal tooling — local to this machine, not part of the project
+scripts/
+.claude/skills/AUDIT.md
