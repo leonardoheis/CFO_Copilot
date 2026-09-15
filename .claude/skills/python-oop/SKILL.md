@@ -1,6 +1,6 @@
 ---
 name: python-oop
-description: Use this skill when building new Python software, creating new classes or modules, refactoring procedural/functional code to OOP, or when the user asks to design a class hierarchy, use OOP patterns, or apply object-oriented principles. Triggers on phrases like "add class", "OOP", "object oriented", "refactor to classes", "design classes", "class structure", "separate concerns", "encapsulation".
+description: Conventions for writing Python classes — naming, where instance state lives, when to split a class, and which decorator fits. Use when creating new classes or modules, turning procedural code into classes, or designing a class hierarchy. Triggers on "add class", "design classes", "class hierarchy", "OOP", "object oriented", "refactor to classes", "encapsulation", "__init__", "@property", "@classmethod". For naming what is wrong with existing code use code-smells; for the principle behind a split use solid-principles.
 ---
 
 # Python OOP Development Guidelines
@@ -22,7 +22,11 @@ Reference: https://realpython.com/python3-object-oriented-programming/
 2. **All instance state in `__init__`** — never set new attributes outside of it.
 3. **Fitted state uses trailing underscore**: `self.model_`, `self.mean_` — signals "set by fit()".
 4. **One class = one responsibility** — if you need a conjunction ("clean *and* encode"), split it.
-5. **`@staticmethod`** for operations that don't use `self` or `cls`.
+5. **Module-level function** for helpers that read neither `self` nor `cls` —
+   not `@staticmethod`. A self-less method still costs a class lookup and
+   implies a relationship that isn't there; many projects lint against it
+   (pylint's `no-self-use` / ruff's `PLR6301`), so a private module function
+   is the portable choice.
 6. **`@classmethod`** for alternative constructors: `DataCleaner.from_config(path)`.
 7. **`@property`** for computed read-only attributes that look like data.
 8. **`super().__init__()`** always in child `__init__` when inheriting.
@@ -64,7 +68,7 @@ class SomeTransformer:
 
 | Responsibility | Class |
 |---|---|
-| Loading raw data | `@staticmethod load()` on first transformer, or a `DataLoader` |
+| Loading raw data | A module-level `load()` function, or a `DataLoader` class |
 | Cleaning / imputation | `DataCleaner` |
 | Feature engineering | Separate class, or phase methods on `DataCleaner` |
 | Encoding (fit on train only) | `TabularEncoder`, `TextEncoder` |
@@ -93,7 +97,7 @@ Use the `Usage::` block to show callers the expected sequence:
 
 ```python
 class DataCleaner:
-    """Cleans raw Wine Reviews data and engineers base features.
+    """Cleans a raw input frame and engineers base features.
 
     Usage::
 

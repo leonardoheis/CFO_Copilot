@@ -1,16 +1,16 @@
 ---
 name: optimal-scaffold
-description: Use when creating new features, modules, routes, services, or agents in the any type of python project. Use when unsure how to place a new file, name a class, wire a dependency, add an endpoint, or write a test in this codebase. Triggers on "add endpoint", "new service", "new agent", "new route", "where does X go", "how to structure", or "follow the project pattern".
+description: The CFO_Copilot scaffold — where each kind of file goes, what to name it, how to wire it into the DI container, and how to register a router or error handler. Use when adding a feature, endpoint, service, domain entity, or data source to CFO_Copilot. Triggers on "add endpoint", "new service", "new route", "new data source", "register a router", "wire a dependency", "follow the project pattern", or any question about where code goes in CFO_Copilot.
 ---
 
-# Optimal python Scaffold
+# CFO Copilot Scaffold
 
-Reference for the layered API architecture used in a python project. Follow these patterns for every new feature.
+Reference for the layered ML-API architecture used in CFO_Copilot. Follow these patterns for every new feature.
 
 ## Architecture Layers
 
 ```
-Streamlit or another type of UI  (src/app/frontend/)
+Streamlit UI   (src/app/frontend/)
       ↓
 FastAPI Routes (src/app/api/routes/<feature>/)
       ↓
@@ -18,7 +18,7 @@ Services       (src/app/services/<feature>/)
       ↓
 Domain         (src/app/domain/)
       ↓
-ML Binaries if are needed  (src/app/ml_binaries/) via services/helper.py
+ML Binaries    (src/app/ml_binaries/) via services/helper.py
 ```
 
 Each layer has one job. Never skip layers or import upward.
@@ -34,7 +34,7 @@ src/app/
 ├── api/
 │   ├── app.py           # FastAPI factory (include_router, add_exception_handler)
 │   ├── dependencies.py  # Annotated DI aliases consumed by route functions
-│   ├── schema.py        # BaseSchema(BaseModel + ExamplerMixin + CamelCase)
+│   ├── schema.py        # BaseSchema(BaseModel + ExamplerMixIn + CamelCase)
 │   ├── error_handlers/  # One file per exception type → JSONResponse
 │   └── routes/
 │       └── <feature>/
@@ -44,7 +44,7 @@ src/app/
 │           └── examples.py    # EXAMPLES dict for OpenAPI
 │
 ├── domain/
-│   ├── base.py          # BaseEntity (Pydantic + ExamplerMixin + CamelCase)
+│   ├── base.py          # BaseEntity (Pydantic + ExamplerMixIn + CamelCase)
 │   ├── ml_model.py      # MLModel Protocol (@runtime_checkable)
 │   └── <entity>.py      # One file per domain entity
 │
@@ -67,7 +67,7 @@ src/app/
 │       └── <page>.py    # One Streamlit page per feature
 │
 └── utils/
-    └── exampler.py      # ExamplerMixin — create_example() / create_examples()
+    └── exampler.py      # ExamplerMixIn — create_example() / create_examples()
 ```
 
 ## Adding a New Feature (checklist)
@@ -129,8 +129,13 @@ def my_endpoint(request: MyRequest, service: MyServiceDependency) -> MyResponse:
 
 ### 7. Register router
 ```python
-# src/app/api/routes/__init__.py
-ROUTERS = [..., my_feature_router]
+# src/app/api/routes/registry.py  (not __init__.py — that only re-exports)
+ROUTERS: Iterable[APIRouter] = (
+    health_router,
+    prediction_router,
+    train_router,
+    my_feature_router,   # trailing comma: ROUTERS is a tuple, not a list
+)
 ```
 
 ### 8. Error handler (if custom exception)
@@ -139,8 +144,11 @@ ROUTERS = [..., my_feature_router]
 def my_feature_error_handler(request: Request, exc: MyFeatureError) -> JSONResponse:
     return JSONResponse(status_code=400, content={"detail": exc.message})
 
-# src/app/api/error_handlers/__init__.py
-EXCEPTION_HANDLERS = {..., MyFeatureError: my_feature_error_handler}
+# src/app/api/error_handlers/registry.py  (not __init__.py)
+EXCEPTION_HANDLERS: dict[type[Exception], ExceptionHandler] = {
+    ...,
+    MyFeatureError: my_feature_error_handler,
+}
 ```
 
 ### 9. Test
@@ -153,8 +161,8 @@ EXCEPTION_HANDLERS = {..., MyFeatureError: my_feature_error_handler}
 
 | Base class | Where | Extras |
 |---|---|---|
-| `BaseEntity` | `domain/` | ExamplerMixin, CamelCase aliases |
-| `BaseSchema` | `api/schema.py` | ExamplerMixin, CamelCase aliases |
+| `BaseEntity` | `domain/` | ExamplerMixIn, CamelCase aliases |
+| `BaseSchema` | `api/schema.py` | ExamplerMixIn, CamelCase aliases |
 | `MLModel` | Protocol in `domain/ml_model.py` | `fit()` + `predict()` |
 
 All Pydantic models use `model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)` via the base classes.
@@ -181,7 +189,10 @@ def test_health(client, snapshot):
     assert response.json() == snapshot  # syrupy
 ```
 
-Coverage must stay ≥ 80%. Omit `__main__.py`, `api/__init__.py`, `frontend/**`, `settings.py`.
+`uv run poe check-coverage` fails under 80%. The omit list in `pyproject.toml`
+is `**/__main__.py`, `src/app/frontend/*`, `src/app/settings.py` — note
+`api/__init__.py` is *not* omitted. `check-coverage` is not part of
+`poe check`, so it has to be run deliberately.
 
 ## Dev Workflow
 
@@ -192,15 +203,56 @@ uv run poe serve              # API (:8000) + Streamlit (:10000)
 uv run poe serve-api          # API only → /docs
 uv run poe serve-ui           # Streamlit only
 
+uv run poe check              # lint + typecheck + test — the pre-commit gate
 uv run poe test               # pytest + coverage
-uv run poe check-coverage     # fail if < 80%
-uv run poe format             # pre-commit (ruff, pylint, mypy, bandit, gitleaks)
+uv run poe check-coverage     # fail if < 80% (not part of `check`)
+uv run poe format             # pre-commit hooks
+
+uv run poe ingest-data        # python -m app.data — refresh the panels
+uv run poe probe-alpha-vantage  # coverage probe against Alpha Vantage
 
 uv run poe docker-build       # build image
 uv run poe docker-run         # run with .env file
 
 uv run poe version-bump       # semantic-release (no tag)
 ```
+
+## Adding a Data Source
+
+The ingestion layer lives in `src/app/data/` and is not shaped like the API
+layer — read **CLAUDE.md, "External source packages"** before adding one. It
+carries the rules in full; they are deliberately not duplicated here, because
+two copies of a convention drift.
+
+```
+src/app/data/
+├── companies.py      # CompanyRegistry, loaded from config/companies.yaml
+├── dates.py          # shared quarter/date helpers
+├── splits.py         # shared split-adjustment helpers
+├── xbrl.py           # shared XBRL fact handling
+├── pipeline.py       # panel assembly
+├── schema.py         # FINANCIAL_COLUMNS and panel shape
+└── sources/          # one package per vendor
+    ├── alpha_vantage/   # source.py + parsing.py
+    ├── fred/            # source.py only — nothing pure to separate
+    ├── sec_edgar/       # source.py + parsing.py + concepts.py
+    └── yfinance_source/ # source.py + fetching.py
+```
+
+The three rules worth knowing before you open CLAUDE.md:
+
+- **`source.py` imports from `parsing.py`, never the reverse.** Keep it acyclic.
+- **Vendor field names stay inside their package.** `fiscalDateEnding`,
+  `totalRevenue` and us-gaap tags must not appear outside — this is an
+  Anti-Corruption Layer. Genuinely shared logic goes in `data/dates.py`,
+  `splits.py` or `xbrl.py`.
+- **Only `__init__.py` defines the public surface.** Import
+  `from app.data.sources import SecEdgarSource`, never a submodule path.
+
+Add a company by editing `config/companies.yaml` only — never read the
+registry from module-level state; accept it as a constructor argument, the way
+`Container.company_registry` (a `Singleton`) is injected into `YfinanceSource`
+and `SecEdgarSource`.
 
 ## Settings Pattern
 
@@ -213,10 +265,12 @@ class _Settings(BaseSettings):
     def DERIVED_PATH(self) -> Path:
         return self.ROOT_PATH / "some/path"
 
-settings = _Settings()
+Settings = _Settings()
 ```
 
-Import as `from app.settings import settings` everywhere. Never pass config as constructor args when `settings` suffices.
+Import as `from app.settings import Settings` everywhere — the instance is
+capitalised, so `from app.settings import settings` is an ImportError. Never
+pass config as constructor args when `Settings` suffices.
 
 ## Naming Quick Reference
 
@@ -237,5 +291,5 @@ Import as `from app.settings import settings` everywhere. Never pass config as c
 | Putting business logic in endpoints | Move to a service method |
 | Raising `HTTPException` inside a service | Raise a domain exception; handle it in `error_handlers/` |
 | Skipping `@inject` on endpoint using `Provide` | Every endpoint that uses `Depends(Provide[...])` needs `@inject` |
-| Adding a new router without registering it | Add to `ROUTERS` list in `api/routes/__init__.py` |
-| Hardcoding paths | Use `settings.SOME_PATH` property |
+| Adding a new router without registering it | Add to the `ROUTERS` tuple in `api/routes/registry.py` |
+| Hardcoding paths | Use a `Settings.SOME_PATH` property |
