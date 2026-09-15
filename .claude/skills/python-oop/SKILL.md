@@ -1,7 +1,6 @@
 ---
 name: python-oop
 description: Use this skill when building new Python software, creating new classes or modules, refactoring procedural/functional code to OOP, or when the user asks to design a class hierarchy, use OOP patterns, or apply object-oriented principles. Triggers on phrases like "add class", "OOP", "object oriented", "refactor to classes", "design classes", "class structure", "separate concerns", "encapsulation".
-version: 1.0.0
 ---
 
 # Python OOP Development Guidelines
