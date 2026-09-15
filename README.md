@@ -76,7 +76,7 @@ flowchart LR
   end
 
   subgraph "Model Registry"
-    F1[(Artifacts/MLflow o W&B) — planned]
+    F1[("Artifacts/MLflow o W&B — planned")]
   end
 
   subgraph "Front End"

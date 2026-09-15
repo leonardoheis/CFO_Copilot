@@ -1,0 +1,63 @@
+TIME SERIES DIAGNOSTICS SUMMARY
+============================================================
+
+DATA QUALITY
+------------------------------------------------------------
+Observations: 81
+Date range: 2006-06-30 to 2026-06-30
+Frequency: quarterly
+Missing values: 0 (0.0%)
+
+DISTRIBUTION
+------------------------------------------------------------
+Mean: 56675.1111    Median: 53265.0000
+Std:  35659.5474    Min: 4370.0000    Max: 143756.0000
+Skewness: 0.2565    Kurtosis: -0.8264
+
+STATIONARITY
+------------------------------------------------------------
+ADF test: statistic=-0.0329, p=0.9557 -> Non-stationary
+KPSS test: statistic=1.4146, p=0.0100 -> Non-stationary
+Differencing needed: d=1
+Series used for ACF/PACF: differenced_d1
+
+SEASONALITY
+------------------------------------------------------------
+Seasonal: Yes
+Period: 4
+Strength: 0.9333 (strong)
+
+TREND
+------------------------------------------------------------
+Has trend: Yes
+Direction: increasing
+Strength: 0.9921 (strong)
+
+AUTOCORRELATION
+------------------------------------------------------------
+Significant ACF lags: [1, 2, 3, 4, 5, 6, 8, 9, 10, 12]
+Significant PACF lags: [1, 2, 3, 4, 6, 7, 9, 10, 11, 15]
+
+FORECASTABILITY
+------------------------------------------------------------
+Ljung-Box lag_10: statistic=199.02, p=0.0000
+Ljung-Box lag_16: statistic=333.32, p=0.0000
+Ljung-Box lag_20: statistic=398.25, p=0.0000
+Conclusion: Predictable structure
+Forecastable: Yes
+
+TRANSFORM RECOMMENDATION
+------------------------------------------------------------
+Variance stable: No
+Box-Cox optimal lambda: 0.5958
+Recommendation: Apply sqrt transform
+Note: Box-Cox λ ≈ 0.5 suggests sqrt transform
+
+============================================================
+QUICK SUMMARY
+============================================================
+Forecastable: YES
+Stationary: NO (d=1)
+Seasonal: YES (period=4)
+Trend: INCREASING
+Transform: SQRT recommended
