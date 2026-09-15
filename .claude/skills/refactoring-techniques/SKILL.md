@@ -9,9 +9,9 @@ Reference: https://refactoring.guru/refactoring/catalog
 
 ## Overview
 
-This is the cure catalog, paired with the [[code-smells]] skill's diagnosis catalog. `code-smells` names *what's wrong* (Long Method, Feature Envy, Primitive Obsession); this skill names *the specific mechanical technique that fixes it* (Extract Method, Move Method, Replace Data Value with Object) — each technique here is a named, repeatable transformation, not a one-off fix improvised for this file.
+This is the cure catalog, paired with the `code-smells` skill's diagnosis catalog. `code-smells` names *what's wrong* (Long Method, Feature Envy, Primitive Obsession); this skill names *the specific mechanical technique that fixes it* (Extract Method, Move Method, Replace Data Value with Object) — each technique here is a named, repeatable transformation, not a one-off fix improvised for this file.
 
-## MANDATORY RULE: Name the Technique Before Applying It
+## Name the technique before applying it
 
 **State which named technique you're using before editing.** "I'll apply Extract Method to pull lines 40-58 into `_validate_headers()`" is a plan; silently restructuring code without naming the move hides the reasoning from review and makes the diff harder to trust. If no technique in this catalog fits, say so explicitly rather than forcing the nearest-sounding name onto an ad-hoc change.
 
@@ -102,7 +102,7 @@ This is the cure catalog, paired with the [[code-smells]] skill's diagnosis cata
 | **Remove Setting Method** | A field should be set only at construction and never change afterward | Remove its setter |
 | **Hide Method** | A method is never used outside its own class/hierarchy | Make it private or protected |
 | **Replace Constructor with Factory Method** | Object construction needs logic beyond simple field assignment (e.g. choosing a subclass) | Replace the constructor call with a factory method |
-| **Replace Error Code with Exception** | A method returns a special value to signal an error, forcing callers to check every time | Raise a specific exception instead — see this project's `.claude/learnings.md` exception style |
+| **Replace Error Code with Exception** | A method returns a special value to signal an error, forcing callers to check every time | Raise a specific exception instead, so callers cannot silently ignore the failure |
 | **Replace Exception with Test** | An exception is used to handle a condition the caller could have checked for up front | Add the check before the call, remove the exception handling |
 
 ## Dealing with Generalization
@@ -127,7 +127,7 @@ This is the cure catalog, paired with the [[code-smells]] skill's diagnosis cata
 | Mistake | Fix |
 |---|---|
 | Applying a technique because its name sounds close, without checking the "use when" condition actually holds | Re-read the condition; a mismatch here produces a change that looks structured but doesn't fix the real problem |
-| Treating this catalog as a checklist to run top-to-bottom | Each technique is a response to a specific smell ([[code-smells]]) or a specific request — apply only the one that matches what's actually wrong |
+| Treating this catalog as a checklist to run top-to-bottom | Each technique is a response to a specific smell (`code-smells`) or a specific request — apply only the one that matches what's actually wrong |
 | Renaming a technique instead of naming the real one | If nothing here fits, say the change is ad-hoc rather than forcing a catalog name onto it |
 | Using Extract Class / Extract Method reflexively for any "this file is long" complaint | Confirm there's an actual second responsibility or duplicated fragment first — see code-smells' Speculative Generality and YAGNI guidance |
 | Chasing Replace Conditional with Polymorphism for a conditional that only ever has two stable branches | Polymorphism pays off when branches multiply or recur across methods; a single stable two-way branch is often clearer as-is |

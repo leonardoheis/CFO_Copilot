@@ -7,13 +7,13 @@ description: Use when reviewing or refactoring code and something feels off but 
 
 References: https://refactoring.guru/refactoring/smells · https://luzkan.github.io/smells/ (extended catalog)
 
-Paired skill: [[refactoring-techniques]] — this skill names *what's wrong*; that one names the specific mechanical technique that fixes it, once you're ready to apply the fix rather than just diagnose it.
+Paired skill: `refactoring-techniques` — this skill names *what's wrong*; that one names the specific mechanical technique that fixes it, once you're ready to apply the fix rather than just diagnose it.
 
 ## Overview
 
 A code smell is a surface indicator of a deeper design problem — not a bug, the code still runs, but it's harder to understand, test, or change than it should be. Naming the smell turns a vague "this feels off" into a concrete, actionable finding with a known refactoring target.
 
-## MANDATORY RULE: Diagnose Before Refactoring
+## Diagnose before refactoring
 
 **Name the smell and the concrete cost before touching code.** State: which smell, where (file:line), and what it actually costs (an "and" in a description, a change that ripples across files, a method nobody can hold in their head). Then ask before applying a fix — smells are judgment calls, not lint errors; what looks like Duplicate Code at 2 call sites may be intentional divergence waiting to happen.
 
@@ -93,7 +93,7 @@ Smells beyond the classic refactoring.guru list — same five categories plus fo
 | Smell | Signal | Fix direction |
 |---|---|---|
 | **Callback Hell** | Nested callbacks several levels deep | Flatten with async/await, promises, or early returns |
-| **Flag Argument** | A boolean parameter selects between two different behaviors inside the function | Split into two functions, or replace with a named enum (see this session's `ConfidenceTier`/`OodEvidence` pattern) |
+| **Flag Argument** | A boolean parameter selects between two different behaviors inside the function | Split into two functions, or replace the boolean with a named enum so the call site reads as intent rather than `True` |
 | **Special Case** | A pile of `if value == SPECIAL` checks before the real logic runs | Null Object / Special Case pattern — give the special case the same interface as the normal one |
 | **Dubious Abstraction** | A method/class mixes multiple levels of abstraction — a high-level class directly does low-level work (e.g. `Instrument` manipulating raw connection bytes) instead of delegating | Extract the low-level responsibility into its own class/adapter so each component stays at one consistent conceptual level |
 
@@ -121,7 +121,7 @@ Smells beyond the classic refactoring.guru list — same five categories plus fo
 
 | Smell | Signal | Fix direction |
 |---|---|---|
-| **Magic Number** | A bare literal (`0.7`, `26.125`) with no name explaining what it means | Name it as a constant — this project's `Settings.OOD_COSINE_THRESHOLD` is the pattern to follow |
+| **Magic Number** | A bare literal (`0.7`, `26.125`) with no name explaining what it means | Name it as a module-level constant, or a settings field if it is tunable |
 | **Boolean Blindness** | `configure(true, false, true)` — call site gives no clue what each bool means | Named/keyword args, or replace booleans with an enum |
 | **Uncommunicative Name** | `x`, `tmp`, `data2` — the name doesn't say what the thing is | Rename to state intent |
 | **Fallacious Method/Comment** | The name or comment says one thing, the code does another | Fix the mismatch — whichever is wrong, name or code |

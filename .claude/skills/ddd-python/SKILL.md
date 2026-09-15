@@ -1,27 +1,21 @@
 ---
 name: ddd-python
-description: Tactical Domain-Driven Design patterns for Python projects. Uses Pydantic (or dataclasses when Pydantic isn't available) for value objects and entities, ABCs for ports, and SQLAlchemy for repository implementations. Use when structuring a Python service with complex business rules, implementing entities/value objects/aggregates, defining repository interfaces and SQLAlchemy implementations, adding domain events or application service layers, refactoring Django/FastAPI code towards hexagonal architecture, deciding how to model a domain concept as an entity vs. a value object, or wiring DDD patterns into a FastAPI or Django project without leaking domain logic into views.
+description: Tactical Domain-Driven Design building blocks in Python — entities, value objects, aggregates, domain events, and repository ports — built on immutable Pydantic v2 models. Use when modelling a domain with real business rules — deciding entity vs. value object, protecting an invariant inside an aggregate, defining a repository port and its adapter, or emitting domain events. Triggers on "DDD", "domain-driven design", "aggregate", "aggregate root", "value object", "entity vs value object", "bounded context", "repository port", "domain event", "ubiquitous language", "hexagonal architecture".
 ---
 
 # DDD Python
 
-Tactical Domain-Driven Design patterns for Python projects. Uses Pydantic and if is not possible dataclasses, for value objects and entities, ABCs for ports, and SQLAlchemy for the repository implementation.
+Tactical Domain-Driven Design patterns for Python projects. Uses immutable Pydantic v2 models for entities and value objects, ABCs for repository ports, and SQLAlchemy for the adapter.
 
-## When to Activate
-
-- Structuring a Python service with complex business rules
-- Implementing entities, value objects, or aggregates in Python
-- Defining repository interfaces and SQLAlchemy implementations
-- Adding domain events and application service layers
-- Refactoring Django/FastAPI code towards hexagonal architecture
-- Deciding how to model a domain concept as an entity vs. a value object in Python
-- Wiring DDD patterns into a FastAPI or Django project without leaking domain logic into views
+Pydantic is the default here. For the equivalent `@dataclass` forms — used when
+Pydantic is unavailable, or for a pure carrier that needs no validation — read
+`references/dataclasses.md`.
 
 ---
 
 ## Entities with Pydantic V2
 
-Entities have an identity that persists as their state changes. Two entities are equal when they have the same type and id, regardless of their other field values.Use immutable Pydantic models for entities. Business operations return a new instance with the same identity.
+Entities have an identity that persists as their state changes. Two entities are equal when they have the same type and id, regardless of their other field values. Use immutable Pydantic models for entities. Business operations return a new instance with the same identity.
 
 ```python
 
@@ -69,11 +63,8 @@ class User(BaseModel):
         )
 
     def rename(self, new_name: str) -> Self:
-        # model_copy(update=...) does not run Pydantic validation, so validate
-        # the changed value explicitly before creating the new entity state.
-        normalized_name = self.__class__.model_fields["name"].annotation
-        del normalized_name  # validation is performed by constructing below
-
+        # model_copy(update=...) skips validation, so round-trip through
+        # model_validate instead — that re-runs every field validator.
         data = self.model_dump()
         data["name"] = new_name
         return self.__class__.model_validate(data)
@@ -99,89 +90,6 @@ Important rules:
 - Avoid model_copy(update=...) for untrusted changes because updates are not validated.
 
 ---
-
----
-
-## Entities with dataclasses
-
-Entities have identity (an `id` field) that persists over time. Equality is by identity, not value.
-
-```python
-from dataclasses import dataclass, field
-from uuid import UUID, uuid4
-from datetime import datetime
-
-
-@dataclass
-class User:
-    id: UUID
-    email: str
-    name: str
-    created_at: datetime
-
-    @classmethod
-    def create(cls, email: str, name: str) -> "User":
-        return cls(
-            id=uuid4(),
-            email=email.lower().strip(),
-            name=name.strip(),
-            created_at=datetime.utcnow(),
-        )
-
-    def rename(self, new_name: str) -> "User":
-        if not new_name.strip():
-            raise ValueError("Name must not be blank")
-        from dataclasses import replace
-        return replace(self, name=new_name.strip())
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, User):
-            return NotImplemented
-        return self.id == other.id
-
-    def __hash__(self) -> int:
-        return hash(self.id)
-```
-
----
-
-## Value Objects with dataclasses
-
-Value objects have no identity — equality is by value. Always immutable.
-
-```python
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
-class Money:
-    amount: int   # store in minor units (cents)
-    currency: str
-
-    def __post_init__(self) -> None:
-        if self.amount < 0:
-            raise ValueError("Amount must not be negative")
-        if len(self.currency) != 3:
-            raise ValueError("Currency must be a 3-letter ISO code")
-
-    def add(self, other: "Money") -> "Money":
-        if self.currency != other.currency:
-            raise ValueError("Cannot add different currencies")
-        return Money(self.amount + other.amount, self.currency)
-
-    def __str__(self) -> str:
-        return f"{self.amount / 100:.2f} {self.currency}"
-
-
-@dataclass(frozen=True)
-class EmailAddress:
-    value: str
-
-    def __post_init__(self) -> None:
-        if "@" not in self.value:
-            raise ValueError(f"Invalid email: {self.value!r}")
-        object.__setattr__(self, "value", self.value.lower().strip())
-```
 
 ---
 
@@ -263,59 +171,6 @@ Pydantic already supplies the desired value-object behavior:
 - Operations construct a new validated value object instead of mutating the existing one.
 - Validation failures are exposed to callers as Pydantic ValidationError.
 - Avoid model_copy(update=...) for value-object operations because Pydantic does not validate update values. Constructing a new instance, as Money.add() does, ensures all invariants run again.
-
----
-
----
-
-## Aggregates with dataclasses
-
-Aggregates group entities and value objects under a single root. External code only interacts with the root. Invariants are enforced inside the aggregate.
-
-```python
-from dataclasses import dataclass, field
-from uuid import UUID, uuid4
-from typing import List
-
-
-@dataclass
-class OrderLine:
-    product_id: UUID
-    quantity: int
-    unit_price: Money
-
-
-@dataclass
-class Order:
-    id: UUID
-    customer_id: UUID
-    lines: List[OrderLine] = field(default_factory=list)
-    _events: List["DomainEvent"] = field(default_factory=list, repr=False, compare=False)
-
-    @classmethod
-    def create(cls, customer_id: UUID) -> "Order":
-        order = cls(id=uuid4(), customer_id=customer_id)
-        order._events.append(OrderCreated(order_id=order.id, customer_id=customer_id))
-        return order
-
-    def add_line(self, product_id: UUID, quantity: int, unit_price: Money) -> None:
-        if quantity <= 0:
-            raise ValueError("Quantity must be positive")
-        self.lines.append(OrderLine(product_id, quantity, unit_price))
-
-    @property
-    def total(self) -> Money:
-        if not self.lines:
-            return Money(0, "USD")
-        result = Money(0, self.lines[0].unit_price.currency)
-        for line in self.lines:
-            result = result.add(Money(line.quantity * line.unit_price.amount, line.unit_price.currency))
-        return result
-
-    def collect_events(self) -> List["DomainEvent"]:
-        events, self._events = self._events, []
-        return events
-```
 
 ---
 
@@ -437,35 +292,6 @@ class Order(BaseModel):
         return hash((type(self), self.id))
 
 ```
-
----
-
-## Domain Events with dataclasses
-
-```python
-from dataclasses import dataclass
-from datetime import datetime
-from uuid import UUID
-
-
-@dataclass(frozen=True)
-class DomainEvent:
-    occurred_at: datetime = field(default_factory=datetime.utcnow)
-
-
-@dataclass(frozen=True)
-class OrderCreated(DomainEvent):
-    order_id: UUID
-    customer_id: UUID
-
-
-@dataclass(frozen=True)
-class OrderShipped(DomainEvent):
-    order_id: UUID
-    tracking_number: str
-```
-
----
 
 ---
 
@@ -620,7 +446,7 @@ class CreateOrderUseCase:
 ## Key Rules
 
 1. **Entities**: identity-based equality; always create via class method, not `__init__` directly
-2. **Value objects**: `@dataclass(frozen=True)`; validate in `__post_init__`; return new instances for "mutations"
+2. **Value objects**: `ConfigDict(frozen=True, extra="forbid")`; validate with `@field_validator`; return new instances for "mutations" (the `@dataclass(frozen=True)` + `__post_init__` form is in `references/dataclasses.md`)
 3. **Aggregates**: protect invariants inside; expose domain events via `collect_events()`
 4. **Repositories**: define as ABC (port); implement with SQLAlchemy or any ORM (adapter)
 5. **Application services**: no domain logic; orchestrate + commit + publish events
@@ -628,9 +454,9 @@ class CreateOrderUseCase:
 
 ## Related Skills
 
-- `solid-principles` — Solid principles in python
-- `code-smells` — A serie of code smells for python
-- `dependency-injection-python` — Wiring DDD layers into FastAPI
-- `design-patterns` — Wiring DDD layers into Django
+- `solid-principles` — the principles behind these layer boundaries
+- `code-smells` — naming what is wrong with an existing model
+- `dependency-injection-python` — wiring the ports to their adapters
+- `pydantic` — validator, `ConfigDict` and serialization mechanics
 - `python-oop` — PostgreSQL patterns for the repository layer
 - `stop-using-none` — PostgreSQL patterns for the repository layer
