@@ -1,6 +1,6 @@
 ---
 name: solid-principles
-description: Use when designing classes, spotting why code is hard to test or extend, refactoring a class with too many responsibilities, or adding a feature that requires modifying existing code. Triggers on "SOLID", "SRP", "OCP", "LSP", "ISP", "DIP", "class design", "too many responsibilities", "hard to extend", "dependency on concrete", "fat interface", "open closed", "liskov", "interface segregation", "dependency inversion".
+description: The five SOLID principles applied to Python, each with a paired violation/fix example and the signal that reveals it. Use when judging whether a class earns its shape — one with too many responsibilities, a subclass that breaks its parent's contract, an interface forcing unused methods, or a dependency on a concrete type. Triggers on "SOLID", "SRP", "OCP", "LSP", "ISP", "DIP", "single responsibility", "open closed", "liskov", "interface segregation", "dependency inversion", "too many responsibilities", "fat interface", "depends on a concrete class". For naming a smell use code-smells; for the mechanical fix use refactoring-techniques.
 ---
 
 # SOLID Principles — Python
@@ -169,36 +169,36 @@ High-level modules depend on abstractions, not concrete implementations.
 Pass dependencies in — don't instantiate them inside the class.
 
 ```python
-# ❌ Violation: DocumentClassifier is welded to OllamaClient
-class DocumentClassifier:
+# ❌ Violation: ForecastService is welded to one concrete model
+class ForecastService:
     def __init__(self) -> None:
-        self.llm = OllamaClient()          # can't test without a running Ollama
+        self.model = ArimaModel(order=(1, 1, 1))   # swapping it means editing this class
 
-    def classify(self, text: str) -> str:
-        return self.llm.complete(f"Classify: {text}")
+    def project(self, history: Sequence[float]) -> Sequence[float]:
+        return self.model.predict(history)
 
 # ✅ Fix: depend on a Protocol, inject the implementation
-from typing import Protocol
+from typing import Protocol, Sequence
 
-class LLMClient(Protocol):
-    def complete(self, prompt: str) -> str: ...
+class Forecaster(Protocol):
+    def predict(self, history: Sequence[float]) -> Sequence[float]: ...
 
-class DocumentClassifier:
-    def __init__(self, llm: LLMClient) -> None:
-        self.llm = llm                     # caller decides the implementation
+class ForecastService:
+    def __init__(self, model: Forecaster) -> None:
+        self.model = model                 # caller decides the implementation
 
-    def classify(self, text: str) -> str:
-        return self.llm.complete(f"Classify: {text}")
+    def project(self, history: Sequence[float]) -> Sequence[float]:
+        return self.model.predict(history)
 
-# Production
-classifier = DocumentClassifier(llm=OllamaClient())
+# Production — ARIMA today, LSTM tomorrow, no change to ForecastService
+service = ForecastService(model=SarimaModel(order=(1, 1, 1), seasonal_period=4))
 
-# Tests — no server needed
-class FakeLLM:
-    def complete(self, prompt: str) -> str:
-        return '{"category": "decreto", "confidence": 0.95}'
+# Tests — deterministic, no fitting required
+class FlatForecaster:
+    def predict(self, history: Sequence[float]) -> Sequence[float]:
+        return [history[-1]] * 4
 
-classifier = DocumentClassifier(llm=FakeLLM())
+service = ForecastService(model=FlatForecaster())
 ```
 
 **Signal:** a class is hard to test because its `__init__` creates infrastructure objects.
@@ -213,7 +213,7 @@ classifier = DocumentClassifier(llm=FakeLLM())
 | Enforcing at runtime | Use `ABC` only when you need `isinstance()` checks or runtime enforcement |
 | Multiple small behaviours | Compose `Protocol` classes; use mixins sparingly |
 | Duck typing | Satisfies LSP naturally — no base class needed if the interface is consistent |
-| Dependency injection | Pass deps as `__init__` params; use `@lru_cache` or a factory for singletons |
+| Dependency injection | Pass deps as `__init__` params; for a shared instance use the DI container's `Singleton` provider rather than a module-level global |
 
 ---
 

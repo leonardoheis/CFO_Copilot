@@ -1,116 +1,113 @@
 ---
 name: code-structure
-description: Use when multiple workflows duplicate the same operational logic, when deciding what belongs in actions vs shared services, or when refactoring repeated operational blocks across domain flows. Use when adding new features that share mechanics with existing ones.
+description: Deciding which layer a piece of logic belongs in when several flows share the same mechanics — what stays in the handler that owns the business rule, and what moves into a shared service. Use when the same operational block is copy-pasted across callers, when a bug fixed in one flow is still live in another, or when a new feature reuses mechanics an existing one already has. Triggers on "which layer", "where does this logic belong", "shared service or handler", "duplicated across flows", "extract shared mechanics".
 ---
 
-# Service Layer Architecture
+# Service Layer Structure
 
 ## Overview
 
-**Two-layer separation:** Actions orchestrate domain rules (the "why/when"), while a service layer centralizes reusable operational mechanics (the "how").
+**Two-layer separation:** handlers orchestrate domain rules (the "why/when"),
+while a service layer centralizes reusable operational mechanics (the "how").
 
-This prevents duplicated code, inconsistent behavior, and bugs fixed in one path but not others.
+The payoff is that a fix lands once. When the same operation is inlined in
+four flows, the fourth one keeps the bug after you have fixed three.
 
-## When to Use
-
-- Multiple callers need the same low-level operation (sandbox creation, email sending, payment processing)
-- You're copy-pasting operational logic between action files
-- A bug fix in one workflow doesn't propagate to others doing the same thing
-- Adding a new feature that shares mechanics with existing flows
-
-**Don't use when:** Logic is truly domain-specific and used by only one caller.
-
-## Core Pattern
+## Core pattern
 
 ```
-Orchestration Layer (Actions)          Service Layer (Shared Mechanics)
-├── owns business rules                ├── owns reusable operations
-├── owns state transitions             ├── owns provider/SDK interactions
-├── owns auth/ownership checks         ├── owns command execution details
-├── owns failure classification        ├── owns health checks / readiness
-├── owns retries / user-facing errors  └── returns structured results
+Orchestration (route handlers, CLI commands, jobs)   Service layer
+├── owns business rules                              ├── owns reusable operations
+├── owns state transitions                           ├── owns provider/SDK interaction
+├── owns auth and ownership checks                   ├── owns retry and timeout details
+├── owns failure classification                      ├── owns health/readiness checks
+├── owns the user-facing error                       └── returns structured results
 └── calls service functions
 ```
 
 **Rule of thumb:**
-- "What this product flow means" → keep in actions
-- "How to do this operation reliably" → move to service layer
+- "What this product flow means" → keep in the handler
+- "How to do this operation reliably" → move to a service
 
-## Quick Reference
+## Quick reference
 
-| Design Principle | Do | Don't |
+| Design principle | Do | Don't |
 |---|---|---|
-| API shape | Composable capability blocks | One giant "do everything" method |
-| Inputs/outputs | Explicit params, structured returns | Hidden global state, reaching into DB |
-| Migration | Extract one block, replace one caller, verify, then migrate rest | Refactor everything at once |
-| Domain logic | Keep auth, policy, error classification in actions | Let service mutate domain state directly |
-| Extraction trigger | Logic repeated across 2+ callers | Logic used once (over-abstraction) |
+| API shape | Composable capability functions | One giant "do everything" method |
+| Inputs/outputs | Explicit parameters, structured returns | Hidden global state, reaching into the DB |
+| Migration | Extract one block, move one caller, verify, then the rest | Refactor every caller at once |
+| Domain logic | Keep auth, policy, error classification in the handler | Let a service mutate domain state directly |
+| Extraction trigger | Logic repeated across 2+ callers | Logic used once — that is over-abstraction |
 
-## Designing Service Functions
+## Designing service functions
 
-Design as **capability blocks**, not monoliths:
+Design as **capability blocks**, not monoliths, so each caller takes only the
+steps it needs:
 
-```ts
-// Good: composable, each caller chooses what to use
-createManagedSandbox(...)
-prepareRepo(...)
-detectPackageManager(...)
-installDependencies(...)
-runBuildCommand(...)
-startSandboxRuntime(...)
+```python
+# Good: composable — a backfill job and an API request use different subsets
+fetch_raw_quotes(ticker, *, session)
+normalize_quotes(payload)
+adjust_for_splits(quotes, splits)
+persist_panel(frame, *, path)
 ```
 
 Each function should:
-- Accept all required data as **explicit parameters**
-- Return **structured outputs** (e.g., `{ ready, previewUrl, proxyPort }`)
-- Never reach into database/state directly
-- Make failure explicit (structured results, not swallowed errors)
 
-This lets callers choose strict vs relaxed behavior per flow.
+- accept everything it needs as **explicit parameters**, so it can be called
+  from a test without standing up the world
+- return **structured results** (a dataclass or Pydantic model, not a bare
+  tuple whose fields you have to count)
+- never reach into the database or global state directly
+- make failure explicit — return an empty result for "nothing found" and raise
+  only for genuine failures, so callers are not forced into `try/except` as
+  control flow
 
-## Migration Checklist
+## Migration checklist
 
-When extracting shared logic:
+1. Write the flow inline in the handler first, so the behaviour is clear
+2. Mark the operational chunks that repeat across callers
+3. Extract **only** the repeated, non-domain chunks
+4. Move one caller → verify → move the rest
+5. Keep domain policy in the handler (auth, status transitions, error mapping)
+6. Run the project's typecheck, lint and tests before moving the next caller
 
-1. Write the flow in action code first (clear behavior)
-2. Mark repeated operational chunks across callers
-3. Extract **only** repeated, non-domain chunks to service
-4. Replace one caller → verify → replace remaining callers
-5. Keep domain policy in actions (auth, status transitions, error classification)
-6. Run verification: typecheck, lint, confirm all flows still work
+## Anti-patterns
 
-## Anti-Patterns
-
-| Anti-Pattern | Problem |
+| Anti-pattern | Problem |
 |---|---|
-| **God service** | One huge function hides all control flow |
-| **Leaky service** | Service mutates database tables directly |
-| **Inconsistent API** | Each function uses different argument styles and error semantics |
-| **Over-abstraction** | Extracting logic used by only one caller |
+| **God service** | One huge function hides all the control flow |
+| **Leaky service** | The service writes to tables the handler is supposed to own |
+| **Inconsistent API** | Every function takes a different argument style and signals errors differently |
+| **Over-abstraction** | Extracting logic that has exactly one caller |
 
-## Example: Email Service (Simple)
+## Example: a notification used by two flows
 
-```ts
-// emailService.ts — shared mechanics
-export async function sendWelcomeEmail(params: { to: string; name: string }) {
-  const html = `<h1>Welcome ${params.name}</h1>`;
-  await emailProvider.send(params.to, "Welcome", html);
-}
+```python
+# services/notifications.py — shared mechanic, knows HOW
+def send_welcome(email: str, name: str) -> None:
+    body = render_template("welcome.html", name=name)
+    email_client.send(to=email, subject="Welcome", html=body)
 
-// userSignup.ts — orchestration (owns WHEN to send)
-if (user.marketingOptIn) {
-  await sendWelcomeEmail({ to: user.email, name: user.name });
-}
 
-// adminInvite.ts — orchestration (different business rule, same mechanic)
-await sendWelcomeEmail({ to: invitee.email, name: invitee.name });
+# api/routes/signup/endpoints.py — orchestration, owns WHEN
+if user.marketing_opt_in:
+    send_welcome(user.email, user.name)
+
+
+# api/routes/admin/endpoints.py — different rule, same mechanic
+send_welcome(invitee.email, invitee.name)
 ```
 
-## Mental Model
+The business rule differs between the two callers; the mechanics do not. If
+the template or provider changes, one file changes.
+
+## Mental model
 
 ```
-New feature? → Write in action first → See repeated ops? → Extract to service
-                                      → No repetition?  → Keep in action
+New feature? → write it in the handler first → repeated ops appear? → extract a service
+                                             → no repetition?       → leave it alone
 ```
 
-Your architecture in one sentence: **Actions orchestrate domain rules, while the service layer centralizes reusable operational mechanics with a composable, explicit-input API.**
+In one sentence: **handlers orchestrate domain rules; the service layer
+centralizes reusable mechanics behind a composable, explicit-input API.**

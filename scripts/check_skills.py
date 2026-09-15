@@ -17,7 +17,13 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 PROJECT_SKILLS = REPO / ".claude" / "skills"
+CURSOR_SKILLS = REPO / ".cursor" / "skills"
 GLOBAL_SKILLS = Path.home() / ".claude" / "skills"
+
+# .claude is the source of truth. .cursor mirrors it for Cursor, and both are
+# committed so a second machine gets them by cloning. The global tree is not
+# in git, so it has to be synced by hand on each machine.
+MIRRORS = (CURSOR_SKILLS, GLOBAL_SKILLS)
 
 # Only the skills this repo maintains are checked. Third-party skills in the
 # global tree are someone else's to keep correct, and several are legitimately
@@ -128,29 +134,30 @@ def check_file(skill: Path) -> list[str]:
 
 
 def check_collisions() -> list[str]:
-    """Compare each skill that exists in both trees.
+    """Compare every skill in .claude against each mirror that also has it.
 
-    The global copy shadows the project one, so a divergent pair means edits
-    that silently never load.
+    Drift here is silent and costly: a stale .cursor copy is what Cursor
+    actually reads, and a stale global copy shadows the project one entirely,
+    so edits appear to land while never loading.
 
     Returns:
         One finding per pair that differs, ignoring line-ending style.
     """
-    if not GLOBAL_SKILLS.is_dir():
-        return []
-
     findings: list[str] = []
-    for project in sorted(PROJECT_SKILLS.glob("*/SKILL.md")):
-        shadow = GLOBAL_SKILLS / project.parent.name / "SKILL.md"
-        if not shadow.is_file():
-            continue
-        a = project.read_text(encoding="utf-8").replace("\r\n", "\n")
-        b = shadow.read_text(encoding="utf-8").replace("\r\n", "\n")
-        if a != b:
-            findings.append(
-                f"{project}:1: shadowed-drift: differs from {shadow} "
-                "(the global copy is the one that loads)"
-            )
+    for source in sorted(PROJECT_SKILLS.glob("*/SKILL.md")):
+        for mirror_root in MIRRORS:
+            if not mirror_root.is_dir():
+                continue
+            mirror = mirror_root / source.parent.name / "SKILL.md"
+            if not mirror.is_file():
+                continue
+            a = source.read_text(encoding="utf-8").replace("\r\n", "\n")
+            b = mirror.read_text(encoding="utf-8").replace("\r\n", "\n")
+            if a != b:
+                findings.append(
+                    f"{source}:1: mirror-drift: differs from {mirror} "
+                    "(sync it from .claude/skills)"
+                )
     return findings
 
 
@@ -171,11 +178,12 @@ def demo() -> None:
 def main() -> int:
     demo()
 
-    roots = [PROJECT_SKILLS]
-    if GLOBAL_SKILLS.is_dir():
-        roots.append(GLOBAL_SKILLS)
-    else:
-        print(f"note: {GLOBAL_SKILLS} not found, checking project skills only")
+    roots = [PROJECT_SKILLS, *(m for m in MIRRORS if m.is_dir())]
+    if not GLOBAL_SKILLS.is_dir():
+        print(
+            f"note: {GLOBAL_SKILLS} not found — this machine has no global "
+            "skills yet; copy .claude/skills there to install them"
+        )
 
     skills = [
         skill

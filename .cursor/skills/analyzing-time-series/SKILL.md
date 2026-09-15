@@ -46,27 +46,57 @@ python scripts/visualize.py panel.parquet --value-col revenue_usd_m --output-dir
 
 Creates diagnostic plots in `results/plots/` for visual inspection. Run after `diagnose.py` to ensure ACF/PACF plots are synchronized with stationarity results. Column names are auto-detected, or can be specified with `--date-col` and `--value-col` options.
 
-**Step 3: Report to user**
+**Step 3: Build the PDF report (required)**
 
-Summarize findings from `summary.txt` and present relevant plots. See `references/interpretation.md` for guidance on:
+```bash
+python scripts/report.py --output-dir results/ \
+    --source data/processed/AAPL_panel.parquet --value-col revenue_usd_m
+```
+
+Always produce this — it is the deliverable. It assembles `diagnostics.json`
+and every plot into `results/report.pdf`: a verdict page with the suggested
+model specification, then each measure with the plain-language reason it
+matters (why two stationarity tests, what a Box-Cox lambda near 0.5 means,
+what the ACF/PACF lags imply about model order), then one page per plot with a
+caption saying what to look for, and a closing next-steps list.
+
+`--source` and `--value-col` only label the cover page; run it after
+`visualize.py` so the plot pages are included. It reads the JSON rather than
+recomputing anything, so the PDF cannot disagree with the other outputs.
+
+**Step 4: Report to user**
+
+Summarize the findings and hand over `report.pdf`. See
+`references/interpretation.md` for guidance on:
 - Is the data forecastable?
 - Is it stationary? How much differencing is needed?
 - Is there seasonality? What period?
 - Is there a trend? What direction?
 - Is a transform needed?
 
+State the caveats the statistics cannot see — projected or future-dated rows,
+structural breaks (COVID), and outliers that should be modelled as
+interventions rather than fitted.
+
 ## Script Options
 
-Both scripts accept:
+`diagnose.py` and `visualize.py` accept:
 - `--date-col NAME` - Date column (auto-detected if omitted)
 - `--value-col NAME` - Value column (auto-detected if omitted)
 - `--output-dir PATH` - Output directory (default: `diagnostics/`)
 - `--seasonal-period N` - Seasonal period (auto-detected if omitted)
 
+`report.py` accepts:
+- `--output-dir PATH` - Directory holding `diagnostics.json` and `plots/`
+- `--output-file PATH` - PDF path (default: `<output-dir>/report.pdf`)
+- `--source PATH` - Input file, printed on the cover page
+- `--value-col NAME` - Series name, printed on the cover page
+
 ## Output Files
 
 ```
 results/
+├── report.pdf             # ← the deliverable: full analysis + every measure explained
 ├── diagnostics.json       # All test results and statistics
 ├── summary.txt            # Human-readable findings
 ├── diagnostics_state.json # Internal state for plot synchronization
@@ -92,3 +122,6 @@ See `references/interpretation.md` for:
 ## Dependencies
 
 `pandas`, `numpy`, `matplotlib`, `statsmodels`, `scipy`
+
+The PDF is written with matplotlib's own `PdfPages` backend, so no PDF
+library is needed on top of what the plots already require.

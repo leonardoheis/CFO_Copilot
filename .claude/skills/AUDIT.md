@@ -7,8 +7,37 @@ fixed, so the current wording is traceable to a reason.
 Audited and remediated 2026-09-15 on `feature/data-ingestion`.
 
 **Guard:** `uv run poe check-skills` ([scripts/check_skills.py](../../scripts/check_skills.py))
-now fails on foreign markers, dead paths, missing symbols, and global/project
-drift. Run it before editing a skill.
+fails on foreign markers, dead paths, missing symbols, and drift between the
+three copies. Run it before editing a skill.
+
+---
+
+## Three copies, one source of truth
+
+| Location | In git? | Purpose |
+|---|---|---|
+| `.claude/skills/` | yes | **Source of truth.** Edit here. |
+| `.cursor/skills/` | yes | Mirror Cursor reads. Never edit directly. |
+| `~/.claude/skills/` | **no** | Per-machine install. Shadows the project copy. |
+
+The global tree does not travel with the repo, and a global skill **silently
+shadows** the project one — so a stale global copy means committed edits never
+load.
+
+**On a new machine, after cloning:**
+
+```bash
+uv run poe sync-skills            # dry run — shows what would change
+uv run poe sync-skills -- --write # install into ~/.claude/skills
+```
+
+**After editing `.claude/skills/`:** run the same two commands, then
+`uv run poe check-skills` to confirm all three agree.
+
+Four skills are deliberately **project-only** and never installed globally —
+`analyzing-time-series`, `cfo-copilot-structure`, `find-skills`,
+`optimal-scaffold`. They describe this repo, so globally they would fire in
+unrelated projects and hand out CFO_Copilot paths.
 
 ---
 

@@ -1,13 +1,13 @@
 ---
 name: design-patterns
-description: Use when a design pattern might improve the code — before suggesting or applying any pattern, present the candidate pattern(s) to the user and wait for explicit approval. Triggers on "refactor", "improve structure", "decouple", "extract", "simplify dependencies", "make extensible", "avoid duplication", or when recognizing a known pattern mismatch in existing code.
+description: Catalog of the classic Gang of Four design patterns with Python-idiomatic implementations and a guide to choosing between them. Always present the candidate pattern to the user and wait for explicit approval before applying it — an unrequested pattern adds indirection that is hard to undo. Triggers on "design pattern", "which pattern", "is there a pattern for", "Strategy", "Observer", "Factory", "Adapter", "Decorator", "Command pattern", "swap implementations at runtime", "make this extensible". For naming a problem use code-smells; for a mechanical fix use refactoring-techniques; for container wiring use dependency-injection-python.
 ---
 
 # Design Patterns (Python)
 
 Reference: https://refactoring.guru/design-patterns/python
 
-## MANDATORY RULE: Always Validate Before Applying
+## Validate before applying
 
 **Never apply a design pattern without user confirmation.**
 
@@ -21,6 +21,40 @@ When a pattern seems applicable:
 Do NOT ask about multiple patterns at once — propose one, get approval, then proceed.
 
 ---
+
+### What a pattern buys you
+
+Strategy is the one worth seeing first, because the "pattern" is mostly just a
+Protocol plus injection — in Python it costs almost nothing:
+
+```python
+# Before — every new algorithm means editing this function
+def price(order, kind):
+    if kind == "standard":
+        return order.subtotal
+    if kind == "member":
+        return order.subtotal * 0.9
+    if kind == "bulk":
+        return order.subtotal * (0.8 if order.units > 100 else 1.0)
+    raise ValueError(kind)
+```
+
+```python
+# After — each rule is its own object; adding one touches no existing code
+class PricingRule(Protocol):
+    def apply(self, order: Order) -> Decimal: ...
+
+class MemberPricing:
+    def apply(self, order: Order) -> Decimal:
+        return order.subtotal * Decimal("0.9")
+
+def price(order: Order, rule: PricingRule) -> Decimal:
+    return rule.apply(order)
+```
+
+The gain is Open/Closed — new behaviour without editing tested code. The cost
+is indirection: three files instead of one `if`. With two stable branches the
+`if` wins; the pattern pays off when the branches keep arriving.
 
 ## Creational Patterns — *how objects are created*
 

@@ -1,6 +1,6 @@
 ---
 name: pydantic
-description: Use when defining data models, request/response schemas, config settings, or adding validation to Python classes. Triggers on "pydantic", "BaseModel", "schema", "validation", "Field", "validator", "model_dump", "model_validate", "BaseSettings", "ConfigDict", "alias", "request body", "response schema", "data class with validation", "parse JSON".
+description: Pydantic v2 reference — BaseModel, Field constraints, field and model validators, ConfigDict, serialization, BaseSettings, and the BaseEntity/BaseSchema split between domain models and API schemas. Use when defining a data model, a request or response schema, or config settings, or when adding validation to a Python class. Triggers on "pydantic", "BaseModel", "Field", "field_validator", "model_validator", "model_dump", "model_validate", "ConfigDict", "BaseSettings", "request schema", "response schema", "camelCase alias", "parse JSON into a model".
 ---
 
 # Pydantic (v2)
@@ -8,9 +8,11 @@ description: Use when defining data models, request/response schemas, config set
 ## Overview
 
 Pydantic validates data at the boundary — API inputs, config, inter-service contracts.
-Inside the system, trust your own types. Define a model once; get validation, serialization, and OpenAPI docs for free.
+Inside the system, trust your own types. Define a model once; get validation, serialization,
+and OpenAPI docs for free.
 
-**Project convention (from CFO_Copilot):** two separate base classes — `BaseEntity` for domain models and `BaseSchema` for API schemas — each with different `ConfigDict`.
+**A common convention:** two separate base classes — `BaseEntity` for
+domain models and `BaseSchema` for API schemas — each with different `ConfigDict`.
 
 ---
 
@@ -119,7 +121,7 @@ class Document(BaseModel):
 ```python
 from typing import Self
 from pydantic import BaseModel, model_validator
-from app.exceptions import DimensionalityMismatchError
+from myapp.services.training.exceptions import DimensionalityMismatchError
 
 class TrainRequest(BaseModel):
     features: list[list[float]]
@@ -143,10 +145,10 @@ class TrainRequest(BaseModel):
 ## Serialization & Parsing
 
 ```python
-doc = Document(title="Decreto 123", page_count=5, category="decreto")
+doc = Forecast(ticker="AAPL", horizon=4, model="sarima")
 
 # → dict
-doc.model_dump()                      # {"title": "Decreto 123", "page_count": 5, ...}
+doc.model_dump()                      # {"ticker": "AAPL", "horizon": 4, ...}
 doc.model_dump(by_alias=True)         # uses alias names (camelCase if alias_generator set)
 doc.model_dump(exclude_none=True)     # omit None fields
 doc.model_dump(exclude={"confidence"})
@@ -162,7 +164,7 @@ Document.model_validate_json('{"title": "...", "pageCount": 3}')
 
 ---
 
-## Project Pattern — Domain vs API separation
+## Separating domain models from API schemas
 
 ```
 src/<package>/
@@ -206,7 +208,7 @@ class BaseSchema(BaseModel):
 
 # api/routes/classify/schemas.py
 from pydantic import Field
-from app.api.schema import BaseSchema
+from myapp.api.schema import BaseSchema
 
 class ClassifyRequest(BaseSchema):
     input_: str = Field(alias="input", min_length=1)   # "input" is reserved in some contexts
@@ -218,20 +220,21 @@ class ClassifyResponse(BaseSchema):
 
 ---
 
-## Services as BaseModel (project pattern)
+## Services as BaseModel
 
-When a service has configuration injected by the DI container, model it as a `BaseModel` rather than a plain class — you get free validation on construction:
+When a service has configuration injected by the DI container, model it as a `BaseModel`
+rather than a plain class — you get free validation on construction:
 
 ```python
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
-from app.settings import Settings
+from myapp.settings import Settings
 
-class ClassificationService(BaseModel):
+class TrainingService(BaseModel):
     model_path: Path = Field(default=Settings.MODEL_PATH)
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def classify(self, text: str) -> ClassificationOutput: ...
+    def train(self, X: Sequence[Sequence[float]], y: Sequence[float]) -> MLModel: ...
 ```
 
 ---
@@ -243,9 +246,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
 class _Settings(BaseSettings):
-    LLM_MODEL: str = "phi4-mini"
-    DB_HOST: str = "localhost"
+    FRED_API_KEY: str = ""
     API_PORT: int = 8000
+    UI_PORT: int = 10000
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -253,8 +256,8 @@ class _Settings(BaseSettings):
     )
 
     @property
-    def MODELS_DIR(self) -> Path:
-        return Path(__file__).parent / "models"
+    def MODEL_PATH(self) -> Path:
+        return Path(__file__).parent / "ml_binaries" / "model.joblib"
 
 Settings = _Settings()  # singleton — import this, never re-instantiate
 ```
@@ -267,7 +270,7 @@ Reading order: keyword args → env vars → `.env` file → field defaults.
 ## Test Data — Polyfactory + ExamplerMixIn
 
 ```python
-# utils/exampler.py  (project pattern from CFO_Copilot)
+# utils/exampler.py
 import secrets
 from typing import Any, Self
 from polyfactory.factories.pydantic_factory import ModelFactory

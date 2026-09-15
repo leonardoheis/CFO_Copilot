@@ -1,13 +1,20 @@
 ---
 name: python-backend
-description: Use when writing, reviewing, or refactoring Python backend code. Use when adding new layers, services, clients, domain entities, or utilities. Triggers on phrases like "backend", "service layer", "domain", "infrastructure", "API layer", "dependency injection", or "client".
+description: Layer boundaries and import direction for a layered Python backend — what may import what, where interfaces live, and which rules each layer enforces. Use when adding a service, an external client, or a new layer, or when reviewing whether code sits in the right one. Triggers on "backend", "service layer", "API layer", "which layer imports which", "layering", "external client". For the DI container itself use dependency-injection-python; for modelling the domain use ddd-python.
 ---
 
 # Python Backend
 
 ## Overview
 
-Four-layer architecture (api → services → infrastructure → domain) plus a cross-cutting utils layer. Each layer has strict import rules and responsibilities. Fail fast, type strictly, no loose `Any`/`dict`/`tuple` types.
+Four layers — api → services → data → domain — plus a cross-cutting utils
+layer. Each has a strict import direction and a single responsibility. Fail
+fast, type strictly, and prefer named models over loose `Any`/`dict`/`tuple`.
+
+The "data" layer is whatever holds concrete implementations that talk to the
+outside world: HTTP clients, vendor SDK adapters, persistence. Some codebases
+call it `infrastructure/` or `adapters/`; use whatever name the project
+already uses rather than introducing a new one.
 
 ## Linting
 
@@ -19,40 +26,62 @@ Run after every change.
 
 ## Typing Rules
 
-- **Never** type as `Any`, `dict`, or `tuple` — use concrete types or named models
-- `| None` (Optional) only when genuinely necessary
-- Fail fast and close to the root cause
-- **Never** add `from __future__ import annotations` — only include it when a forward reference cannot be resolved with a quoted string literal or by reordering definitions
+- Prefer a named model over `Any`, a bare `dict`, or a positional `tuple`. A
+  `dict` signature hides what the caller must supply and gives the type checker
+  nothing to verify; a named model documents and checks it in one move.
+  (Payload-shaped data at a boundary — a parsed JSON body, a DataFrame — is a
+  legitimate exception; translate it into a model as soon as it crosses.)
+- `| None` only when absent is genuinely a valid state. If you are returning
+  `None` for several different reasons, return distinct result types instead.
+- Fail fast and close to the root cause, so the traceback points at the bug
+  rather than at the first place the bad value was used.
+- Add `from __future__ import annotations` only when a forward reference
+  cannot be resolved with a quoted string literal or by reordering
+  definitions — it changes annotations to strings at runtime, which breaks
+  libraries that introspect them.
 
 ## Layer Architecture
 
 ```
-api  →  services  →  infrastructure  →  domain
-                                      ↑
-                             utils (cross-cutting)
+api  →  services  →  data  →  domain
+                             ↑
+                    utils (cross-cutting)
 ```
 
 ### Domain Layer
 
 - Imports: itself + utils only
 - Contains: domain entities, validation rules/invariants, business logic, **interfaces** for external communication
-- Interfaces defined here are injected with Infrastructure concrete implementations throughout the codebase
+- Interfaces defined here (a `Protocol` is usually enough — no ABC needed) are
+  satisfied by Data-layer implementations and injected wherever they are used
 
-### Infrastructure Layer
+### Data Layer
 
 - Imports: itself + domain + utils
-- Contains: concrete client implementations for Domain interfaces; fake/stub clients for testing
-- Clients are never manually instantiated — only wired via DI config
-- Contains: Infrastructure entities (data retrieved by clients), DI configuration
-- Every real client has a matching fake client (unless a fake is genuinely not needed)
+- Contains: concrete implementations of the Domain's interfaces — HTTP clients,
+  vendor adapters, persistence — plus the entities they return
+- Clients are never manually instantiated; they are wired through the DI
+  container so tests can swap them at one seam
+- Keep vendor field names inside their own package. A vendor's JSON keys
+  leaking upward is how a third-party schema change becomes a refactor of your
+  whole codebase
+
+**Testing seam**: override the DI container in tests (e.g. a `TestContainer`
+that rebinds providers) rather than maintaining a parallel fake for every real
+client. One override point is less code to keep in sync, and it tests the
+wiring as well as the logic. Write a fake only for a client whose behaviour a
+test needs to steer.
 
 ### Services Layer
 
-- Imports: itself + infrastructure + domain + utils
-- Contains: Service classes that orchestrate Infrastructure and Domain code
+- Imports: itself + data + domain + utils
+- Contains: Service classes that orchestrate Data and Domain code
 - May contain Pydantic models for method signatures and validation
-- **No interfaces/abstract classes**
-- Output to API layer must use Service or Domain models — never expose Infrastructure entities directly
+- No interfaces or abstract classes here — an interface with one
+  implementation is indirection without a payoff. Interfaces belong in Domain,
+  where something else actually implements them.
+- Output to the API layer must use Service or Domain models — never return a
+  Data-layer entity directly, or the vendor's shape becomes your API contract
 
 ### API Layer
 
@@ -71,19 +100,46 @@ api  →  services  →  infrastructure  →  domain
 |------|-------|
 | No `try/except` | API |
 | No interfaces/abstract classes | Services |
-| Clients never manually instantiated | Infrastructure |
-| Fake client per real client | Infrastructure |
-| Never return Infrastructure models to API | Services |
+| Clients never manually instantiated | Data |
+| Swap dependencies by overriding the container | Data (in tests) |
+| Never return Data-layer models to API | Services |
 | All interfaces live here | Domain |
 | Env vars, logging, exceptions | Utils |
+
+## Example: keeping the vendor out of the Service
+
+The rule "never return a Data-layer entity to the API" is easiest to see as a
+diff. Before — the vendor's field names have escaped into the response, so
+renaming them upstream breaks the API contract:
+
+```python
+# services/quotes.py
+def latest_quote(self, ticker: str) -> dict:
+    return self._client.fetch(ticker)   # {"01. symbol": ..., "05. price": ...}
+```
+
+After — the adapter translates at the boundary, and the Service returns a type
+the API owns:
+
+```python
+# data/sources/vendor/parsing.py
+def to_quote(payload: dict) -> Quote:
+    return Quote(symbol=payload["01. symbol"], price=Decimal(payload["05. price"]))
+
+# services/quotes.py
+def latest_quote(self, ticker: str) -> Quote:
+    return to_quote(self._client.fetch(ticker))
+```
+
+The vendor's `"05. price"` now appears in exactly one file.
 
 ## Common Mistakes
 
 | Mistake | Fix |
 |---------|-----|
-| Returning Infrastructure entity from Service | Map to Service/Domain model first |
-| Adding business logic in API route handler | Move to Service |
-| Manually instantiating a client | Wire through DI config |
+| Returning a Data-layer entity from a Service | Map to a Service/Domain model first |
+| Adding business logic in an API route handler | Move to a Service |
+| Manually instantiating a client | Wire it through the DI container |
 | Typing a parameter as `dict` | Define a Pydantic model or TypedDict |
 | Services importing from API | Invert the dependency |
-| Missing fake client for a real client | Add `FakeXxxClient` in Infrastructure |
+| Vendor field names appearing outside the Data layer | Translate at the boundary |
