@@ -23,11 +23,23 @@ GLOBAL_SKILLS = Path.home() / ".claude" / "skills"
 # global tree are someone else's to keep correct, and several are legitimately
 # about TypeScript — a ```ts fence there is content, not contamination.
 OWNED = {
-    "analyzing-time-series", "cfo-copilot-structure", "code-smells",
-    "code-structure", "ddd-python", "dependency-injection-python",
-    "design-patterns", "find-skills", "optimal-scaffold", "pep8-check",
-    "pydantic", "pytest-testing", "python-backend", "python-oop",
-    "refactoring-techniques", "solid-principles", "stop-using-none",
+    "analyzing-time-series",
+    "cfo-copilot-structure",
+    "code-smells",
+    "code-structure",
+    "ddd-python",
+    "dependency-injection-python",
+    "design-patterns",
+    "find-skills",
+    "optimal-scaffold",
+    "pep8-check",
+    "pydantic",
+    "pytest-testing",
+    "python-backend",
+    "python-oop",
+    "refactoring-techniques",
+    "solid-principles",
+    "stop-using-none",
 }
 
 # Markers from other codebases. A skill naming these is describing someone
@@ -42,11 +54,18 @@ FOREIGN = re.compile(
 PATH_REF = re.compile(r"`((?:src|tests|config)/[\w./-]+)`")
 
 # Imports from the app package, e.g. `from app.settings import Settings`.
-APP_IMPORT = re.compile(r"^\s*from\s+(app(?:\.[\w.]+)?)\s+import\s+([\w, ]+)", re.M)
+APP_IMPORT = re.compile(
+    r"^\s*from\s+(app(?:\.[\w.]+)?)\s+import\s+([\w, ]+)", re.MULTILINE
+)
 
 
 def defined_names(module_file: Path) -> set[str]:
-    """Top-level names a module defines or re-exports."""
+    """Top-level names a module defines or re-exports.
+
+    Returns:
+        The set of names bound at module level, empty if the file is
+        unreadable or does not parse.
+    """
     try:
         tree = ast.parse(module_file.read_text(encoding="utf-8"))
     except (OSError, SyntaxError):
@@ -66,7 +85,11 @@ def defined_names(module_file: Path) -> set[str]:
 
 
 def resolve_module(dotted: str) -> Path | None:
-    """`app.services.training` -> src/app/services/training.py or its package."""
+    """Locate the file backing a dotted module path.
+
+    Returns:
+        The module file, or None when no such module exists under src/.
+    """
     base = REPO / "src" / Path(*dotted.split("."))
     for candidate in (base.with_suffix(".py"), base / "__init__.py"):
         if candidate.is_file():
@@ -96,17 +119,23 @@ def check_file(skill: Path) -> list[str]:
             findings.append(f"{skill}:{n}: dead-import: no module {module}")
             continue
         available = defined_names(target)
-        for name in (s.strip() for s in imported.split(",")):
-            if name and name not in available:
-                findings.append(
-                    f"{skill}:{n}: missing-symbol: {name} not in {module}"
-                )
+        findings.extend(
+            f"{skill}:{n}: missing-symbol: {name} not in {module}"
+            for name in (s.strip() for s in imported.split(","))
+            if name and name not in available
+        )
     return findings
 
 
 def check_collisions() -> list[str]:
-    """A skill in both trees must be identical — the global copy shadows the
-    project one, so a divergent pair means edits that silently never load."""
+    """Compare each skill that exists in both trees.
+
+    The global copy shadows the project one, so a divergent pair means edits
+    that silently never load.
+
+    Returns:
+        One finding per pair that differs, ignoring line-ending style.
+    """
     if not GLOBAL_SKILLS.is_dir():
         return []
 

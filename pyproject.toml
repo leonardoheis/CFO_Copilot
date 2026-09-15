@@ -201,6 +201,10 @@ ignore = [
     "missing-trailing-comma",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Standalone CLI tools: printing to stdout is the interface, not a debug leftover.
+"scripts/*.py" = ["T201"]
+
 [tool.ruff.format]
 # Set Ruff to imitate Black
 quote-style = "double"
