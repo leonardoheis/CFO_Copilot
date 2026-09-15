@@ -22,6 +22,40 @@ Do NOT ask about multiple patterns at once — propose one, get approval, then p
 
 ---
 
+### What a pattern buys you
+
+Strategy is the one worth seeing first, because the "pattern" is mostly just a
+Protocol plus injection — in Python it costs almost nothing:
+
+```python
+# Before — every new algorithm means editing this function
+def price(order, kind):
+    if kind == "standard":
+        return order.subtotal
+    if kind == "member":
+        return order.subtotal * 0.9
+    if kind == "bulk":
+        return order.subtotal * (0.8 if order.units > 100 else 1.0)
+    raise ValueError(kind)
+```
+
+```python
+# After — each rule is its own object; adding one touches no existing code
+class PricingRule(Protocol):
+    def apply(self, order: Order) -> Decimal: ...
+
+class MemberPricing:
+    def apply(self, order: Order) -> Decimal:
+        return order.subtotal * Decimal("0.9")
+
+def price(order: Order, rule: PricingRule) -> Decimal:
+    return rule.apply(order)
+```
+
+The gain is Open/Closed — new behaviour without editing tested code. The cost
+is indirection: three files instead of one `if`. With two stable branches the
+`if` wins; the pattern pays off when the branches keep arriving.
+
 ## Creational Patterns — *how objects are created*
 
 | Pattern | Solves | Python note |

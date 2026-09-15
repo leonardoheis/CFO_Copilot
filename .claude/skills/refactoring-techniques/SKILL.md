@@ -15,6 +15,37 @@ This is the cure catalog, paired with the `code-smells` skill's diagnosis catalo
 
 **State which named technique you're using before editing.** "I'll apply Extract Method to pull lines 40-58 into `_validate_headers()`" is a plan; silently restructuring code without naming the move hides the reasoning from review and makes the diff harder to trust. If no technique in this catalog fits, say so explicitly rather than forcing the nearest-sounding name onto an ad-hoc change.
 
+### What that looks like
+
+Extract Method, the most common technique in the catalog, applied to a
+function doing two jobs:
+
+```python
+# Before — the summary calculation is buried inside the reporting loop
+def report(rows):
+    for row in rows:
+        total = 0
+        for item in row.items:
+            if item.active:
+                total += item.amount * item.rate
+        print(f"{row.name}: {total}")
+```
+
+"Apply Extract Method to pull the inner accumulation into `row_total()`":
+
+```python
+# After — the loop reads as a sentence, and row_total() is now testable
+def row_total(row):
+    return sum(i.amount * i.rate for i in row.items if i.active)
+
+def report(rows):
+    for row in rows:
+        print(f"{row.name}: {row_total(row)}")
+```
+
+Naming the technique up front is what makes this reviewable: the reader knows
+to check that behaviour is unchanged, not to re-derive the intent.
+
 ## Quick Reference — Six Categories
 
 | Category | What it addresses | Techniques |
