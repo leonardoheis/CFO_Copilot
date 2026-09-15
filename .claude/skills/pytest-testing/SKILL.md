@@ -1,6 +1,6 @@
 ---
 name: pytest-testing
-description: Use when writing Python tests with pytest — setting up test suites, adding fixtures, parametrizing cases, structuring conftest.py, or deciding whether a dependency needs a mock. Applies to unit tests, integration tests, and agent pipeline tests. Triggers on "write a test", "add pytest", "how to test X", "fixture", "parametrize", "conftest".
+description: Writing Python tests with pytest — fixtures and their scopes, parametrize, marks, conftest.py placement, snapshot tests, and the real-vs-fake-vs-mock decision. Use when writing or restructuring tests, adding a fixture, covering many inputs at once, or deciding whether a dependency needs a mock at all. Triggers on "write a test", "add a test", "pytest", "fixture", "parametrize", "conftest", "how do I test this", "mock or not", "snapshot test".
 ---
 
 # pytest Testing
@@ -11,22 +11,11 @@ Always use pytest. Prefer real objects and fakes over mocks. Mock only at true s
 boundaries (HTTP, filesystem, clock, external APIs). Tests that use real behavior catch
 more bugs and survive refactoring better than tests full of `MagicMock`.
 
-## When to Use — Real vs Mock Decision
+## Real vs mock
 
-```dot
-digraph real_vs_mock {
-    "Is it a true external boundary?" [shape=diamond];
-    "Can I use a fake (in-memory impl)?" [shape=diamond];
-    "Use real object or fake" [shape=box];
-    "Mock it" [shape=box];
-    "Use fake (SQLite, tmp_path, list)" [shape=box];
-
-    "Is it a true external boundary?" -> "Can I use a fake (in-memory impl)?" [label="yes"];
-    "Is it a true external boundary?" -> "Use real object or fake" [label="no"];
-    "Can I use a fake (in-memory impl)?" -> "Use fake (SQLite, tmp_path, list)" [label="yes"];
-    "Can I use a fake (in-memory impl)?" -> "Mock it" [label="no — HTTP, clock, random"];
-}
-```
+Not a true external boundary → use the real object.
+A boundary you can substitute → use a fake (SQLite in-memory, `tmp_path`, a dict).
+A boundary you cannot substitute → mock it (outbound HTTP, the clock, randomness).
 
 **True boundaries (OK to mock):** outbound HTTP calls, system clock (`datetime.now`),
 hardware (GPU, camera), third-party paid APIs, non-deterministic sources.
@@ -41,23 +30,29 @@ file I/O when `tmp_path` works, business logic you want to verify.
 Fixtures provide setup/teardown as injectable dependencies. Declare them as function parameters — pytest resolves them automatically.
 
 ```python
-# tests/conftest.py  ← shared fixtures for the whole test suite
-import pytest
+# tests/services/training/conftest.py  ← fixtures scoped to one feature
+from collections.abc import Generator
 from pathlib import Path
-from classiflow.ingesta.agents.agent1_file_reception import run
+
+import pytest
 
 @pytest.fixture
-def sample_pdf(tmp_path: Path) -> Path:
-    """Real PDF bytes — no mock needed, tmp_path is built-in pytest fixture."""
-    pdf = tmp_path / "decreto.pdf"
-    pdf.write_bytes(b"%PDF-1.4 fake content for testing")
-    return pdf
+def model_path(tmp_path: Path) -> Generator[Path]:
+    """A real file on disk, removed before and after — no mock needed.
 
-@pytest.fixture(scope="session")
-def format_config() -> dict:
-    """Load real YAML config once per session — cheap, accurate, no patching."""
-    import yaml
-    return yaml.safe_load(Path("config/allowed_formats.yaml").read_text())
+    Yielding is what makes the teardown run even when the test fails.
+    """
+    path = tmp_path / "model_test.joblib"
+    path.unlink(missing_ok=True)
+    yield path
+    path.unlink(missing_ok=True)
+
+@pytest.fixture
+def training_data_dimension_mismatch() -> tuple[list[list[float]], list[float]]:
+    """Named for the scenario, not the shape — the test reads as a sentence."""
+    X = [[25.0], [30.0], [35.0]]
+    y = [5.0, 6.0]
+    return X, y
 ```
 
 **Fixture scopes** — choose the narrowest scope that avoids duplication:
@@ -72,19 +67,19 @@ def format_config() -> dict:
 
 ```python
 import pytest
-from classiflow.ingesta.agents.agent1_file_reception import run
 
+# Cover the boundary rather than a scatter of arbitrary values: one below,
+# one at, one above. That is where off-by-one errors actually live.
 @pytest.mark.parametrize("size,should_pass", [
-    (0,                   False),   # empty file
-    (1,                   True),    # minimal valid
-    (50 * 1024 * 1024,    True),    # exactly at limit
-    (50 * 1024 * 1024 + 1, False),  # one byte over
+    (0,                    False),  # empty
+    (1,                    True),   # minimal valid
+    (MAX_BYTES,            True),   # exactly at the limit
+    (MAX_BYTES + 1,        False),  # one byte over
 ])
-def test_file_size_gate(tmp_path, size, should_pass):
-    f = tmp_path / "doc.pdf"
+def test_size_gate(tmp_path, size, should_pass):
+    f = tmp_path / "upload.bin"
     f.write_bytes(b"x" * size)
-    result = run(job_id="test", file_path=str(f))
-    assert result.passed == should_pass
+    assert accepts(f) is should_pass
 ```
 
 ### Marks — skip, xfail, categorize
@@ -113,43 +108,61 @@ Run subsets: `pytest -m "not slow"` · `pytest -m integration`
 
 ```
 tests/
-├── conftest.py          ← fixtures available to ALL tests
-├── ingesta/
-│   ├── conftest.py      ← fixtures scoped to ingesta/ only
-│   ├── test_agent1.py
-│   └── test_agent2.py
-└── extraction/
-    └── test_extractor.py
+├── conftest.py            ← fixtures available to ALL tests
+├── api/
+│   ├── conftest.py        ← fixtures scoped to api/ only (e.g. the client)
+│   └── routes/
+│       └── test_health.py
+└── services/
+    └── training/
+        ├── conftest.py    ← fixtures scoped to this feature
+        └── test_training_service.py
 ```
 
 Fixtures in a `conftest.py` are auto-discovered — no import needed.
+
+### Snapshot tests — for wide, stable output
+
+When the code under test returns a large structure (an API response body, a
+rendered document, a serialized model), asserting field by field is noisy and
+under-checks. A snapshot library such as `syrupy` stores the accepted output
+beside the test and diffs against it:
+
+```python
+def test_health_endpoint(client, snapshot):
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == snapshot   # compared against the stored snapshot
+```
+
+The first run writes the snapshot; later runs fail on any difference. Review
+the diff before accepting an update (`--snapshot-update`) — a snapshot blindly
+re-recorded proves nothing.
+
+Use snapshots for output whose *whole shape* matters and changes rarely. Avoid
+them for a single value, or for anything containing timestamps or random ids
+unless you normalize those first.
 
 ## Fakes over Mocks
 
 A **fake** is a real, lightweight implementation that behaves like the real thing:
 
 ```python
-# Instead of mocking a hash store, use a plain dict
+# Instead of mocking the store, use a plain dict — it has the same behaviour
+# and, unlike a MagicMock, it will actually fail if the logic is wrong.
 def test_exact_duplicate_detected(tmp_path):
-    hash_store: dict[str, str] = {}          # real dict, not MagicMock
-    vector_index = faiss.IndexFlatIP(384)    # real index, not mocked
+    seen: dict[str, str] = {}                # real dict, not MagicMock
 
-    pdf = tmp_path / "doc.pdf"
-    pdf.write_bytes(b"%PDF test")
-    sha = hashlib.sha256(pdf.read_bytes()).hexdigest()
-    hash_store[sha] = "job-original"
+    payload = tmp_path / "doc.bin"
+    payload.write_bytes(b"contents")
+    digest = hashlib.sha256(payload.read_bytes()).hexdigest()
+    seen[digest] = "job-original"
 
-    result = run(
-        job_id="job-duplicate",
-        sha256=sha,
-        text_sample="some text",
-        hash_store=hash_store,
-        vector_index=vector_index,
-        stored_job_ids=[],
-    )
+    result = check_duplicate(job_id="job-duplicate", digest=digest, seen=seen)
 
     assert result.is_duplicate is True
-    assert result.duplicate_type == "exact"
+    assert result.duplicate_of == "job-original"
 ```
 
 **In-memory substitutes:**
@@ -159,8 +172,23 @@ def test_exact_duplicate_detected(tmp_path):
 | PostgreSQL / SQLite | SQLite in-memory: `"sqlite:///:memory:"` |
 | File system | `tmp_path` (pytest built-in) |
 | Redis / hash store | `dict` |
-| FAISS vector index | `faiss.IndexFlatIP(dim)` with small dim |
-| LLM model | Small stub class returning fixed JSON |
+| Vector index | The real index class with a small dimension |
+| Model inference | A small stub class returning a fixed result |
+
+### Swapping dependencies wholesale
+
+If the app wires its dependencies through a DI container, override the
+container once in the root `conftest.py` rather than patching each collaborator
+in every test. One seam replaces many `patch` calls, and the real wiring still
+gets exercised for everything you did not override:
+
+```python
+@pytest.fixture(autouse=True, scope="session")
+def injector_override() -> None:
+    container = configure_container()
+    container.override(TestContainer)   # only the providers it declares
+    container.wire(packages=["tests"])
+```
 
 ## Assertions
 
@@ -169,9 +197,9 @@ for `assertEqual`, `assertTrue`, or `assertIsNone`:
 
 ```python
 assert result.passed is True
-assert result.sha256 == expected_hash
+assert result.digest == expected_digest
 assert "Empty file" in result.reason
-assert result.file_size_bytes == 0
+assert result.size_bytes == 0
 ```
 
 ## File & Naming Conventions
@@ -179,11 +207,11 @@ assert result.file_size_bytes == 0
 ```
 tests/
 ├── conftest.py
-├── fixtures/               ← real fixture files (PDFs, CSVs)
-│   └── decreto_sample.pdf
-└── ingesta/
-    ├── __init__.py
-    └── test_agent1_file_reception.py   ← test_<module>.py
+├── fixtures/                 ← real fixture files (CSVs, sample payloads)
+│   └── sample_panel.csv
+└── services/
+    └── training/
+        └── test_training_service.py   ← test_<module>.py
 ```
 
 - File: `test_<module>.py`
@@ -194,7 +222,7 @@ tests/
 
 ```bash
 uv run pytest tests/                        # all tests
-uv run pytest tests/ingesta/test_agent1.py  # one file
+uv run pytest tests/services/training/      # one directory
 uv run pytest -k "duplicate"               # by name pattern
 uv run pytest -m "not slow"                # by mark
 uv run pytest -x                           # stop on first failure
@@ -209,7 +237,7 @@ uv run poe test                            # project alias (see pyproject.toml)
 | Mocking your own classes | Pass the real object; redesign if it's too hard to construct |
 | `scope="session"` on mutable fixtures | Mutations leak between tests — use `function` scope |
 | Patching the wrong namespace | Patch where the name is **used**, not where it's defined: `patch("mymodule.os.path")` not `patch("os.path")` |
-| Forgetting `__init__.py` in `tests/` | Add it; pytest needs it to resolve imports correctly |
+| Two test files sharing a basename | Add `__init__.py` to the packages, or rename — without one, pytest cannot import both |
 | Giant test functions testing many things | Split into one assertion per function; parametrize instead |
 | Not registering custom marks | Add to `[tool.pytest.ini_options] markers` in `pyproject.toml` |
 
@@ -219,12 +247,13 @@ uv run poe test                            # project alias (see pyproject.toml)
 from unittest.mock import patch
 import pytest
 
-def test_agent_skips_slm_on_clear_accept(sample_pdf, format_config):
-    # mock.patch is correct here: the LLM is a true external boundary
-    with patch("classiflow.ingesta.agents.agent2_format_validation._slm_check") as mock_slm:
-        result = run(job_id="j1", file_path=str(sample_pdf), config=format_config, llm=None)
-        mock_slm.assert_not_called()   # rule-based path must not invoke the model
-        assert result.recommendation == "ACCEPT"
+def test_skips_remote_check_when_rules_already_decide(tmp_path):
+    # patch is correct here: the remote call is a true external boundary, and
+    # the point of the test is that it must NOT happen on the fast path.
+    with patch("myapp.validation._remote_check") as remote:
+        result = validate(path=tmp_path / "in.bin", strict=False)
+        remote.assert_not_called()     # the rule-based path must not call out
+        assert result.accepted is True
 ```
 
 Mock to **verify behavior at a boundary** — not to make a dependency easier to construct.

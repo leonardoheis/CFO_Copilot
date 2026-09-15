@@ -1,13 +1,13 @@
 ---
 name: design-patterns
-description: Use when a design pattern might improve the code — before suggesting or applying any pattern, present the candidate pattern(s) to the user and wait for explicit approval. Triggers on "refactor", "improve structure", "decouple", "extract", "simplify dependencies", "make extensible", "avoid duplication", or when recognizing a known pattern mismatch in existing code.
+description: Catalog of the classic Gang of Four design patterns with Python-idiomatic implementations and a guide to choosing between them. Always present the candidate pattern to the user and wait for explicit approval before applying it — an unrequested pattern adds indirection that is hard to undo. Triggers on "design pattern", "which pattern", "is there a pattern for", "Strategy", "Observer", "Factory", "Adapter", "Decorator", "Command pattern", "swap implementations at runtime", "make this extensible". For naming a problem use code-smells; for a mechanical fix use refactoring-techniques; for container wiring use dependency-injection-python.
 ---
 
 # Design Patterns (Python)
 
 Reference: https://refactoring.guru/design-patterns/python
 
-## MANDATORY RULE: Always Validate Before Applying
+## Validate before applying
 
 **Never apply a design pattern without user confirmation.**
 
