@@ -1,6 +1,6 @@
 ---
 name: analyzing-time-series
-description: Comprehensive diagnostic analysis of time series data. Use when users provide CSV time series data and want to understand its characteristics before forecasting - stationarity, seasonality, trend, forecastability, and transform recommendations.
+description: Comprehensive diagnostic analysis of time series data. Use when users provide CSV or Parquet time series data and want to understand its characteristics before forecasting - stationarity, seasonality, trend, forecastability, and transform recommendations.
 ---
 
 # Time Series Diagnostics
@@ -9,9 +9,21 @@ Comprehensive diagnostic toolkit to analyze time series data characteristics bef
 
 ## Input Format
 
-The input CSV file should have two columns:
-- **Date column** - Timestamps or dates (e.g., `date`, `timestamp`, `time`)
+CSV and Parquet are both accepted; the format is chosen by file extension
+(`.parquet`/`.pq` → Parquet, anything else → CSV). The file needs:
+
+- **Date column** - Timestamps or dates (e.g., `date`, `timestamp`, `time`).
+  A Parquet file whose dates are already the index works too.
 - **Value column** - Numeric values to analyze (e.g., `value`, `sales`, `temperature`)
+
+Extra columns are ignored. On a wide panel with many numeric columns, pass
+`--value-col` explicitly — otherwise the first numeric column is used and the
+script warns about the guess.
+
+```bash
+python scripts/diagnose.py data/processed/AMZN_panel.parquet \
+    --value-col revenue_usd_m --output-dir results/
+```
 
 
 ## Workflow
@@ -20,6 +32,7 @@ The input CSV file should have two columns:
 
 ```bash
 python scripts/diagnose.py data.csv --output-dir results/
+python scripts/diagnose.py panel.parquet --value-col revenue_usd_m --output-dir results/
 ```
 
 This runs all statistical tests and analyses. Outputs `diagnostics.json` with all metrics and `summary.txt` with human-readable findings. Column names are auto-detected, or can be specified with `--date-col` and `--value-col` options.
@@ -28,6 +41,7 @@ This runs all statistical tests and analyses. Outputs `diagnostics.json` with al
 
 ```bash
 python scripts/visualize.py data.csv --output-dir results/
+python scripts/visualize.py panel.parquet --value-col revenue_usd_m --output-dir results/
 ```
 
 Creates diagnostic plots in `results/plots/` for visual inspection. Run after `diagnose.py` to ensure ACF/PACF plots are synchronized with stationarity results. Column names are auto-detected, or can be specified with `--date-col` and `--value-col` options.

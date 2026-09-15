@@ -14,17 +14,20 @@ from statsmodels.tsa.stattools import acf, adfuller, kpss
 
 def load_data(filepath, date_col=None, value_col=None):
     """
-    Load and prepare time series data from CSV.
-    
+    Load and prepare time series data from CSV or Parquet.
+
+    Format is chosen by file extension: .parquet/.pq use pd.read_parquet,
+    anything else is read as CSV.
+
     Parameters
     ----------
     filepath : str
-        Path to CSV file
+        Path to CSV or Parquet file
     date_col : str, optional
         Name of date column (auto-detected if None)
     value_col : str, optional
         Name of value column (auto-detected if None)
-    
+
     Returns
     -------
     series : pd.Series
@@ -34,22 +37,38 @@ def load_data(filepath, date_col=None, value_col=None):
     value_col : str
         Detected/used value column name
     """
-    df = pd.read_csv(filepath)
-    
-    # Auto-detect date column
+    if str(filepath).lower().endswith(('.parquet', '.pq')):
+        df = pd.read_parquet(filepath)
+    else:
+        df = pd.read_csv(filepath)
+
+    # A parquet file may already carry the dates as its index; restore it to a
+    # column so the detection below treats both formats identically.
+    if date_col is None and isinstance(df.index, pd.DatetimeIndex):
+        df = df.reset_index()
+
+    # Auto-detect date column. Prefer a real datetime dtype (parquet preserves
+    # it); fall back to object columns, which is all a CSV can offer.
     if date_col is None:
-        date_cols = df.select_dtypes(include=['object', 'datetime']).columns
+        date_cols = df.select_dtypes(include=['datetime', 'datetimetz']).columns
+        if len(date_cols) == 0:
+            date_cols = df.select_dtypes(include=['object']).columns
         if len(date_cols) == 0:
             raise ValueError("No date column found. Specify with --date-col")
         date_col = date_cols[0]
-    
+
     # Auto-detect value column
     if value_col is None:
         value_cols = df.select_dtypes(include=[np.number]).columns
         if len(value_cols) == 0:
             raise ValueError("No numeric column found. Specify with --value-col")
         value_col = value_cols[0]
-    
+        # Wide panels have many numeric columns and picking the first is a
+        # coin flip, so say which one was taken rather than guessing silently.
+        if len(value_cols) > 1:
+            print(f"Warning: {len(value_cols)} numeric columns found; "
+                  f"using '{value_col}'. Override with --value-col.")
+
     df[date_col] = pd.to_datetime(df[date_col])
     df = df.set_index(date_col).sort_index()
     series = df[value_col].dropna()

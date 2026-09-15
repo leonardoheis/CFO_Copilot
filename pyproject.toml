@@ -147,6 +147,10 @@ skip_covered = true
 [tool.mypy]
 strict = true
 
+# Vendored agent-skill scripts, not application code. Both editor directories
+# hold the same files, so type-checking them also collides on module names.
+exclude = '^\.(cursor|claude)[/\\]'
+
 follow_imports = "normal"
 
 python_version = "3.12"

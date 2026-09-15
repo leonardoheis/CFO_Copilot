@@ -78,6 +78,9 @@ repos:
     rev: "v2.3.1"
     hooks:
     -   id: mypy
+        # Vendored agent-skill scripts, not application code. pre-commit passes
+        # files explicitly, so mypy's own `exclude` setting does not apply here.
+        exclude: '^\.(cursor|claude)/'
         additional_dependencies:
         -   "dependency-injector>=4.48.1"
         -   "fastapi==0.116.1"

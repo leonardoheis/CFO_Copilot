@@ -15,7 +15,6 @@ from pathlib import Path
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.seasonal import STL
 from ts_utils import (detect_frequency, detect_seasonal_period,
@@ -274,8 +273,10 @@ def plot_decomposition(series, seasonal_period, output_dir, d=None, freq=None):
         print(f"  Skipped: decomposition.png ({e})")
 
 
-def plot_lag_scatter(series, output_dir, lags=[1, 7, 12]):
+def plot_lag_scatter(series, output_dir, lags=None):
     """Create lag scatter plots for visual autocorrelation inspection."""
+    if lags is None:
+        lags = [1, 7, 12]
     available_lags = [lag for lag in lags if lag < len(series)]
     
     if len(available_lags) == 0:
@@ -377,6 +378,7 @@ if __name__ == '__main__':
         epilog="""
 Examples:
   python visualize.py data.csv
+  python visualize.py panel.parquet --value-col revenue_usd_m
   python visualize.py data.csv --output-dir results/
   python visualize.py data.csv --date-col timestamp --value-col sales
   python visualize.py data.csv --seasonal-period 12
@@ -384,7 +386,7 @@ Examples:
 Note: Run diagnose.py first for synchronized ACF/PACF plots.
         """
     )
-    parser.add_argument('input_file', help='Path to CSV file')
+    parser.add_argument('input_file', help='Path to CSV or Parquet file')
     parser.add_argument('--output-dir', default='diagnostics', help='Output directory (default: diagnostics)')
     parser.add_argument('--date-col', help='Date column name (auto-detected if omitted)')
     parser.add_argument('--value-col', help='Value column name (auto-detected if omitted)')

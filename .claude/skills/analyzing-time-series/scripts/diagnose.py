@@ -521,12 +521,13 @@ if __name__ == '__main__':
         epilog="""
 Examples:
   python diagnose.py data.csv
+  python diagnose.py panel.parquet --value-col revenue_usd_m
   python diagnose.py data.csv --output-dir results/
   python diagnose.py data.csv --date-col timestamp --value-col sales
   python diagnose.py data.csv --seasonal-period 12
         """
     )
-    parser.add_argument('input_file', help='Path to CSV file')
+    parser.add_argument('input_file', help='Path to CSV or Parquet file')
     parser.add_argument('--output-dir', default='diagnostics', help='Output directory (default: diagnostics)')
     parser.add_argument('--date-col', help='Date column name (auto-detected if omitted)')
     parser.add_argument('--value-col', help='Value column name (auto-detected if omitted)')
