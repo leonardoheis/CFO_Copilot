@@ -1,0 +1,59 @@
+TIME SERIES DIAGNOSTICS SUMMARY
+============================================================
+
+DATA QUALITY
+------------------------------------------------------------
+Observations: 81
+Date range: 2006-06-30 to 2026-06-30
+Frequency: quarterly
+Missing values: 0 (0.0%)
+
+DISTRIBUTION
+------------------------------------------------------------
+Mean: 10328.7284    Median: 6377.0000
+Std:  8829.0706    Min: -6302.0000    Max: 38458.0000
+Skewness: 1.1695    Kurtosis: 0.9941
+
+STATIONARITY
+------------------------------------------------------------
+ADF test: statistic=2.5139, p=0.9991 -> Non-stationary
+KPSS test: statistic=1.1641, p=0.0100 -> Non-stationary
+Differencing needed: d=1
+Series used for ACF/PACF: differenced_d1
+
+SEASONALITY
+------------------------------------------------------------
+Seasonal: No
+Strength: 0.0000 (weak)
+
+TREND
+------------------------------------------------------------
+Has trend: Yes
+Direction: increasing
+Strength: 0.9303 (strong)
+
+AUTOCORRELATION
+------------------------------------------------------------
+Significant ACF lags: [1, 32]
+Significant PACF lags: [1, 2, 10, 31, 32, 34]
+
+FORECASTABILITY
+------------------------------------------------------------
+Ljung-Box lag_10: statistic=22.37, p=0.0133
+Ljung-Box lag_16: statistic=24.73, p=0.0746
+Ljung-Box lag_20: statistic=28.47, p=0.0988
+Conclusion: Predictable structure
+Forecastable: Yes
+
+TRANSFORM RECOMMENDATION
+------------------------------------------------------------
+Variance stable: Yes
+Recommendation: No transform needed
+
+============================================================
+QUICK SUMMARY
+============================================================
+Forecastable: YES
+Stationary: NO (d=1)
+Seasonal: NO
+Trend: INCREASING
