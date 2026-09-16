@@ -181,8 +181,13 @@ class SecEdgarSource:
                         records["filed"],
                         splits,
                     )
-                combined = combined.combine_first(_without_placeholder_zeros(values))
-            if combined.notna().all():
+                reported = _without_placeholder_zeros(values)
+                combined = (
+                    pd.concat([combined, reported], axis=1).max(axis=1)
+                    if spec.prefer_largest
+                    else combined.combine_first(reported)
+                )
+            if not spec.prefer_largest and combined.notna().all():
                 break
         return combined
 

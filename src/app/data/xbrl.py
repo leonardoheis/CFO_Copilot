@@ -196,6 +196,11 @@ def _deduplicate_fact_records(
 ) -> dict[tuple[date, date], QuarterlyFact]:
     grouped: dict[tuple[date, date], list[XbrlFact]] = defaultdict(list)
     for fact in facts:
+        if "start" not in fact:
+            # SEC occasionally files an instant fact under a duration tag. It
+            # describes a balance, not a period, so it cannot be a quarter.
+            logger.warning("Skipping instant fact under a duration concept: %r", fact)
+            continue
         try:
             period = (
                 date.fromisoformat(fact["start"]),

@@ -62,6 +62,9 @@ CFO_Copilot/
 ├── tests/
 │   ├── api/                 # Route/integration tests
 │   └── services/            # Service unit tests
+├── docs/
+│   ├── specs/               # Behaviour contracts (what must be true)
+│   └── plans/               # Implementation plans (how to build it)
 ├── pyproject.toml           # deps, poe tasks, ruff, mypy, pytest, coverage
 ├── Dockerfile               # Multi-stage uv build; CMD python -m app
 └── project-details.md       # ML project scoping questionnaire (planning)
@@ -145,6 +148,17 @@ Say it in the name, not in a paragraph above it.
   rename instead.
 - Same for variables: `annual_candidates` beats `tmp` plus a note explaining
   what `tmp` holds.
+
+## Lint suppressions
+
+- **Do not silence a linter to make code pass.** `# noqa` and `# ruff: ignore`
+  hide a design problem rather than fixing it. Too many arguments means the
+  parameters want a model; too complex means the function wants splitting.
+- A CLI with six options is not an exception: collect them into a request
+  model (`IngestRequest` in `data/runner.py`) and give the worker a normal
+  signature.
+- Suppress only what cannot be restructured — a false positive in a
+  third-party call — and name the rule and the reason on the line.
 
 ## Typing conventions
 
@@ -261,6 +275,45 @@ uv run poe check
 ```
 
 This runs `lint`, `typecheck`, and `test` in sequence (defined in `pyproject.toml`). Fix any failures before committing — do not commit with a failing check.
+
+A passing check is permission to *propose* a commit, not to make one.
+
+## Plans and specs
+
+Both live in the repo, never in a scratch or temp directory — they are project
+artifacts that belong in review and in history, and they must reach a second
+machine by cloning.
+
+| | Path | Answers | Contains |
+|---|---|---|---|
+| **Spec** | `docs/specs/<topic>.md` | *What must be true?* | Required behaviour, the evidence for it, acceptance criteria, out-of-scope |
+| **Plan** | `docs/plans/<topic>.md` | *How do we build it?* | Ordered steps, files touched, tests to write, verification |
+
+Write the spec first for anything with a contract worth agreeing on — a
+behaviour change, a data rule, an interface. Skip it for mechanical work
+(a rename, a dependency bump) and write only a plan.
+
+A spec states requirements and the facts that justify them; it names no
+functions and prescribes no steps. Back every claim with a verified number,
+not an assumption, and record counter-examples — the EPS Diluted/Basic case in
+`sec-tag-precedence.md` is what stopped a plausible rule from shipping a
+regression.
+
+Name files after the work (`sec-tag-precedence.md`), not the session. Have the
+plan link its spec, and keep both current when the work changes shape.
+
+## Git workflow
+
+**Never `git commit`, `git push`, or open a pull request without explicit
+permission for that specific action.** Approval to commit is not approval to
+push; ask again.
+
+- Do the work, run `uv run poe check`, and stage nothing by default.
+- Summarize what changed and which files, then wait.
+- On approval, commit exactly what was approved — never sweep in unrelated
+  edits that happen to be in the working tree.
+- The same applies to any other hard-to-reverse act: deleting files,
+  `git rm --cached`, or rewriting history.
 
 ## Adding a new API feature
 

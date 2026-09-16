@@ -15,12 +15,18 @@ SHARES_UNIT: Final = "shares"
 
 
 class ConceptSpec(BaseModel):
-    """An ordered set of us-gaap tags reported under a single XBRL unit."""
+    """An ordered set of us-gaap tags reported under a single XBRL unit.
+
+    ``prefer_largest`` suits a total whose narrower tags report components of
+    it; leave it off where a later tag may legitimately be larger, as basic EPS
+    is over diluted.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     tags: tuple[str, ...]
     unit: str = USD_UNIT
+    prefer_largest: bool = False
 
     @field_validator("tags")
     @classmethod
@@ -44,8 +50,10 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
         tags=(
             "RevenueFromContractWithCustomerExcludingAssessedTax",
             "SalesRevenueNet",
+            "SalesRevenueGoodsNet",
             "Revenues",
         ),
+        prefer_largest=True,
     ),
     "cogs": ConceptSpec(
         tags=(
@@ -53,6 +61,7 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "CostOfGoodsSold",
             "CostOfRevenue",
         ),
+        prefer_largest=True,
     ),
     "costs_and_expenses": ConceptSpec(tags=("CostsAndExpenses",)),
     "operating_income": ConceptSpec(tags=("OperatingIncomeLoss",)),
@@ -66,6 +75,7 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "DepreciationAmortizationAndOther",
             "OtherDepreciationAndAmortization",
         ),
+        prefer_largest=True,
     ),
     "operating_cash_flow": ConceptSpec(
         tags=(
@@ -78,6 +88,7 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "PaymentsToAcquireProductiveAssets",
             "PaymentsToAcquirePropertyPlantAndEquipment",
         ),
+        prefer_largest=True,
     ),
     "eps": ConceptSpec(
         tags=("EarningsPerShareDiluted", "EarningsPerShareBasic"),

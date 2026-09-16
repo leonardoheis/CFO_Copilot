@@ -14,7 +14,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax.json</Key><RequestId>8XSQT1CS9E9G12JJ</RequestId><HostId>SEynfNcmjNOXVTS1IVnOuE13wjJ4WIsLI92opjm4oBFAAcpSpRsds25IL38BOl5vKodvQOeak/s=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax.json</Key><RequestId>X60V6R06NSEHQYFC</RequestId><HostId>zhuM5ZAD2R2Js9YBb/6kHeoC32ZiEhf7+PDDPBLW9KvbhBSAOIBA3GpBJKNwBVrq4Gk9SSAM7Z4=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -23,15 +23,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:22 GMT
+      - Wed, 16 Sep 2026 14:27:56 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548a-b012b663787cde62cb0c7704
+      - Root=1-6aaaa76c-6743c0b8cfd895bf516b32b3
       x-amz-apigw-id:
-      - DWolpFS-oAMEkZQ=
+      - Dy8Y9HBFIAMEFmQ=
       x-amzn-RequestId:
-      - eb8ac8a5-34b8-4192-8bf3-99f9f23f71e3
+      - 94234f25-c2e4-4c82-b343-c946e4e98c37
     status:
       code: 404
       message: Not Found
@@ -63,20 +63,56 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:22 GMT
+      - Wed, 16 Sep 2026 14:27:56 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548a-3f70db78213087c7a1985155
+      - Root=1-6aaaa76c-3c1611689ccb27b3f557caf9
       x-amz-apigw-id:
-      - DWolsGvIoAMEqog=
+      - Dy8ZAGbJoAMEiUQ=
       x-amzn-RequestId:
-      - 9501148a-52db-4955-b55e-41bd2bf556e6
+      - f9a87a87-389f-4cf6-80fc-ca818ca8c1ad
     status:
       code: 200
       message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/SalesRevenueGoodsNet.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/SalesRevenueGoodsNet.json</Key><RequestId>X60G64JKH7XRKMBQ</RequestId><HostId>3nubx/VGdAjtYGHQvxvqprgi6YTPYyGwJbD+5G8tVnMI9qGjyBiN3J6ZiU3AZA8LcdZRB0Mequ0=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '342'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:27:56 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa76c-ac9fdd41e6b590a8eb311970
+      x-amz-apigw-id:
+      - Dy8ZEHsUIAMEFTg=
+      x-amzn-RequestId:
+      - e6b1450d-6538-4f90-8dca-78868fc04625
+    status:
+      code: 404
+      message: Not Found
 - request:
     body: null
     headers:
@@ -106,17 +142,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:22 GMT
+      - Wed, 16 Sep 2026 14:27:57 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548a-10456732b1978155f2e40947
+      - Root=1-6aaaa76d-d3d8e202ae54d8c9888a2374
       x-amz-apigw-id:
-      - DWolwEdsoAMEhaQ=
+      - Dy8ZHF0bIAMEiBA=
       x-amzn-RequestId:
-      - 6ecc083f-a472-4efa-ab74-c00da26581a2
+      - b920ae7c-7324-4b73-a04a-317bd83cc79b
     status:
       code: 200
       message: OK
@@ -135,7 +171,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsAndServicesSold.json</Key><RequestId>980XMX6WEBTEB867</RequestId><HostId>0NDqQvvgEhNfEsUD65FDUGiCOaH1YuMIv/PM6m4iz0JidzfTd1nUwlRrEuFm/lQDqnlgMKqsJsA=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsAndServicesSold.json</Key><RequestId>6D9W80A2R84MJBTV</RequestId><HostId>/FfOAyfbYR4K3ygFvXc9wfVrMS4azbHyE3C/XgodKCey0uQcPLtbTGpeWL4QeC8MJbMJtdOCefY=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -144,15 +180,51 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:23 GMT
+      - Wed, 16 Sep 2026 14:27:57 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548b-e6e98e6c0df298395c091341
+      - Root=1-6aaaa76d-003a5f442de8b652dc970f47
       x-amz-apigw-id:
-      - DWol0GKNoAMEvTw=
+      - Dy8ZLHx_oAMEFTg=
       x-amzn-RequestId:
-      - ee37bfa6-9744-486b-aac4-ae543ea3789a
+      - 3cf69d5c-eee3-4125-bd87-f363c3645405
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsSold.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsSold.json</Key><RequestId>6D9VTK1N5JH5QNE8</RequestId><HostId>j033JrSK8hBAvmtfvQPY5Y+aucUDmhBV8Ogc+P4+H68el4wVm//1Kgdsre+aDbJqVhOqbE4CzRs=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '337'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:27:57 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa76d-abc6101b0cf7bb8fff3f1681
+      x-amz-apigw-id:
+      - Dy8ZOFppoAMEvew=
+      x-amzn-RequestId:
+      - 9675415b-bea2-4d97-aeaa-1ca9fdc0ab16
     status:
       code: 404
       message: Not Found
@@ -182,17 +254,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:23 GMT
+      - Wed, 16 Sep 2026 14:27:58 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548b-51fea2dcbac6067a25451753
+      - Root=1-6aaaa76e-5a61cae4144741112b45dd44
       x-amz-apigw-id:
-      - DWol2F8zoAMEqlA=
+      - Dy8ZRFqvIAMEkXA=
       x-amzn-RequestId:
-      - 9f390b88-ff18-4f29-917e-1e0588384262
+      - 0ee500f2-cdd5-4873-9099-34df2d01ec8b
     status:
       code: 200
       message: OK
@@ -222,17 +294,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:23 GMT
+      - Wed, 16 Sep 2026 14:27:58 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548b-04beeee5a8fef5293d3192b0
+      - Root=1-6aaaa76e-c3d199ae89a5928321c1c34e
       x-amz-apigw-id:
-      - DWol6FIkIAMEu5g=
+      - Dy8ZVGWXoAMEiZQ=
       x-amzn-RequestId:
-      - 98b20e1c-edfb-4a9f-a987-c34d9c1c2967
+      - 4e9b3895-2a2c-4197-800b-68693d1140ef
     status:
       code: 200
       message: OK
@@ -262,17 +334,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:24 GMT
+      - Wed, 16 Sep 2026 14:27:59 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548c-315acf8b48b88768fb1574b1
+      - Root=1-6aaaa76e-0f684321b70a53a07bb76476
       x-amz-apigw-id:
-      - DWol9FJIoAMEgXQ=
+      - Dy8ZZHYNIAMEFmQ=
       x-amzn-RequestId:
-      - e6e958fc-6456-478a-9f65-934dab8e559d
+      - 1c711403-b6ad-4a3a-adb4-7566effb90cf
     status:
       code: 200
       message: OK
@@ -303,17 +375,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:24 GMT
+      - Wed, 16 Sep 2026 14:27:59 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548c-bacd701b4a81f1f099cd2fa7
+      - Root=1-6aaaa76f-993742f5e48e1bde86fc5728
       x-amz-apigw-id:
-      - DWomBEFfoAMEuhQ=
+      - Dy8ZdGe6IAMEvNw=
       x-amzn-RequestId:
-      - a91b02b6-929e-4a51-9430-a1f49995686c
+      - cf77a45f-0a36-4322-bfc0-64323ce1302d
     status:
       code: 200
       message: OK
@@ -332,7 +404,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationDepletionAndAmortization.json</Key><RequestId>BJAHNZZHDEK07AG6</RequestId><HostId>Bu22yqwujF/GxEVfTalFrlnOjt2/CjX7Ru7AdBVo0qRDgRl/Qtti1o+hP4DltHaCBP/4KZlizHg=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationDepletionAndAmortization.json</Key><RequestId>JA0P5XKR99KBZYR1</RequestId><HostId>HXozqjtuMXneZ7sbWC0kcVj9mPAz3eDso7GU/GWMAPAaZAaR163bNiyWXNomwmnJR7dG4HhlMFM=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -341,15 +413,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:25 GMT
+      - Wed, 16 Sep 2026 14:27:59 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548c-5f61bf73297715e82b0dbd03
+      - Root=1-6aaaa76f-34f70faad89714e14a35588d
       x-amz-apigw-id:
-      - DWomGE4SIAMEnjA=
+      - Dy8ZgH77oAMEAZg=
       x-amzn-RequestId:
-      - 3b8f1d2f-a268-4f41-b601-8c7d99f0487d
+      - 9468f7b8-ed4a-435c-9d59-0f62f11f04b8
     status:
       code: 404
       message: Not Found
@@ -368,7 +440,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAndAmortization.json</Key><RequestId>V458V14P7PVEMMZE</RequestId><HostId>ZJy1bsd0i7HP0UkHGLzRo4Epd7vFh2au6GSxV7gbi+QcZqo0ydt8I6IwrAcNGTpZ+quNc0nT244=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAndAmortization.json</Key><RequestId>JA0WNAYXCT178SZS</RequestId><HostId>QDrT80Pvkpt/BPae2MFM/4MVrr7UMGBnyrDtddScJxnin/Coz33D1ILBc5/+6t+WJP48EhP5Lbg=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -377,15 +449,51 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:25 GMT
+      - Wed, 16 Sep 2026 14:27:59 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548d-c785db2f790cee3b8c70a0c7
+      - Root=1-6aaaa76f-530049448f69e78859e500b6
       x-amz-apigw-id:
-      - DWomJFC_IAMEtGg=
+      - Dy8ZjHHooAMEg4w=
       x-amzn-RequestId:
-      - c81be9f4-873e-4025-a6e9-1fb5c650a463
+      - f2fde4f1-b709-41e3-bf04-6a397c735543
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndAccretionNet.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>FKYJF52JRPNA829Y</RequestId><HostId>Zv4bZ0y76m99Ze2wpyDVtUEBMBoMi2Eh5cJJS6XCcX5A81Hy2dw7X998xSIwSrvZeajeL2UyG/s=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '361'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:00 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa770-dda2829baf2e8cc008e225ae
+      x-amz-apigw-id:
+      - Dy8ZmHscIAMEMBw=
+      x-amzn-RequestId:
+      - 67a1aefb-88e9-4629-8abc-c33201f44eac
     status:
       code: 404
       message: Not Found
@@ -416,20 +524,92 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:25 GMT
+      - Wed, 16 Sep 2026 14:28:00 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548d-c2bfaef882674019d66b5794
+      - Root=1-6aaaa770-438574e4f05f1edd31685fa4
       x-amz-apigw-id:
-      - DWomMFOKoAMEiRA=
+      - Dy8ZpGsloAMErpA=
       x-amzn-RequestId:
-      - b6a7697c-7270-4431-a7b5-bdd7cde996c0
+      - 79bfb620-8a42-498d-be28-54e505345cf2
     status:
       code: 200
       message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndOther.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndOther.json</Key><RequestId>FKYGJABDSEC9PERY</RequestId><HostId>w0PityMWUHJe1UlGi2D9CkL6FyVV9greZ2dQVGIUpWVZPTKZ1Brgl6YIXgExzbKeb9Ohl7MgxBI=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '354'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:00 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa770-d0cf9b5e5b04391697bddc71
+      x-amz-apigw-id:
+      - Dy8ZsHoAIAMEJNQ=
+      x-amzn-RequestId:
+      - 3ddde73c-b766-445f-a93b-539b57ebcc78
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/OtherDepreciationAndAmortization.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/OtherDepreciationAndAmortization.json</Key><RequestId>XT634Y8684VGNGW4</RequestId><HostId>loNsGx2Nr+Q2pjKS3wZda9lqmhKaKovvidWtyE8FUjymsaLul/q1/+PtTPbvNGROMKIlmgzTqf8=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '354'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:01 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa771-bc1910de3c04db25c2e528ff
+      x-amz-apigw-id:
+      - Dy8ZvHGZIAMEpEA=
+      x-amzn-RequestId:
+      - 522f0a83-af60-42f6-8bb5-bb48007cc5ae
+    status:
+      code: 404
+      message: Not Found
 - request:
     body: null
     headers:
@@ -459,56 +639,20 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:25 GMT
+      - Wed, 16 Sep 2026 14:28:01 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548d-586ba32cd1f2e1a19e0b0621
+      - Root=1-6aaaa771-ff2332ab60ae3fb3d3042d57
       x-amz-apigw-id:
-      - DWomPH24oAMEjMA=
+      - Dy8ZyHUloAMEKoA=
       x-amzn-RequestId:
-      - 305ee498-99ab-4314-87a8-8e444be917a1
+      - 162224da-dd6b-404e-812e-803dff03b54a
     status:
       code: 200
       message: OK
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/NetCashProvidedByUsedInOperatingActivitiesContinuingOperations.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/NetCashProvidedByUsedInOperatingActivitiesContinuingOperations.json</Key><RequestId>1EBS8QQJW6KHATJ1</RequestId><HostId>iQRngpnEAlTO8XPwfnqQlaxjuEloReDdoWz5/FJUfXj9pHoeymdxPxTDNczmAoL6RLR71cDp8ng=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '384'
-      Content-Type:
-      - application/xml
-      Date:
-      - Tue, 08 Sep 2026 00:19:26 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6a9f548e-a6d8cfcd84e7ce7a8db4f2be
-      x-amz-apigw-id:
-      - DWomSFvBIAMErMg=
-      x-amzn-RequestId:
-      - 3add760a-2977-4f86-add9-c82276a3cf97
-    status:
-      code: 404
-      message: Not Found
 - request:
     body: null
     headers:
@@ -524,7 +668,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/PaymentsToAcquireProductiveAssets.json</Key><RequestId>1EBVJC2HBX7DT4JS</RequestId><HostId>paZx+hYorA3/r5/OuPOCRYr+ficqcZ5/LzzV7zDISHimmQKDHq+sHKjEVbMADHvFAIk4iyNU03c=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/PaymentsToAcquireProductiveAssets.json</Key><RequestId>XT671YDSRHWVQWC8</RequestId><HostId>KoLQLffQ7ga8x8nwzw2sNSbFrnapyFoctax6XW+ZulIbs1nX7hXGA+0YSvLnyyINqXSlT5QSU3U=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -533,15 +677,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:26 GMT
+      - Wed, 16 Sep 2026 14:28:01 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548e-2aac624a739f46988abf5398
+      - Root=1-6aaaa771-e8801c739b2ca449e6980ea8
       x-amz-apigw-id:
-      - DWomVErPoAMEspA=
+      - Dy8Z2GiOoAMEjDw=
       x-amzn-RequestId:
-      - 759fc83c-6c92-49d3-846c-12421b19a11a
+      - 814bf282-006c-4148-a5e6-5d67bcb76a0b
     status:
       code: 404
       message: Not Found
@@ -574,17 +718,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:26 GMT
+      - Wed, 16 Sep 2026 14:28:02 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548e-bfd5ad29c474dc5edb8d4037
+      - Root=1-6aaaa772-6ca8569e6856a76486397b6a
       x-amz-apigw-id:
-      - DWomYHRFoAMEuJA=
+      - Dy8Z5HX6oAMEJ4g=
       x-amzn-RequestId:
-      - 54975dbc-502b-4795-a80e-13fc0e49160b
+      - 7648f31c-5ede-45db-b1c7-c4c088d0dfc1
     status:
       code: 200
       message: OK
@@ -618,58 +762,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:27 GMT
+      - Wed, 16 Sep 2026 14:28:02 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548f-4e4a0dd891ff82a649279d49
+      - Root=1-6aaaa772-b089761777ed5af51278483c
       x-amz-apigw-id:
-      - DWombEThIAMEu9Q=
+      - Dy8Z9GypoAMEhFQ=
       x-amzn-RequestId:
-      - a2bfd70b-2177-4d45-afa9-3b1cd55030b9
-    status:
-      code: 200
-      message: OK
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/EarningsPerShareBasic.json
-  response:
-    body:
-      string: '{"cik":1288776,"taxonomy":"us-gaap","tag":"EarningsPerShareBasic","label":"Earnings
-        Per Share, Basic","description":"The amount of net income (loss) for the period
-        per each share of common stock or unit outstanding during the reporting period.","entityName":"Google
-        Inc.","units":{"USD/shares":[{"start":"2007-01-01","end":"2007-12-31","val":13.53,"accn":"0001193125-10-030774","fy":2009,"fp":"FY","form":"10-K","filed":"2010-02-12","frame":"CY2007"},{"start":"2008-01-01","end":"2008-06-30","val":8.15,"accn":"0001193125-09-163845","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-08-04"},{"start":"2008-04-01","end":"2008-06-30","val":3.97,"accn":"0001193125-09-163845","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-08-04","frame":"CY2008Q2"},{"start":"2008-01-01","end":"2008-09-30","val":12.25,"accn":"0001193125-09-222384","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-11-04"},{"start":"2008-07-01","end":"2008-09-30","val":4.1,"accn":"0001193125-09-222384","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-11-04","frame":"CY2008Q3"},{"start":"2008-01-01","end":"2008-12-31","val":13.46,"accn":"0001193125-10-030774","fy":2009,"fp":"FY","form":"10-K","filed":"2010-02-12"},{"start":"2008-01-01","end":"2008-12-31","val":13.46,"accn":"0001193125-11-032930","fy":2010,"fp":"FY","form":"10-K","filed":"2011-02-11","frame":"CY2008"},{"start":"2009-01-01","end":"2009-03-31","val":4.51,"accn":"0001193125-10-108704","fy":2010,"fp":"Q1","form":"10-Q","filed":"2010-05-05","frame":"CY2009Q1"},{"start":"2009-01-01","end":"2009-06-30","val":9.21,"accn":"0001193125-09-163845","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-08-04"},{"start":"2009-01-01","end":"2009-06-30","val":9.21,"accn":"0001193125-10-172387","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-30"},{"start":"2009-04-01","end":"2009-06-30","val":4.7,"accn":"0001193125-09-163845","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-08-04"},{"start":"2009-04-01","end":"2009-06-30","val":4.7,"accn":"0001193125-10-172387","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-30","frame":"CY2009Q2"},{"start":"2009-01-01","end":"2009-09-30","val":14.39,"accn":"0001193125-09-222384","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-11-04"},{"start":"2009-01-01","end":"2009-09-30","val":14.39,"accn":"0001193125-10-241317","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-29"},{"start":"2009-07-01","end":"2009-09-30","val":5.18,"accn":"0001193125-09-222384","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-11-04"},{"start":"2009-07-01","end":"2009-09-30","val":5.18,"accn":"0001193125-10-241317","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-29","frame":"CY2009Q3"},{"start":"2009-01-01","end":"2009-12-31","val":20.62,"accn":"0001193125-10-030774","fy":2009,"fp":"FY","form":"10-K","filed":"2010-02-12"},{"start":"2009-01-01","end":"2009-12-31","val":20.62,"accn":"0001193125-11-032930","fy":2010,"fp":"FY","form":"10-K","filed":"2011-02-11"},{"start":"2009-01-01","end":"2009-12-31","val":20.62,"accn":"0001193125-12-025336","fy":2011,"fp":"FY","form":"10-K","filed":"2012-01-26","frame":"CY2009"},{"start":"2010-01-01","end":"2010-03-31","val":6.15,"accn":"0001193125-10-108704","fy":2010,"fp":"Q1","form":"10-Q","filed":"2010-05-05"},{"start":"2010-01-01","end":"2010-03-31","val":6.15,"accn":"0001193125-11-134428","fy":2011,"fp":"Q1","form":"10-Q","filed":"2011-05-10","frame":"CY2010Q1"},{"start":"2010-01-01","end":"2010-06-30","val":11.93,"accn":"0001193125-10-172387","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-30"},{"start":"2010-01-01","end":"2010-06-30","val":11.93,"accn":"0001193125-11-199078","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27"},{"start":"2010-04-01","end":"2010-06-30","val":5.78,"accn":"0001193125-10-172387","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-30"},{"start":"2010-04-01","end":"2010-06-30","val":5.78,"accn":"0001193125-11-199078","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27","frame":"CY2010Q2"},{"start":"2010-01-01","end":"2010-09-30","val":18.73,"accn":"0001193125-10-241317","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-29"},{"start":"2010-01-01","end":"2010-09-30","val":18.73,"accn":"0001193125-11-282235","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26"},{"start":"2010-07-01","end":"2010-09-30","val":6.8,"accn":"0001193125-10-241317","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-29"},{"start":"2010-07-01","end":"2010-09-30","val":6.8,"accn":"0001193125-11-282235","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26","frame":"CY2010Q3"},{"start":"2010-01-01","end":"2010-12-31","val":26.69,"accn":"0001193125-11-032930","fy":2010,"fp":"FY","form":"10-K","filed":"2011-02-11"},{"start":"2010-01-01","end":"2010-12-31","val":26.69,"accn":"0001193125-12-025336","fy":2011,"fp":"FY","form":"10-K","filed":"2012-01-26"},{"start":"2010-01-01","end":"2010-12-31","val":26.69,"accn":"0001193125-13-028362","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-29","frame":"CY2010"},{"start":"2011-01-01","end":"2011-03-31","val":5.59,"accn":"0001193125-11-134428","fy":2011,"fp":"Q1","form":"10-Q","filed":"2011-05-10"},{"start":"2011-01-01","end":"2011-03-31","val":5.59,"accn":"0001193125-12-182401","fy":2012,"fp":"Q1","form":"10-Q","filed":"2012-04-25","frame":"CY2011Q1"},{"start":"2011-01-01","end":"2011-06-30","val":13.37,"accn":"0001193125-11-199078","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27"},{"start":"2011-01-01","end":"2011-06-30","val":13.37,"accn":"0001193125-12-312575","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-24"},{"start":"2011-04-01","end":"2011-06-30","val":7.77,"accn":"0001193125-11-199078","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27"},{"start":"2011-04-01","end":"2011-06-30","val":7.77,"accn":"0001193125-12-312575","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-24","frame":"CY2011Q2"},{"start":"2011-01-01","end":"2011-09-30","val":21.82,"accn":"0001193125-11-282235","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26"},{"start":"2011-01-01","end":"2011-09-30","val":21.82,"accn":"0001193125-12-440217","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-30"},{"start":"2011-07-01","end":"2011-09-30","val":8.44,"accn":"0001193125-11-282235","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26"},{"start":"2011-07-01","end":"2011-09-30","val":8.44,"accn":"0001193125-12-440217","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-30","frame":"CY2011Q3"},{"start":"2011-01-01","end":"2011-12-31","val":30.17,"accn":"0001193125-12-025336","fy":2011,"fp":"FY","form":"10-K","filed":"2012-01-26"},{"start":"2011-01-01","end":"2011-12-31","val":30.17,"accn":"0001193125-13-028362","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-29"},{"start":"2011-01-01","end":"2011-12-31","val":30.17,"accn":"0001288776-14-000020","fy":2013,"fp":"FY","form":"10-K","filed":"2014-02-12","frame":"CY2011"},{"start":"2012-01-01","end":"2012-03-31","val":8.88,"accn":"0001193125-12-182401","fy":2012,"fp":"Q1","form":"10-Q","filed":"2012-04-25"},{"start":"2012-01-01","end":"2012-03-31","val":8.88,"accn":"0001288776-13-000030","fy":2013,"fp":"Q1","form":"10-Q","filed":"2013-04-25","frame":"CY2012Q1"},{"start":"2012-01-01","end":"2012-06-30","val":17.42,"accn":"0001193125-12-312575","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-24"},{"start":"2012-01-01","end":"2012-06-30","val":17.42,"accn":"0001288776-13-000055","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-25"},{"start":"2012-04-01","end":"2012-06-30","val":8.54,"accn":"0001193125-12-312575","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-24"},{"start":"2012-04-01","end":"2012-06-30","val":8.54,"accn":"0001288776-13-000055","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-25","frame":"CY2012Q2"},{"start":"2012-01-01","end":"2012-09-30","val":24.05,"accn":"0001193125-12-440217","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-30"},{"start":"2012-01-01","end":"2012-09-30","val":24.05,"accn":"0001288776-13-000068","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-24"},{"start":"2012-06-22","end":"2012-09-30","val":6.64,"accn":"0001193125-12-440217","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-30"},{"start":"2012-07-01","end":"2012-09-30","val":6.64,"accn":"0001288776-13-000068","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-24","frame":"CY2012Q3"},{"start":"2012-01-01","end":"2012-12-31","val":32.81,"accn":"0001193125-13-028362","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-29"},{"start":"2012-01-01","end":"2012-12-31","val":32.81,"accn":"0001288776-14-000020","fy":2013,"fp":"FY","form":"10-K","filed":"2014-02-12"},{"start":"2012-01-01","end":"2012-12-31","val":16.41,"accn":"0001288776-15-000008","fy":2014,"fp":"FY","form":"10-K","filed":"2015-02-09","frame":"CY2012"},{"start":"2013-01-01","end":"2013-03-31","val":10.13,"accn":"0001288776-13-000030","fy":2013,"fp":"Q1","form":"10-Q","filed":"2013-04-25"},{"start":"2013-01-01","end":"2013-03-31","val":5.06,"accn":"0001288776-14-000040","fy":2014,"fp":"Q1","form":"10-Q","filed":"2014-04-24","frame":"CY2013Q1"},{"start":"2013-01-01","end":"2013-06-30","val":19.83,"accn":"0001288776-13-000055","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-25"},{"start":"2013-01-01","end":"2013-06-30","val":9.92,"accn":"0001288776-14-000065","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2013-04-01","end":"2013-06-30","val":9.71,"accn":"0001288776-13-000055","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-25"},{"start":"2013-04-01","end":"2013-06-30","val":4.85,"accn":"0001288776-14-000065","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25","frame":"CY2013Q2"},{"start":"2013-01-01","end":"2013-09-30","val":28.73,"accn":"0001288776-13-000068","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-24"},{"start":"2013-01-01","end":"2013-09-30","val":14.37,"accn":"0001288776-14-000075","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-23"},{"start":"2013-07-01","end":"2013-09-30","val":8.9,"accn":"0001288776-13-000068","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-24"},{"start":"2013-07-01","end":"2013-09-30","val":4.45,"accn":"0001288776-14-000075","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-23","frame":"CY2013Q3"},{"start":"2013-01-01","end":"2013-12-31","val":38.82,"accn":"0001288776-14-000020","fy":2013,"fp":"FY","form":"10-K","filed":"2014-02-12"},{"start":"2013-01-01","end":"2013-12-31","val":19.41,"accn":"0001288776-15-000008","fy":2014,"fp":"FY","form":"10-K","filed":"2015-02-09","frame":"CY2013"},{"start":"2014-01-01","end":"2014-03-31","val":5.13,"accn":"0001288776-14-000040","fy":2014,"fp":"Q1","form":"10-Q","filed":"2014-04-24"},{"start":"2014-01-01","end":"2014-03-31","val":5.13,"accn":"0001288776-15-000023","fy":2015,"fp":"Q1","form":"10-Q","filed":"2015-04-29","frame":"CY2014Q1"},{"start":"2014-01-01","end":"2014-06-30","val":10.2,"accn":"0001288776-14-000065","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2014-01-01","end":"2014-06-30","val":9.98,"accn":"0001288776-15-000035","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-23"},{"start":"2014-04-01","end":"2014-06-30","val":5.07,"accn":"0001288776-14-000065","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2014-04-01","end":"2014-06-30","val":4.96,"accn":"0001288776-15-000035","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-23","frame":"CY2014Q2"},{"start":"2014-01-01","end":"2014-09-30","val":14.35,"accn":"0001288776-14-000075","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-23"},{"start":"2014-01-01","end":"2014-09-30","val":14.02,"accn":"0001288776-15-000046","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-29"},{"start":"2014-07-01","end":"2014-09-30","val":4.15,"accn":"0001288776-14-000075","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-23"},{"start":"2014-07-01","end":"2014-09-30","val":4.05,"accn":"0001288776-15-000046","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-29","frame":"CY2014Q3"},{"start":"2014-01-01","end":"2014-12-31","val":21.37,"accn":"0001288776-15-000008","fy":2014,"fp":"FY","form":"10-K","filed":"2015-02-09","frame":"CY2014"},{"start":"2015-01-01","end":"2015-03-31","val":5.27,"accn":"0001288776-15-000023","fy":2015,"fp":"Q1","form":"10-Q","filed":"2015-04-29"},{"start":"2015-01-01","end":"2015-03-31","val":5.16,"accn":"0001288776-15-000035","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-23"},{"start":"2015-01-01","end":"2015-03-31","val":5.16,"accn":"0001288776-15-000046","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-29","frame":"CY2015Q1"}]}}'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Encoding:
-      - gzip
-      Content-Length:
-      - '1447'
-      Content-Type:
-      - application/json
-      Date:
-      - Tue, 08 Sep 2026 00:19:27 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      Vary:
-      - Accept-Encoding
-      X-Amzn-Trace-Id:
-      - Root=1-6a9f548f-bb0ad2eec923ba6fb9785386
-      x-amz-apigw-id:
-      - DWomfEYbIAMEuhQ=
-      x-amzn-RequestId:
-      - eb71bc67-73c3-4563-9da2-c744e9ca65b4
+      - 342fc5f7-74fc-4480-b00f-b8627446590f
     status:
       code: 200
       message: OK
@@ -700,17 +803,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:27 GMT
+      - Wed, 16 Sep 2026 14:28:03 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f548f-9dde3eba7a400374e71981b1
+      - Root=1-6aaaa772-222f289cd2df1fc8ba9ed4e6
       x-amz-apigw-id:
-      - DWomiGi9IAMEiMQ=
+      - Dy8aBGakIAMEDRA=
       x-amzn-RequestId:
-      - 2ed27846-f02c-421d-a425-b88ca054098e
+      - 5550f1ed-9628-46d5-a7a2-1f78b18dac67
     status:
       code: 200
       message: OK
@@ -745,17 +848,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:28 GMT
+      - Wed, 16 Sep 2026 14:28:03 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5484-da99ca6ad522e316a93776f1
+      - Root=1-6aaaa773-0132465d889b3f280f7cdded
       x-amz-apigw-id:
-      - DWokwFE0IAMED9w=
+      - Dy8aEGUDIAMEn_g=
       x-amzn-RequestId:
-      - 3368a953-da3f-4ee9-8066-b11dda90fb10
+      - 4df74443-4c11-4703-b9d7-86b156b01578
     status:
       code: 200
       message: OK
@@ -774,7 +877,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/SalesRevenueNet.json</Key><RequestId>MKGG19NJE5ZSKP6W</RequestId><HostId>pS/ChO7OHCCaYzI41btoG0+8MRXwB60MozBFNb1tsX2x+jvb+98PeW3Kp2PE2hu1oSOoLSWW+1k=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/SalesRevenueNet.json</Key><RequestId>5QRRSN2CV4W5XWE2</RequestId><HostId>qkNQBvEeUo9P6wEUuXV2VUZ4NWgqJNSMEVPVr+kXfRWP4HtS+k6EcA2n+Vyv87EOx4ZG+Vhgnak=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -783,15 +886,51 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:28 GMT
+      - Wed, 16 Sep 2026 14:28:03 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5490-10da1270f7f783d3e3a6cc48
+      - Root=1-6aaaa773-f2c3afc5bf5fae32c7eed065
       x-amz-apigw-id:
-      - DWomoGdDoAMEqlA=
+      - Dy8aIGiDIAMEI_g=
       x-amzn-RequestId:
-      - 28d07822-0861-4cbb-87c9-37e49c2eade6
+      - 11e32cbb-ec6b-49bf-8831-635e352fc851
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/SalesRevenueGoodsNet.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/SalesRevenueGoodsNet.json</Key><RequestId>5QRHFBKPSGT3Z55P</RequestId><HostId>Nh0cDlgtNwgxtDrL2YNpqz6Vz+jexjvdelsqWoMR53XEco2zMvr//0v5GjwAmuLMKGT3JULVGo0=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '342'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:03 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa773-226dbeb7e90b518361eb261b
+      x-amz-apigw-id:
+      - Dy8aLH7bIAMEu1A=
+      x-amzn-RequestId:
+      - 29bf660a-9ecb-4408-8e79-bac0f1b2b35f
     status:
       code: 404
       message: Not Found
@@ -824,17 +963,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:28 GMT
+      - Wed, 16 Sep 2026 14:28:04 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5490-f80fb53369d1f8b9453c1425
+      - Root=1-6aaaa774-fba7620d19206d15fea0e33e
       x-amz-apigw-id:
-      - DWomrGDBIAMEopA=
+      - Dy8aOESQoAMEBMA=
       x-amzn-RequestId:
-      - a80be556-8886-456b-9a56-433277ca43f8
+      - 610a3c83-dc38-46b0-96b0-1750aab7e2a4
     status:
       code: 200
       message: OK
@@ -853,7 +992,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsAndServicesSold.json</Key><RequestId>MKGKR0NQ4JEJETXH</RequestId><HostId>VSxWGMt7d4mMZ3grjhX5YUQKzUlYAiMG7ouHcKlHB8RJL0NrUUHNnwk/LWUKiQwRWgJpDFvgdHM=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsAndServicesSold.json</Key><RequestId>YS76FY9E1QE2YYWY</RequestId><HostId>dyzwxPHrxO+Q23gX/HU5rnFbXh/40ZPRh/NJkD0R9XRH9oAo6aZ0c7vCVoxTc81v7f/cZrtsM+w=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -862,15 +1001,51 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:29 GMT
+      - Wed, 16 Sep 2026 14:28:04 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5490-e6c327999d1d49b5fa011a5d
+      - Root=1-6aaaa774-aa41d96b4785842a7a824a56
       x-amz-apigw-id:
-      - DWomuHfcIAMEuJA=
+      - Dy8aRHkyIAMEkBQ=
       x-amzn-RequestId:
-      - a07bce99-3da2-4630-a915-eec43ec45327
+      - 7df8c90f-0ff3-4f9d-aeaf-9d60dfa0d41a
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsSold.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsSold.json</Key><RequestId>YS7B41VXM8C79XK3</RequestId><HostId>ZLJb2OhLnqLfxsYkgk+HF0q7EZ3GYtwgiXCHPtByLYKQiyyHZdgo2a8JTCRS9zsLrOyioEG1Kw4=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '337'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:05 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa774-6c97f7f21f7045d306183314
+      x-amz-apigw-id:
+      - Dy8aVEohoAMEMJg=
+      x-amzn-RequestId:
+      - 7c3c5072-4f13-4156-955c-b101c5fb434b
     status:
       code: 404
       message: Not Found
@@ -900,17 +1075,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:29 GMT
+      - Wed, 16 Sep 2026 14:28:05 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5491-92253bf4a91221ee3b4642fe
+      - Root=1-6aaaa775-18c24882c731364c4d71f7f0
       x-amz-apigw-id:
-      - DWomxGB3IAMEmIA=
+      - Dy8aYGrVIAMEiEQ=
       x-amzn-RequestId:
-      - a1bee08e-3dab-4111-b73e-a9bdb5b22332
+      - 3368d735-7df3-45c7-926a-6144dfbc09b0
     status:
       code: 200
       message: OK
@@ -940,17 +1115,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:29 GMT
+      - Wed, 16 Sep 2026 14:28:05 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5491-97d19568548ac00f63b2e5e1
+      - Root=1-6aaaa775-3a9065eaa77b9cec57fcb1bd
       x-amz-apigw-id:
-      - DWom1ElTIAMEuxQ=
+      - Dy8adEnVoAMEFgg=
       x-amzn-RequestId:
-      - c7e6d7e4-14e4-43bc-87c2-de71f4d303de
+      - 84fdc957-0f36-4f11-a044-fdb5bf8bb994
     status:
       code: 200
       message: OK
@@ -980,17 +1155,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:30 GMT
+      - Wed, 16 Sep 2026 14:28:06 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5492-0002fcf0d567ded4e59a5f14
+      - Root=1-6aaaa776-6d13d8d64eb147bc663126d7
       x-amz-apigw-id:
-      - DWom5Gs2oAMEpow=
+      - Dy8ahFuVIAMEg8w=
       x-amzn-RequestId:
-      - f8830c90-a8d7-46cf-905b-35e1232732a0
+      - 88d5720c-96a9-43a7-b834-dc981e7524db
     status:
       code: 200
       message: OK
@@ -1026,17 +1201,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:30 GMT
+      - Wed, 16 Sep 2026 14:28:06 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5492-9c9aebbafa4bf0b6996c0324
+      - Root=1-6aaaa776-e291461c6c36aeead8faa908
       x-amz-apigw-id:
-      - DWom9EsZIAMEuhQ=
+      - Dy8amHuooAMEDQA=
       x-amzn-RequestId:
-      - f4b48e1d-b65b-4a70-b086-95446fa8ff59
+      - b854d950-034b-4f6b-b0a2-cce445c039a6
     status:
       code: 200
       message: OK
@@ -1055,7 +1230,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationDepletionAndAmortization.json</Key><RequestId>ADDSTP77MRY8PG30</RequestId><HostId>A/lg/lG8L69UmLKlPILbC5WOrCnNIOXd/wP+2OVSNsz+MSzjBZwn8Yw1ac2QVbo/7BjqHPee2L4=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationDepletionAndAmortization.json</Key><RequestId>76G06ECXGJPR8AMB</RequestId><HostId>eE7Q4veg8PZsUh9x+M68CaQTq0UjgafXCkliQy70ko/vCcYYrVo4INgG3/V8cvr1jPZFFRkI/hQ=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -1064,15 +1239,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:30 GMT
+      - Wed, 16 Sep 2026 14:28:07 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5492-68407442ce90b7d584bbed34
+      - Root=1-6aaaa777-f6858f941ee24ea79f8abed6
       x-amz-apigw-id:
-      - DWonBGeSoAMEmsQ=
+      - Dy8arHbOIAMEkMg=
       x-amzn-RequestId:
-      - 52caabc0-1864-49cf-bb9f-d5e08150ef0c
+      - 2d043876-95ad-4905-b69a-fc8895cca50a
     status:
       code: 404
       message: Not Found
@@ -1091,7 +1266,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAndAmortization.json</Key><RequestId>BTHEKSQG91C149MS</RequestId><HostId>NPte8zbeyzYGkROL+35T/OJkrzGrVhsssupe4ZhDCvwOGa2kC0xxWoBXmvm4LJWKz/YG5tEqvZ4=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAndAmortization.json</Key><RequestId>76G9KWZY31HD5JYQ</RequestId><HostId>NtObZtCxq+28jsUECuHXh/6P49p+aABfXzs7pq4xeDiObFVDew4h9CsR8GRmtswZDEE4s24KeI4=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -1100,15 +1275,51 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:31 GMT
+      - Wed, 16 Sep 2026 14:28:07 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5493-a54f74bd28501c081d8e74bd
+      - Root=1-6aaaa777-108a45843858dd7907a936b7
       x-amz-apigw-id:
-      - DWonDE7EoAMEiUQ=
+      - Dy8atEoyIAMEMkQ=
       x-amzn-RequestId:
-      - 9aff60b5-5e6e-40f2-bd6f-6eee32feba13
+      - 2fa0b0fb-d00e-4858-b281-513a41bc8b7d
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndAccretionNet.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>76GC0XHCR7H6EGMY</RequestId><HostId>dqQfVX7z4V3a5IqYYfBZf0ODhDT2DsqZzVIY5I+T3Zh684nQvrpM/iEPFb2zC1tgjbEyingolw4=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '361'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:07 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa777-61deeaaa85c21b43b1f467b2
+      x-amz-apigw-id:
+      - Dy8axFzXoAMEktg=
+      x-amzn-RequestId:
+      - 9d6c6a6e-6a8f-41bf-b869-6b91a57303f2
     status:
       code: 404
       message: Not Found
@@ -1139,20 +1350,92 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:31 GMT
+      - Wed, 16 Sep 2026 14:28:08 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5493-7c51cde7b0ffc834e1e85002
+      - Root=1-6aaaa777-cc4879aebf89c1686eaa252d
       x-amz-apigw-id:
-      - DWonGGMPIAMEsVg=
+      - Dy8a0EPBoAMEF6Q=
       x-amzn-RequestId:
-      - 88841301-0c38-4d30-abf5-02af285fb50c
+      - be6366a8-0853-4682-9ca0-314c6d3ebdf3
     status:
       code: 200
       message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndOther.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndOther.json</Key><RequestId>FBWHQ8J2ZDMK5JRG</RequestId><HostId>24FEbPIG/1tDWeZngBrA8ktMDgwUdTCz0exUC3at2Fl/AdSaKyscHF8c810OV8n07f3lIumUyQQ=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '354'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:08 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa778-c148cae6b0ac8736ea88fdbb
+      x-amz-apigw-id:
+      - Dy8a3HUyoAMEjDw=
+      x-amzn-RequestId:
+      - 84113838-eace-4f2e-9adf-dd1ad23f03e7
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/OtherDepreciationAndAmortization.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/OtherDepreciationAndAmortization.json</Key><RequestId>FBWZRBF57D9D4D22</RequestId><HostId>ZcrvqfeRN4ZQnzhoerdjK0ydVwsfSCJ9I2w6/uUBNxIcj1r65ctlxDiewF9ZddAPEhkUvCXBc+w=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '354'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:08 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa778-859bef87cf6d72fdd968b390
+      x-amz-apigw-id:
+      - Dy8a6GTcoAMEMAQ=
+      x-amzn-RequestId:
+      - de78a12c-aaea-4610-b03c-6dc77a57696b
+    status:
+      code: 404
+      message: Not Found
 - request:
     body: null
     headers:
@@ -1182,17 +1465,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:31 GMT
+      - Wed, 16 Sep 2026 14:28:09 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5493-d1e698555893968d5258f4af
+      - Root=1-6aaaa778-2748782da49c6c1f3d0dbcd0
       x-amz-apigw-id:
-      - DWonJHR3IAMEpmA=
+      - Dy8a9HIGIAMEiEQ=
       x-amzn-RequestId:
-      - 99ec7038-c5c2-43b1-9c95-deb973ce2be9
+      - 8f89b407-232f-46dc-a1f9-06439b75722d
     status:
       code: 200
       message: OK
@@ -1211,7 +1494,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/NetCashProvidedByUsedInOperatingActivitiesContinuingOperations.json</Key><RequestId>BTHE5JBAZQWKTC0X</RequestId><HostId>l8n4RSXv5JG1YCEWbNEq1ZlqgjoRWYOawiXGlUF2Gks++LzTQk3/aUGyVPEsbLRKVA4HJLdlb8E=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/NetCashProvidedByUsedInOperatingActivitiesContinuingOperations.json</Key><RequestId>R132RQ6VM6HDY0P2</RequestId><HostId>UK1KLlzFPlQNHMjQ3ih0KbjZT4K1CS1GdHRqMazOasQpD4TAhcPjSck8pvDztzDQ26gouKQDy9E=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -1220,15 +1503,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:32 GMT
+      - Wed, 16 Sep 2026 14:28:09 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5493-58ad0558a1e894ad861f88e2
+      - Root=1-6aaaa779-530ed466d13536d334c96098
       x-amz-apigw-id:
-      - DWonMGzqIAMEqlA=
+      - Dy8bBGezoAMEEGg=
       x-amzn-RequestId:
-      - 0333ba85-d39c-4f54-8b53-f9f55bf42ad7
+      - 848f138c-9a6a-4b33-8249-733967f30471
     status:
       code: 404
       message: Not Found
@@ -1247,7 +1530,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/PaymentsToAcquireProductiveAssets.json</Key><RequestId>AA9W3T25506VVMFJ</RequestId><HostId>boG5av52NdTr72yV1qQSvxlJ3k/Qo2mNXJVLl4SANRsRj65CltZWcIR8lcmOPCuaIVQ86QdteT4=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/PaymentsToAcquireProductiveAssets.json</Key><RequestId>R13B4DXRRCBT5FWE</RequestId><HostId>Hsx2rFm5OksdeURCP8+xiKgAgbVoc3U3MiT8pFP8MPZd/nDxwM2Ipl1HExD9N0xGImGBsrECH2s=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -1256,15 +1539,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Tue, 08 Sep 2026 00:19:32 GMT
+      - Wed, 16 Sep 2026 14:28:09 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5494-5e6316c1c361d32ac8eb4dd6
+      - Root=1-6aaaa779-21028706c185eb918f408b52
       x-amz-apigw-id:
-      - DWonPH_-IAMElNg=
+      - Dy8bEEBTIAMEopA=
       x-amzn-RequestId:
-      - 1639f95b-da77-46e2-a587-b21860401a3d
+      - 784480ae-f521-4f09-b5f5-2af7aa4c9a4f
     status:
       code: 404
       message: Not Found
@@ -1297,17 +1580,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:32 GMT
+      - Wed, 16 Sep 2026 14:28:09 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5494-521f777c07561b40ff8bce54
+      - Root=1-6aaaa779-9dad0b04e9edbf95e3df222a
       x-amz-apigw-id:
-      - DWonSFShoAMEspA=
+      - Dy8bHGxMIAMEPog=
       x-amzn-RequestId:
-      - 688c8b7a-1a08-4e0b-8702-122be4329f0b
+      - 48f45925-0769-4604-b17b-9fe279742d74
     status:
       code: 200
       message: OK
@@ -1341,17 +1624,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:33 GMT
+      - Wed, 16 Sep 2026 14:28:10 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5494-f9b0eb94a8b5d8126435710f
+      - Root=1-6aaaa77a-aa43a355ccf6e09fdb14fed2
       x-amz-apigw-id:
-      - DWonWH74IAMEnpw=
+      - Dy8bLHwQIAMEiZQ=
       x-amzn-RequestId:
-      - 9b1d2133-1275-4f6e-8853-96a7fe3364e6
+      - c098210b-87b3-468d-b316-e1e4ccad1cee
     status:
       code: 200
       message: OK
@@ -1382,17 +1665,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:33 GMT
+      - Wed, 16 Sep 2026 14:28:10 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5495-a87c97fd665334b901986e4a
+      - Root=1-6aaaa77a-cdf303f0faf8df94b7af0e3e
       x-amz-apigw-id:
-      - DWonaGZZoAMEkZQ=
+      - Dy8bQE0poAMEFmQ=
       x-amzn-RequestId:
-      - 8986700d-20b4-430c-ac9c-55ebe7626183
+      - 441b00f5-aed7-4cb2-9428-cbe973e654d0
     status:
       code: 200
       message: OK
@@ -1423,17 +1706,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:33 GMT
+      - Wed, 16 Sep 2026 14:28:11 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5495-6c096b94f3aee55eb457730f
+      - Root=1-6aaaa77b-ffa188d3fb01c0bd34c6b375
       x-amz-apigw-id:
-      - DWoneF4eoAMEtGg=
+      - Dy8bVFS3IAMEhRg=
       x-amzn-RequestId:
-      - 9aa9ea28-b4f9-4e5d-bfc0-f29e2ddee5d1
+      - 80a365cd-b565-4953-b5f7-3d2178239cb7
     status:
       code: 200
       message: OK
@@ -1465,234 +1748,18 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Tue, 08 Sep 2026 00:19:34 GMT
+      - Wed, 16 Sep 2026 14:28:11 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a9f5496-a0894d115a2ce6612db714b9
+      - Root=1-6aaaa77b-b465aa8ff855f85af0bc742a
       x-amz-apigw-id:
-      - DWoniHQMIAMEvTw=
+      - Dy8bYGvyoAMEEGg=
       x-amzn-RequestId:
-      - ff8e14fd-02c3-4b11-8741-f34ccdf7cca5
+      - f01a9555-03ac-413f-9702-947c8654f46d
     status:
       code: 200
       message: OK
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsSold.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/CostOfGoodsSold.json</Key><RequestId>G8YFK1VPNMKPHFYT</RequestId><HostId>cZdGQu3et/TLaxJpqGZKa2j7qFfBSx+zyq6pJtE3UV1gB0bEqoQ26+cLkYhwnc0udqbop4x91YM=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '337'
-      Content-Type:
-      - application/xml
-      Date:
-      - Thu, 10 Sep 2026 18:29:19 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa2f6ff-c5ecf0367c0434264882dc3a
-      x-amz-apigw-id:
-      - DfuH7ExJoAMEBQw=
-      x-amzn-RequestId:
-      - 171ec420-302f-4db1-9e77-a7406695d86f
-    status:
-      code: 404
-      message: Not Found
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsSold.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/CostOfGoodsSold.json</Key><RequestId>JGMP11KNY3ATA57D</RequestId><HostId>1TT2Tb0ld47hgRInJCkkf4Dgwzb/KmonAxZARBAaqAZ36Vm4bpnHp7VIIMsgvXoYA+S5zsrMQRI=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '337'
-      Content-Type:
-      - application/xml
-      Date:
-      - Thu, 10 Sep 2026 18:29:20 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa2f700-277ec7eda001db01d3986288
-      x-amz-apigw-id:
-      - DfuILEdqIAMEAoQ=
-      x-amzn-RequestId:
-      - 82b3442f-44fb-4f8f-8354-70a04838b45f
-    status:
-      code: 404
-      message: Not Found
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndAccretionNet.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001288776/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>NJ1YB9YWWYAC5V03</RequestId><HostId>M1D5DQ9VVWqXUwrEya/dPcXdjIgD12mKW5j1sWz82XKmj/142yzXSwFHTYVPhih2Q0IXm0JUKro=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '361'
-      Content-Type:
-      - application/xml
-      Date:
-      - Fri, 11 Sep 2026 01:55:17 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa35f85-0b88d54d7a5412272f9de486
-      x-amz-apigw-id:
-      - Dgvc7EVioAMEdUw=
-      x-amzn-RequestId:
-      - bd78bdac-e9d2-4dcf-8b41-27cffef468ad
-    status:
-      code: 404
-      message: Not Found
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndAccretionNet.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>9B6F8SNHVCND0RF8</RequestId><HostId>F3AcB9okl4PtWpRhDxDZHCMdO8TPrIcUT2TRDnFh16oV/pOp00HzZVuaAwVQAq3Q7DKdqv5yJ80=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '361'
-      Content-Type:
-      - application/xml
-      Date:
-      - Fri, 11 Sep 2026 01:55:19 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa35f87-b5c17695624775938dd1244b
-      x-amz-apigw-id:
-      - DgvdQF3hoAMEZNQ=
-      x-amzn-RequestId:
-      - 7835ca11-7dc2-41ea-94fe-e5c5c4ebeef5
-    status:
-      code: 404
-      message: Not Found
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndOther.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/DepreciationAmortizationAndOther.json</Key><RequestId>9B6F8SNHVCND0RF8</RequestId><HostId>F3AcB9okl4PtWpRhDxDZHCMdO8TPrIcUT2TRDnFh16oV/pOp00HzZVuaAwVQAq3Q7DKdqv5yJ80=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '361'
-      Content-Type:
-      - application/xml
-      Date:
-      - Fri, 11 Sep 2026 01:55:19 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa35f87-b5c17695624775938dd1244b
-      x-amz-apigw-id:
-      - DgvdQF3hoAMEZNQ=
-      x-amzn-RequestId:
-      - 7835ca11-7dc2-41ea-94fe-e5c5c4ebeef5
-    status:
-      code: 404
-      message: Not Found
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001652044/us-gaap/OtherDepreciationAndAmortization.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001652044/us-gaap/OtherDepreciationAndAmortization.json</Key><RequestId>9B6F8SNHVCND0RF8</RequestId><HostId>F3AcB9okl4PtWpRhDxDZHCMdO8TPrIcUT2TRDnFh16oV/pOp00HzZVuaAwVQAq3Q7DKdqv5yJ80=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '361'
-      Content-Type:
-      - application/xml
-      Date:
-      - Fri, 11 Sep 2026 01:55:19 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa35f87-b5c17695624775938dd1244b
-      x-amz-apigw-id:
-      - DgvdQF3hoAMEZNQ=
-      x-amzn-RequestId:
-      - 7835ca11-7dc2-41ea-94fe-e5c5c4ebeef5
-    status:
-      code: 404
-      message: Not Found
 version: 1

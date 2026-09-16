@@ -1,7 +1,10 @@
+from collections.abc import Mapping
 from datetime import date, datetime
 from pathlib import Path
+from typing import cast
 
 import click
+from pydantic import BaseModel, ConfigDict
 
 from app.data.pipeline import (
     XBRL_HISTORY_START,
@@ -10,14 +13,42 @@ from app.data.pipeline import (
     resolve_date_range,
     write_panel,
 )
+from app.data.progress import Progress
 from app.injections import configure_container
 from app.settings import Settings
 
 
-def _parse_optional_date(value: str | None) -> date | None:
-    if value is None:
-        return None
-    return date.fromisoformat(value)
+class IngestRequest(BaseModel):
+    """One ingestion run, as the CLI options describe it."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    ticker: str
+    start: date | None = None
+    end: date | None = None
+    skeleton: bool = False
+    output_path: Path | None = None
+    quiet: bool = False
+
+    @classmethod
+    def from_options(cls, options: Mapping[str, object]) -> "IngestRequest":
+        """Build a request from click's parsed options.
+
+        Returns:
+            The validated request.
+        """
+        return cls(
+            ticker=str(options["ticker"]).upper(),
+            start=_as_date(options.get("start_date")),
+            end=_as_date(options.get("end_date")),
+            skeleton=bool(options.get("skeleton")),
+            output_path=cast("Path | None", options.get("output_path")),
+            quiet=bool(options.get("quiet")),
+        )
+
+
+def _as_date(value: object) -> date | None:
+    return value.date() if isinstance(value, datetime) else None
 
 
 @click.command()
@@ -48,21 +79,18 @@ def _parse_optional_date(value: str | None) -> date | None:
     default=None,
     help="Output Parquet path. Defaults to data/processed/<ticker>_panel.parquet.",
 )
-def ingest_data(
-    ticker: str,
-    start_date: datetime | None,
-    end_date: datetime | None,
-    *,
-    skeleton: bool,
-    output_path: Path | None,
-) -> None:
-    start = _parse_optional_date(
-        start_date.strftime("%Y-%m-%d") if start_date is not None else None,
-    )
-    end = _parse_optional_date(
-        end_date.strftime("%Y-%m-%d") if end_date is not None else None,
-    )
-    resolved_start, resolved_end = resolve_date_range(start, end)
+@click.option(
+    "--quiet",
+    is_flag=True,
+    help="Print only the final line instead of one line per stage.",
+)
+def ingest_data(**options: object) -> None:
+    _run(IngestRequest.from_options(options))
+
+
+def _run(request: IngestRequest) -> None:
+    ticker = request.ticker
+    resolved_start, resolved_end = resolve_date_range(request.start, request.end)
     if resolved_start < XBRL_HISTORY_START:
         click.echo(
             "SEC XBRL facts are typically empty before "
@@ -70,23 +98,29 @@ def ingest_data(
             "when ALPHA_VANTAGE_API_KEY is set.",
         )
 
-    container = configure_container()
-    if skeleton:
-        panel = build_panel_skeleton(
-            ticker,
-            resolved_start,
-            resolved_end,
-            container.company_registry(),
-        )
-    else:
-        panel = merge_panel(
-            ticker=ticker,
-            start=resolved_start,
-            end=resolved_end,
-            sources=container.ingestion_sources(),
-        )
+    progress = Progress(ticker, enabled=not request.quiet)
+    with progress.stage("wiring sources"):
+        container = configure_container()
 
-    destination = output_path or Settings.panel_output_path(ticker)
+    if request.skeleton:
+        with progress.stage("building skeleton"):
+            panel = build_panel_skeleton(
+                ticker,
+                resolved_start,
+                resolved_end,
+                container.company_registry(),
+            )
+    else:
+        with progress.stage("fetching sources") as stage:
+            panel = merge_panel(
+                ticker=ticker,
+                start=resolved_start,
+                end=resolved_end,
+                sources=container.ingestion_sources(),
+            )
+            stage.detail(f"{len(panel)} quarters")
+
+    destination = request.output_path or Settings.panel_output_path(ticker)
     written_path = write_panel(panel, destination)
     click.echo(f"Wrote {len(panel)} quarterly rows to {written_path}")
 

@@ -162,7 +162,6 @@ def test_dep_amort_chain_uses_later_tag_when_earlier_tags_are_empty(
 
     assert values.loc[quarter] == pytest.approx(expected_value)
     assert "DepreciationAmortizationAndOther" in requested_tags
-    assert "OtherDepreciationAndAmortization" not in requested_tags
 
 
 def test_tag_chain_skips_zero_from_earlier_tag_and_uses_real_value(
@@ -213,3 +212,152 @@ def test_tag_chain_skips_zero_from_earlier_tag_and_uses_real_value(
     )
 
     assert values.loc[quarter] == pytest.approx(expected_value)
+
+
+def test_tag_chain_prefers_largest_when_a_superseded_tag_reports_a_subtotal(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Oracle kept reporting a segment subtotal under SalesRevenueNet."""
+    subtotal = 458_000_000.0
+    total = 6_404_000_000.0
+    quarter = date(2010, 3, 31)
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        values = {"SalesRevenueNet": subtotal, "Revenues": total}
+        if tag not in values:
+            return []
+        return [
+            {
+                "start": "2009-12-01",
+                "end": "2010-02-28",
+                "val": values[tag],
+                "filed": "2010-04-01",
+            },
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
+        "0001341439",
+        TAG_CHAINS["revenue"],
+        [quarter],
+        None,
+    )
+
+    assert values.loc[quarter] == pytest.approx(total)
+
+
+def test_tag_chain_keeps_first_tag_when_concept_is_not_a_total(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Basic EPS always exceeds diluted, so the chain order must still win."""
+    diluted = 2.45
+    basic = 2.46
+    quarter = date(2023, 3, 31)
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        values = {
+            "EarningsPerShareDiluted": diluted,
+            "EarningsPerShareBasic": basic,
+        }
+        if tag not in values:
+            return []
+        return [
+            {
+                "start": "2023-01-01",
+                "end": "2023-03-31",
+                "val": values[tag],
+                "filed": "2023-04-25",
+            },
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
+        "0000789019",
+        TAG_CHAINS["eps"],
+        [quarter],
+        None,
+    )
+
+    assert values.loc[quarter] == pytest.approx(diluted)
+
+
+def test_tag_chain_reads_goods_net_when_it_is_the_only_revenue_tag(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Coca-Cola reports revenue only under SalesRevenueGoodsNet."""
+    expected_value = 10_711_000_000.0
+    quarter = date(2015, 3, 31)
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        if tag != "SalesRevenueGoodsNet":
+            return []
+        return [
+            {
+                "start": "2015-01-01",
+                "end": "2015-03-31",
+                "val": expected_value,
+                "filed": "2015-04-23",
+            },
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
+        "0000021344",
+        TAG_CHAINS["revenue"],
+        [quarter],
+        None,
+    )
+
+    assert values.loc[quarter] == pytest.approx(expected_value)
+
+
+def test_tag_chain_keeps_the_total_when_goods_net_is_a_component(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """McDonald's reports company-operated sales under SalesRevenueGoodsNet."""
+    component = 3_914_000_000.0
+    total = 5_959_000_000.0
+    quarter = date(2015, 3, 31)
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        values = {"SalesRevenueGoodsNet": component, "Revenues": total}
+        if tag not in values:
+            return []
+        return [
+            {
+                "start": "2015-01-01",
+                "end": "2015-03-31",
+                "val": values[tag],
+                "filed": "2015-04-22",
+            },
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
+        "0000063908",
+        TAG_CHAINS["revenue"],
+        [quarter],
+        None,
+    )
+
+    assert values.loc[quarter] == pytest.approx(total)

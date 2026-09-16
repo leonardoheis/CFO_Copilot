@@ -16,6 +16,7 @@ EXPECTED_Q4_VALUE = 250
 EXPECTED_NATIVE_Q2_VALUE = 140
 EXPECTED_LATEST_FILING_VALUE = 110.0
 EXPECTED_JUNE_FISCAL_Q4 = 40
+EXPECTED_DURATION_FACT_VALUE = 100
 
 
 def _fact(
@@ -158,3 +159,15 @@ def test_malformed_instant_fact_date_raises_data_source_error() -> None:
             [{"end": "not-a-date", "val": 100, "filed": "2021-01-01"}],
             [date(2020, 3, 31)],
         )
+
+
+def test_instant_fact_under_a_duration_concept_is_skipped() -> None:
+    """SEC returns the odd instant fact under a duration tag; it has no start."""
+    facts: list[XbrlFact] = [
+        _fact("2021-04-01", "2021-06-30", 100),
+        {"end": "2021-06-30", "val": 900, "filed": "2021-07-22"},  # type: ignore[typeddict-item]
+    ]
+
+    result = quarterly_facts_from_facts(facts, [date(2021, 6, 30)])
+
+    assert result["value"].iloc[0] == EXPECTED_DURATION_FACT_VALUE

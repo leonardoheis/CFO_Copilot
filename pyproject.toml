@@ -68,6 +68,7 @@ serve = "uv run python -m app"
 serve-api = "uv run python -m app.api"
 serve-ui = "uv run python -m app.frontend"
 ingest-data = "uv run python -m app.data"
+add-company = "uv run python -m app.data.add_company"
 probe-alpha-vantage = "uv run python -m app.data.coverage_runner"
 lint       = { shell = "uv run --all-groups ruff check . && uv run --all-groups ruff format --check ." }
 typecheck  = "uv run --all-groups pre-commit run mypy --all-files"

@@ -30,17 +30,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:45 GMT
+      - Wed, 16 Sep 2026 14:28:22 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e30d-a2ab7507b80fed55d0bf4c07
+      - Root=1-6aaaa77b-37d4e72bbee17644cdcf57db
       x-amz-apigw-id:
-      - B2hqKHgyoAMEErw=
+      - Dy8bcH98oAMEpwA=
       x-amzn-RequestId:
-      - a745ff77-2a31-415b-bca0-1493614d9208
+      - bc8840b4-8fa7-4617-99ac-9d521546bca4
     status:
       code: 200
       message: OK
@@ -72,17 +72,59 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:45 GMT
+      - Wed, 16 Sep 2026 14:28:22 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e330-2bd0ffb56158838e59227cd6
+      - Root=1-6aaaa77c-9a74a9949b97fdab214faa31
       x-amz-apigw-id:
-      - B2hvnFlSoAMEpow=
+      - Dy8bgEvzoAMEF6Q=
       x-amzn-RequestId:
-      - 94efa4bd-ae09-41be-bb9a-a23b69426a71
+      - e7c8b2b4-aedd-4c99-bbb3-f94b68763cd7
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/SalesRevenueGoodsNet.json
+  response:
+    body:
+      string: '{"cik":1018724,"taxonomy":"us-gaap","tag":"SalesRevenueGoodsNet","label":"Sales
+        Revenue, Goods, Net (Deprecated 2018-01-31)","description":"Aggregate revenue
+        during the period from the sale of goods in the normal course of business,
+        after deducting returns, allowances and discounts.","entityName":"AMAZON COM
+        INC","units":{"USD":[{"start":"2009-01-01","end":"2009-12-31","val":22273000000,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01","frame":"CY2009"},{"start":"2010-01-01","end":"2010-12-31","val":30792000000,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2010-01-01","end":"2010-12-31","val":30792000000,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30","frame":"CY2010"},{"start":"2011-01-01","end":"2011-03-31","val":8698000000,"accn":"0001193125-12-187203","fy":2012,"fp":"Q1","form":"10-Q","filed":"2012-04-27","frame":"CY2011Q1"},{"start":"2011-01-01","end":"2011-06-30","val":17310000000,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27"},{"start":"2011-04-01","end":"2011-06-30","val":8611000000,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27","frame":"CY2011Q2"},{"start":"2011-01-01","end":"2011-09-30","val":26691000000,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26"},{"start":"2011-07-01","end":"2011-09-30","val":9382000000,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26","frame":"CY2011Q3"},{"start":"2011-01-01","end":"2011-12-31","val":42000000000,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2011-01-01","end":"2011-12-31","val":42000000000,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2011-01-01","end":"2011-12-31","val":42000000000,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31","frame":"CY2011"},{"start":"2012-01-01","end":"2012-03-31","val":11249000000,"accn":"0001193125-12-187203","fy":2012,"fp":"Q1","form":"10-Q","filed":"2012-04-27"},{"start":"2012-01-01","end":"2012-03-31","val":11249000000,"accn":"0001193125-13-174667","fy":2013,"fp":"Q1","form":"10-Q","filed":"2013-04-26","frame":"CY2012Q1"},{"start":"2012-01-01","end":"2012-06-30","val":22040000000,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27"},{"start":"2012-01-01","end":"2012-06-30","val":22040000000,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26"},{"start":"2012-04-01","end":"2012-06-30","val":10791000000,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27"},{"start":"2012-04-01","end":"2012-06-30","val":10791000000,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26","frame":"CY2012Q2"},{"start":"2012-01-01","end":"2012-09-30","val":33586000000,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26"},{"start":"2012-01-01","end":"2012-09-30","val":33586000000,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25"},{"start":"2012-07-01","end":"2012-09-30","val":11546000000,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26"},{"start":"2012-07-01","end":"2012-09-30","val":11546000000,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25","frame":"CY2012Q3"},{"start":"2012-01-01","end":"2012-12-31","val":51733000000,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2012-01-01","end":"2012-12-31","val":51733000000,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2012-01-01","end":"2012-12-31","val":51733000000,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30","frame":"CY2012"},{"start":"2013-01-01","end":"2013-03-31","val":13271000000,"accn":"0001193125-13-174667","fy":2013,"fp":"Q1","form":"10-Q","filed":"2013-04-26"},{"start":"2013-01-01","end":"2013-03-31","val":13271000000,"accn":"0001018724-14-000014","fy":2014,"fp":"Q1","form":"10-Q","filed":"2014-04-25","frame":"CY2013Q1"},{"start":"2013-01-01","end":"2013-06-30","val":26023000000,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26"},{"start":"2013-01-01","end":"2013-06-30","val":26023000000,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2013-04-01","end":"2013-06-30","val":12752000000,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26"},{"start":"2013-04-01","end":"2013-06-30","val":12752000000,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25","frame":"CY2013Q2"},{"start":"2013-01-01","end":"2013-09-30","val":39831000000,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25"},{"start":"2013-01-01","end":"2013-09-30","val":39831000000,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24"},{"start":"2013-07-01","end":"2013-09-30","val":13808000000,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25"},{"start":"2013-07-01","end":"2013-09-30","val":13808000000,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24","frame":"CY2013Q3"},{"start":"2013-01-01","end":"2013-12-31","val":60903000000,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2013-01-01","end":"2013-12-31","val":60903000000,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2013-01-01","end":"2013-12-31","val":60903000000,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29","frame":"CY2013"},{"start":"2014-01-01","end":"2014-03-31","val":15705000000,"accn":"0001018724-14-000014","fy":2014,"fp":"Q1","form":"10-Q","filed":"2014-04-25"},{"start":"2014-01-01","end":"2014-03-31","val":15705000000,"accn":"0001018724-15-000038","fy":2015,"fp":"Q1","form":"10-Q","filed":"2015-04-24","frame":"CY2014Q1"},{"start":"2014-01-01","end":"2014-06-30","val":30956000000,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2014-01-01","end":"2014-06-30","val":30956000000,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24"},{"start":"2014-04-01","end":"2014-06-30","val":15251000000,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2014-04-01","end":"2014-06-30","val":15251000000,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24","frame":"CY2014Q2"},{"start":"2014-01-01","end":"2014-09-30","val":46978000000,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24"},{"start":"2014-01-01","end":"2014-09-30","val":46978000000,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23"},{"start":"2014-07-01","end":"2014-09-30","val":16022000000,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24"},{"start":"2014-07-01","end":"2014-09-30","val":16022000000,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23","frame":"CY2014Q3"},{"start":"2014-01-01","end":"2014-12-31","val":70080000000,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2014-01-01","end":"2014-12-31","val":70080000000,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2014-01-01","end":"2014-12-31","val":70080000000,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10","frame":"CY2014"},{"start":"2015-01-01","end":"2015-03-31","val":17084000000,"accn":"0001018724-15-000038","fy":2015,"fp":"Q1","form":"10-Q","filed":"2015-04-24"},{"start":"2015-01-01","end":"2015-03-31","val":17084000000,"accn":"0001018724-16-000227","fy":2016,"fp":"Q1","form":"10-Q","filed":"2016-04-29","frame":"CY2015Q1"},{"start":"2015-01-01","end":"2015-06-30","val":34187000000,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24"},{"start":"2015-01-01","end":"2015-06-30","val":34187000000,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29"},{"start":"2015-04-01","end":"2015-06-30","val":17104000000,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24"},{"start":"2015-04-01","end":"2015-06-30","val":17104000000,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29","frame":"CY2015Q2"},{"start":"2015-01-01","end":"2015-09-30","val":52650000000,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23"},{"start":"2015-01-01","end":"2015-09-30","val":52650000000,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28"},{"start":"2015-07-01","end":"2015-09-30","val":18463000000,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23"},{"start":"2015-07-01","end":"2015-09-30","val":18463000000,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28","frame":"CY2015Q3"},{"start":"2015-01-01","end":"2015-12-31","val":79268000000,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2015-01-01","end":"2015-12-31","val":79268000000,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2015-01-01","end":"2015-12-31","val":79268000000,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2015"},{"start":"2016-01-01","end":"2016-03-31","val":20581000000,"accn":"0001018724-16-000227","fy":2016,"fp":"Q1","form":"10-Q","filed":"2016-04-29"},{"start":"2016-01-01","end":"2016-03-31","val":20581000000,"accn":"0001018724-17-000051","fy":2017,"fp":"Q1","form":"10-Q","filed":"2017-04-28","frame":"CY2016Q1"},{"start":"2016-01-01","end":"2016-06-30","val":41697000000,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29"},{"start":"2016-01-01","end":"2016-06-30","val":41697000000,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28"},{"start":"2016-04-01","end":"2016-06-30","val":21116000000,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29"},{"start":"2016-04-01","end":"2016-06-30","val":21116000000,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28","frame":"CY2016Q2"},{"start":"2016-01-01","end":"2016-09-30","val":64036000000,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28"},{"start":"2016-01-01","end":"2016-09-30","val":64036000000,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27"},{"start":"2016-07-01","end":"2016-09-30","val":22339000000,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28"},{"start":"2016-07-01","end":"2016-09-30","val":22339000000,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27","frame":"CY2016Q3"},{"start":"2016-01-01","end":"2016-12-31","val":94665000000,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2016-01-01","end":"2016-12-31","val":94665000000,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2016"},{"start":"2017-01-01","end":"2017-03-31","val":23734000000,"accn":"0001018724-17-000051","fy":2017,"fp":"Q1","form":"10-Q","filed":"2017-04-28"},{"start":"2017-01-01","end":"2017-03-31","val":23734000000,"accn":"0001018724-18-000072","fy":2018,"fp":"Q1","form":"10-Q","filed":"2018-04-27","frame":"CY2017Q1"},{"start":"2017-01-01","end":"2017-06-30","val":48479000000,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28"},{"start":"2017-01-01","end":"2017-06-30","val":48479000000,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27"},{"start":"2017-04-01","end":"2017-06-30","val":24745000000,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28"},{"start":"2017-04-01","end":"2017-06-30","val":24745000000,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27","frame":"CY2017Q2"},{"start":"2017-01-01","end":"2017-09-30","val":77248000000,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27"},{"start":"2017-07-01","end":"2017-09-30","val":28768000000,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27","frame":"CY2017Q3"},{"start":"2017-01-01","end":"2017-12-31","val":118573000000,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2017"},{"start":"2018-01-01","end":"2018-03-31","val":31605000000,"accn":"0001018724-18-000072","fy":2018,"fp":"Q1","form":"10-Q","filed":"2018-04-27","frame":"CY2018Q1"},{"start":"2018-01-01","end":"2018-06-30","val":63468000000,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27"},{"start":"2018-04-01","end":"2018-06-30","val":31864000000,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27","frame":"CY2018Q2"}]}}'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Length:
+      - '1505'
+      Content-Type:
+      - application/json
+      Date:
+      - Wed, 16 Sep 2026 14:28:22 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      Vary:
+      - Accept-Encoding
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa77c-ee419067b03238853fe83cd8
+      x-amz-apigw-id:
+      - Dy8bjFUEoAMEkpA=
+      x-amzn-RequestId:
+      - 7b3bc4b7-2827-4df1-81d1-6f716633bd34
     status:
       code: 200
       message: OK
@@ -101,7 +143,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/Revenues.json</Key><RequestId>QSZVJE1GR2ACYDAT</RequestId><HostId>jZoPWf5SN03iZ5sCEXBNn++nnasFP8Zp1bYcj4QpHnlglYsX+V1qO5fGxC+2hPiujpCEdGjkd7w=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/Revenues.json</Key><RequestId>K5M4WKD031R2NBQV</RequestId><HostId>VVfx4bk9CzFe0blw+7yagal87n1MGa/6zdlqfOFtK9uItN9D9myp6ZlSHA2L7FipyROzbThcfzg=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -110,15 +152,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Sun, 09 Aug 2026 20:29:45 GMT
+      - Wed, 16 Sep 2026 14:28:22 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a78e330-7a157aac93983c11f33070f0
+      - Root=1-6aaaa77d-bd6514323d79f1898528688d
       x-amz-apigw-id:
-      - B2hvsGeZoAMEErw=
+      - Dy8bpFdZoAMEI1A=
       x-amzn-RequestId:
-      - 7d4e7ceb-c84a-4d66-8b06-60cb9c6fd5fb
+      - 16bab9a5-af8a-4d4a-9069-86a761e29239
     status:
       code: 404
       message: Not Found
@@ -151,20 +193,56 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:45 GMT
+      - Wed, 16 Sep 2026 14:28:22 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e331-9531c44a0281797437e2a296
+      - Root=1-6aaaa77d-8c66eb300e8fd30a2ef5400f
       x-amz-apigw-id:
-      - B2hvvGfpoAMEttA=
+      - Dy8brHiaIAMEvew=
       x-amzn-RequestId:
-      - a349d057-3afd-4972-957a-d0f861687401
+      - be197d69-20bb-4f89-b643-9bbbede87f6c
     status:
       code: 200
       message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/CostOfGoodsSold.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/CostOfGoodsSold.json</Key><RequestId>K5M3PVEX1SHK050J</RequestId><HostId>vnZhx6rBrgpzEImHZ5yEB5pYReRZXhV0lVwEkTe82H4kCk5TGgmxXLaXTw8/DyjDMjxL1scUpxA=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '337'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:23 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa77d-b38dcbeda8af05124d85197a
+      x-amz-apigw-id:
+      - Dy8bwHb4IAMEKJQ=
+      x-amzn-RequestId:
+      - 84466dce-b8fd-4e7d-a46d-40f137c540dd
+    status:
+      code: 404
+      message: Not Found
 - request:
     body: null
     headers:
@@ -180,7 +258,7 @@ interactions:
     body:
       string: '<?xml version="1.0" encoding="UTF-8"?>
 
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/CostOfRevenue.json</Key><RequestId>DVJCMPC5NFYB09YK</RequestId><HostId>iLSzfwHJP06W06c61f4g1JUkWaMSefa64j5+jKrKEefiWLfB4lm1HTPxh5sLajqmE4UhIY1UE+c=</HostId></Error>'
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/CostOfRevenue.json</Key><RequestId>DH3E3BESCMX9XNCR</RequestId><HostId>UTybVWHW1uK9TzU6W8sow2MkJr7CFjVR+76Eu+ubWq2SrbZuXnjZNGFvGQWNeH1yxA3sl3vDB6o=</HostId></Error>'
     headers:
       Connection:
       - keep-alive
@@ -189,15 +267,15 @@ interactions:
       Content-Type:
       - application/xml
       Date:
-      - Sun, 09 Aug 2026 20:29:45 GMT
+      - Wed, 16 Sep 2026 14:28:23 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       X-Amzn-Trace-Id:
-      - Root=1-6a78e331-4c4f1491ff3ba7b0b49169e1
+      - Root=1-6aaaa77e-a800de33b87a3a7068b336a7
       x-amz-apigw-id:
-      - B2hv0F2JIAMEAUQ=
+      - Dy8bzFfZIAMEkpA=
       x-amzn-RequestId:
-      - a7ea0ad2-022c-40cd-af2a-d2beff938a17
+      - 8cf01fcb-fc90-4b13-a17c-ff00625750fc
     status:
       code: 404
       message: Not Found
@@ -227,17 +305,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:45 GMT
+      - Wed, 16 Sep 2026 14:28:23 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e331-fc7e2cf10abdbf490efbced2
+      - Root=1-6aaaa77e-c090a58373f259b9e72dca05
       x-amz-apigw-id:
-      - B2hv3FtXoAMEjlg=
+      - Dy8b2HAoIAMEMAQ=
       x-amzn-RequestId:
-      - a22e9758-9452-496c-b4d2-a4e42d30db87
+      - 46da4d0f-07c1-42e1-9f2c-fb0735924494
     status:
       code: 200
       message: OK
@@ -267,17 +345,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:46 GMT
+      - Wed, 16 Sep 2026 14:28:23 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e30d-0f63a5684bb183c54f4f92bd
+      - Root=1-6aaaa77e-d18a03b7309443df46dc13f9
       x-amz-apigw-id:
-      - B2hqOF2doAMEMlQ=
+      - Dy8b6G-sIAMEnaA=
       x-amzn-RequestId:
-      - 215dfc6d-08d9-4d34-877b-24d539504de0
+      - cc9b875f-0d7b-487c-90ef-10f9d4665bba
     status:
       code: 200
       message: OK
@@ -313,17 +391,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:46 GMT
+      - Wed, 16 Sep 2026 14:28:23 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e30d-944b3d1752bb6c4a3a4cec2a
+      - Root=1-6aaaa77f-06fd84cac33512a3c77c3ad2
       x-amz-apigw-id:
-      - B2hqLG0noAMEAUQ=
+      - Dy8b_H7xIAMEJRg=
       x-amzn-RequestId:
-      - 78fc8502-0178-4da2-9f43-ff6c76d90588
+      - dd1d2a65-7369-4855-a9c4-fc8f63987124
     status:
       code: 200
       message: OK
@@ -355,17 +433,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:46 GMT
+      - Wed, 16 Sep 2026 14:28:23 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e333-0afc47b126dabc0a7184dacb
+      - Root=1-6aaaa780-2f36c46d93a8c0fb82dcb091
       x-amz-apigw-id:
-      - B2hwEFE5IAMEApA=
+      - Dy8cGElyoAMEv1A=
       x-amzn-RequestId:
-      - 2d14fca5-04aa-4c8b-8369-5a90f2b4c315
+      - bf0c8eea-26a6-4fb0-8928-c12bd88efa63
     status:
       code: 200
       message: OK
@@ -400,20 +478,56 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:46 GMT
+      - Wed, 16 Sep 2026 14:28:24 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e333-615d1a81370103b6988d8c16
+      - Root=1-6aaaa780-39d18df393b0616c234c5b04
       x-amz-apigw-id:
-      - B2hwJFQAoAMEmLg=
+      - Dy8cKFxbIAMEBMA=
       x-amzn-RequestId:
-      - 85e71338-0cae-49c4-b3ee-aa40149af982
+      - 4532f695-157f-40c6-893d-114192473764
     status:
       code: 200
       message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/DepreciationAmortizationAndAccretionNet.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>HCHRZPE2A0VC01G2</RequestId><HostId>ERcc/sp7VPZ1mM1r+z1+FrsX8DS/VzONn25Enl8/UYyYmzsSeBW40a2a3rgTWqvvnj3qptA9IDs=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '361'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:24 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa781-5dccbe444483a3623b905cc4
+      x-amz-apigw-id:
+      - Dy8cPHnZIAMEmRA=
+      x-amzn-RequestId:
+      - 0f1b8a76-7dda-46ab-a3b7-38f56a0c56d2
+    status:
+      code: 404
+      message: Not Found
 - request:
     body: null
     headers:
@@ -441,20 +555,92 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:47 GMT
+      - Wed, 16 Sep 2026 14:28:24 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e334-55db29fbc4f1b5fddbad329d
+      - Root=1-6aaaa781-c683bcb0f0420cc6ef9d283b
       x-amz-apigw-id:
-      - B2hwNES-IAMEDxQ=
+      - Dy8cSHbSoAMEEGg=
       x-amzn-RequestId:
-      - 291a2de6-3df3-48a6-9d82-46a5d884bee7
+      - 9583fb3d-b615-417b-b2ea-9d0284c5b168
     status:
       code: 200
       message: OK
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/DepreciationAmortizationAndOther.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/DepreciationAmortizationAndOther.json</Key><RequestId>HCHKWB9EJ7B7YM1W</RequestId><HostId>GwR65HCliP4VMzwAhOEp8/LbxNbTC7Ho4JLS2s2cIQmCifcFaxmWEccj7eWbaBuco0X/UqhsGxs=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '354'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:24 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa781-bc39a505f7786d6a513eefe6
+      x-amz-apigw-id:
+      - Dy8cWH50IAMEhdA=
+      x-amzn-RequestId:
+      - 6ecfe527-2761-4b9e-afec-0b5076a44821
+    status:
+      code: 404
+      message: Not Found
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+    method: GET
+    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/OtherDepreciationAndAmortization.json
+  response:
+    body:
+      string: '<?xml version="1.0" encoding="UTF-8"?>
+
+        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/OtherDepreciationAndAmortization.json</Key><RequestId>M3P0D63FDTM7KQWJ</RequestId><HostId>EoQMzDUY6o6hINxgRe92exP4/fivV7FT48SDy5sgMlV0RqtTYb3/e3nt9vv9jaOT/96IW/YCclQ=</HostId></Error>'
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '354'
+      Content-Type:
+      - application/xml
+      Date:
+      - Wed, 16 Sep 2026 14:28:24 GMT
+      Strict-Transport-Security:
+      - max-age=31536000 ; preload
+      X-Amzn-Trace-Id:
+      - Root=1-6aaaa782-824bf7336e650dcce0aa130a
+      x-amz-apigw-id:
+      - Dy8cZF3goAMEMBw=
+      x-amzn-RequestId:
+      - 02d68d35-652b-4ecf-a509-78e520f20be5
+    status:
+      code: 404
+      message: Not Found
 - request:
     body: null
     headers:
@@ -484,56 +670,20 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:47 GMT
+      - Wed, 16 Sep 2026 14:28:24 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e334-37b2ab7ced2ce22e9cfe436b
+      - Root=1-6aaaa782-1c167cf86798c3c7c4bf2ff5
       x-amz-apigw-id:
-      - B2hwREBBIAMEqPA=
+      - Dy8ccH0LoAMEitQ=
       x-amzn-RequestId:
-      - ad727de2-d225-4c33-8592-58c907ffd718
+      - cdddb3fb-a4b5-48ae-9011-be724b995bbe
     status:
       code: 200
       message: OK
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/NetCashProvidedByUsedInOperatingActivitiesContinuingOperations.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/NetCashProvidedByUsedInOperatingActivitiesContinuingOperations.json</Key><RequestId>WFX8A0MJ6MEKWW5F</RequestId><HostId>USJ+Nvwv/rPaz3ifJbYP65Hx2kulXgHBpxN7iS9W3hA1jt6n7MSdAD3Ruoz+TPv/NUgGan8RNsY=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '384'
-      Content-Type:
-      - application/xml
-      Date:
-      - Sun, 09 Aug 2026 20:29:47 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6a78e334-c828550f5739a4eefbac1b80
-      x-amz-apigw-id:
-      - B2hwWGT3IAMEOsQ=
-      x-amzn-RequestId:
-      - 885eefe6-e243-42f6-9b1a-15c308b14d2e
-    status:
-      code: 404
-      message: Not Found
 - request:
     body: null
     headers:
@@ -561,17 +711,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:47 GMT
+      - Wed, 16 Sep 2026 14:28:24 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e335-e074d1fd39a81fb320da12d7
+      - Root=1-6aaaa782-7f629ae4209e382165750a91
       x-amz-apigw-id:
-      - B2hwZE1soAMEuew=
+      - Dy8chFhIIAMEF6Q=
       x-amzn-RequestId:
-      - e7503c3b-3cbb-4813-b2e7-d0243aae5cda
+      - 4304d0df-98a5-42a7-a534-3e1196949f8d
     status:
       code: 200
       message: OK
@@ -604,17 +754,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:47 GMT
+      - Wed, 16 Sep 2026 14:28:24 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e335-68bee0ab6464b7a3fc76fddd
+      - Root=1-6aaaa783-96507203d7c00e457395eada
       x-amz-apigw-id:
-      - B2hwcENcoAMEKwA=
+      - Dy8ckHd5oAMEnaA=
       x-amzn-RequestId:
-      - fd84a5a3-106a-4914-83c7-a0b657ab148f
+      - f6649b8e-6c0f-43f8-9c59-2b7e21604518
     status:
       code: 200
       message: OK
@@ -648,58 +798,17 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:48 GMT
+      - Wed, 16 Sep 2026 14:28:25 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e335-3007594c6ea202df95b9765b
+      - Root=1-6aaaa783-be098bf9e2b37803475f1dc7
       x-amz-apigw-id:
-      - B2hwgFhOoAMEtgg=
+      - Dy8cpH68IAMEPog=
       x-amzn-RequestId:
-      - aa9d6627-6b7f-4cdd-88ea-8364740f0120
-    status:
-      code: 200
-      message: OK
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/EarningsPerShareBasic.json
-  response:
-    body:
-      string: '{"cik":1018724,"taxonomy":"us-gaap","tag":"EarningsPerShareBasic","label":"Earnings
-        Per Share, Basic","description":"The amount of net income (loss) for the period
-        per each share of common stock or unit outstanding during the reporting period.","entityName":"AMAZON
-        COM INC","units":{"USD/shares":[{"start":"2007-01-01","end":"2007-12-31","val":1.15,"accn":"0001193125-10-016098","fy":2009,"fp":"FY","form":"10-K","filed":"2010-01-29","frame":"CY2007"},{"start":"2008-01-01","end":"2008-06-30","val":0.72,"accn":"0001193125-09-154174","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-07-24"},{"start":"2008-04-01","end":"2008-06-30","val":0.38,"accn":"0001193125-09-154174","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-07-24","frame":"CY2008Q2"},{"start":"2008-01-01","end":"2008-09-30","val":1,"accn":"0001193125-09-212134","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-10-23"},{"start":"2008-07-01","end":"2008-09-30","val":0.28,"accn":"0001193125-09-212134","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-10-23","frame":"CY2008Q3"},{"start":"2008-01-01","end":"2008-12-31","val":1.52,"accn":"0001193125-10-016098","fy":2009,"fp":"FY","form":"10-K","filed":"2010-01-29"},{"start":"2008-01-01","end":"2008-12-31","val":1.52,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28","frame":"CY2008"},{"start":"2009-01-01","end":"2009-03-31","val":0.41,"accn":"0001193125-10-090367","fy":2010,"fp":"Q1","form":"10-Q","filed":"2010-04-23"},{"start":"2009-01-01","end":"2009-03-31","val":0.41,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28","frame":"CY2009Q1"},{"start":"2009-01-01","end":"2009-06-30","val":0.74,"accn":"0001193125-09-154174","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-07-24"},{"start":"2009-01-01","end":"2009-06-30","val":0.74,"accn":"0001193125-10-164083","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-23"},{"start":"2009-04-01","end":"2009-06-30","val":0.33,"accn":"0001193125-09-154174","fy":2009,"fp":"Q2","form":"10-Q","filed":"2009-07-24"},{"start":"2009-04-01","end":"2009-06-30","val":0.33,"accn":"0001193125-10-164083","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-23"},{"start":"2009-04-01","end":"2009-06-30","val":0.33,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28","frame":"CY2009Q2"},{"start":"2009-01-01","end":"2009-09-30","val":1.2,"accn":"0001193125-09-212134","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-10-23"},{"start":"2009-01-01","end":"2009-09-30","val":1.2,"accn":"0001193125-10-233883","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-22"},{"start":"2009-07-01","end":"2009-09-30","val":0.46,"accn":"0001193125-09-212134","fy":2009,"fp":"Q3","form":"10-Q","filed":"2009-10-23"},{"start":"2009-07-01","end":"2009-09-30","val":0.46,"accn":"0001193125-10-233883","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-22"},{"start":"2009-07-01","end":"2009-09-30","val":0.46,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28","frame":"CY2009Q3"},{"start":"2009-01-01","end":"2009-12-31","val":2.08,"accn":"0001193125-10-016098","fy":2009,"fp":"FY","form":"10-K","filed":"2010-01-29"},{"start":"2009-01-01","end":"2009-12-31","val":2.08,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28"},{"start":"2009-01-01","end":"2009-12-31","val":2.08,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01","frame":"CY2009"},{"start":"2009-10-01","end":"2009-12-31","val":0.87,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28","frame":"CY2009Q4"},{"start":"2010-01-01","end":"2010-03-31","val":0.67,"accn":"0001193125-10-090367","fy":2010,"fp":"Q1","form":"10-Q","filed":"2010-04-23"},{"start":"2010-01-01","end":"2010-03-31","val":0.67,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28"},{"start":"2010-01-01","end":"2010-03-31","val":0.67,"accn":"0001193125-11-110197","fy":2011,"fp":"Q1","form":"10-Q","filed":"2011-04-27"},{"start":"2010-01-01","end":"2010-03-31","val":0.67,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01","frame":"CY2010Q1"},{"start":"2010-01-01","end":"2010-06-30","val":1.13,"accn":"0001193125-10-164083","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-23"},{"start":"2010-01-01","end":"2010-06-30","val":1.13,"accn":"0001193125-11-197823","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27"},{"start":"2010-04-01","end":"2010-06-30","val":0.46,"accn":"0001193125-10-164083","fy":2010,"fp":"Q2","form":"10-Q","filed":"2010-07-23"},{"start":"2010-04-01","end":"2010-06-30","val":0.46,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28"},{"start":"2010-04-01","end":"2010-06-30","val":0.46,"accn":"0001193125-11-197823","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27"},{"start":"2010-04-01","end":"2010-06-30","val":0.46,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01","frame":"CY2010Q2"},{"start":"2010-01-01","end":"2010-09-30","val":1.65,"accn":"0001193125-10-233883","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-22"},{"start":"2010-01-01","end":"2010-09-30","val":1.65,"accn":"0001193125-11-280739","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26"},{"start":"2010-07-01","end":"2010-09-30","val":0.51,"accn":"0001193125-10-233883","fy":2010,"fp":"Q3","form":"10-Q","filed":"2010-10-22"},{"start":"2010-07-01","end":"2010-09-30","val":0.51,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28"},{"start":"2010-07-01","end":"2010-09-30","val":0.51,"accn":"0001193125-11-280739","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26"},{"start":"2010-07-01","end":"2010-09-30","val":0.51,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01","frame":"CY2010Q3"},{"start":"2010-01-01","end":"2010-12-31","val":2.58,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28"},{"start":"2010-01-01","end":"2010-12-31","val":2.58,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2010-01-01","end":"2010-12-31","val":2.58,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30","frame":"CY2010"},{"start":"2010-10-01","end":"2010-12-31","val":0.93,"accn":"0001193125-11-016253","fy":2010,"fp":"FY","form":"10-K","filed":"2011-01-28"},{"start":"2010-10-01","end":"2010-12-31","val":0.93,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01","frame":"CY2010Q4"},{"start":"2011-01-01","end":"2011-03-31","val":0.44,"accn":"0001193125-11-110197","fy":2011,"fp":"Q1","form":"10-Q","filed":"2011-04-27"},{"start":"2011-01-01","end":"2011-03-31","val":0.44,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2011-01-01","end":"2011-03-31","val":0.44,"accn":"0001193125-12-187203","fy":2012,"fp":"Q1","form":"10-Q","filed":"2012-04-27"},{"start":"2011-01-01","end":"2011-03-31","val":0.29,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30","frame":"CY2011Q1"},{"start":"2011-01-01","end":"2011-06-30","val":0.87,"accn":"0001193125-11-197823","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27"},{"start":"2011-01-01","end":"2011-06-30","val":0.87,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27"},{"start":"2011-04-01","end":"2011-06-30","val":0.42,"accn":"0001193125-11-197823","fy":2011,"fp":"Q2","form":"10-Q","filed":"2011-07-27"},{"start":"2011-04-01","end":"2011-06-30","val":0.42,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2011-04-01","end":"2011-06-30","val":0.42,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27"},{"start":"2011-04-01","end":"2011-06-30","val":0.02,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30","frame":"CY2011Q2"},{"start":"2011-01-01","end":"2011-09-30","val":1,"accn":"0001193125-11-280739","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26"},{"start":"2011-01-01","end":"2011-09-30","val":1,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26"},{"start":"2011-07-01","end":"2011-09-30","val":0.14,"accn":"0001193125-11-280739","fy":2011,"fp":"Q3","form":"10-Q","filed":"2011-10-26"},{"start":"2011-07-01","end":"2011-09-30","val":0.14,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2011-07-01","end":"2011-09-30","val":0.14,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26"},{"start":"2011-07-01","end":"2011-09-30","val":-0.6,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30","frame":"CY2011Q3"},{"start":"2011-01-01","end":"2011-12-31","val":1.39,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2011-01-01","end":"2011-12-31","val":1.39,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2011-01-01","end":"2011-12-31","val":1.39,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31","frame":"CY2011"},{"start":"2011-10-01","end":"2011-12-31","val":0.39,"accn":"0001193125-12-032846","fy":2011,"fp":"FY","form":"10-K","filed":"2012-02-01"},{"start":"2011-10-01","end":"2011-12-31","val":0.21,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30","frame":"CY2011Q4"},{"start":"2012-01-01","end":"2012-03-31","val":0.29,"accn":"0001193125-12-187203","fy":2012,"fp":"Q1","form":"10-Q","filed":"2012-04-27"},{"start":"2012-01-01","end":"2012-03-31","val":0.44,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2012-01-01","end":"2012-03-31","val":0.29,"accn":"0001193125-13-174667","fy":2013,"fp":"Q1","form":"10-Q","filed":"2013-04-26"},{"start":"2012-01-01","end":"2012-03-31","val":0.29,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31","frame":"CY2012Q1"},{"start":"2012-01-01","end":"2012-06-30","val":0.3,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27"},{"start":"2012-01-01","end":"2012-06-30","val":0.3,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26"},{"start":"2012-04-01","end":"2012-06-30","val":0.02,"accn":"0001193125-12-317409","fy":2012,"fp":"Q2","form":"10-Q","filed":"2012-07-27"},{"start":"2012-04-01","end":"2012-06-30","val":0.42,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2012-04-01","end":"2012-06-30","val":0.02,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26"},{"start":"2012-04-01","end":"2012-06-30","val":0.02,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31","frame":"CY2012Q2"},{"start":"2012-01-01","end":"2012-09-30","val":-0.3,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26"},{"start":"2012-01-01","end":"2012-09-30","val":-0.3,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25"},{"start":"2012-07-01","end":"2012-09-30","val":-0.6,"accn":"0001193125-12-436012","fy":2012,"fp":"Q3","form":"10-Q","filed":"2012-10-26"},{"start":"2012-07-01","end":"2012-09-30","val":0.14,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2012-07-01","end":"2012-09-30","val":-0.6,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25"},{"start":"2012-07-01","end":"2012-09-30","val":-0.6,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31","frame":"CY2012Q3"},{"start":"2012-01-01","end":"2012-12-31","val":-0.09,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2012-01-01","end":"2012-12-31","val":-0.09,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2012-01-01","end":"2012-12-31","val":-0.09,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30","frame":"CY2012"},{"start":"2012-10-01","end":"2012-12-31","val":0.39,"accn":"0001193125-13-028520","fy":2012,"fp":"FY","form":"10-K","filed":"2013-01-30"},{"start":"2012-10-01","end":"2012-12-31","val":0.21,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31","frame":"CY2012Q4"},{"start":"2013-01-01","end":"2013-03-31","val":0.18,"accn":"0001193125-13-174667","fy":2013,"fp":"Q1","form":"10-Q","filed":"2013-04-26"},{"start":"2013-01-01","end":"2013-03-31","val":0.18,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2013-01-01","end":"2013-03-31","val":0.18,"accn":"0001018724-14-000014","fy":2014,"fp":"Q1","form":"10-Q","filed":"2014-04-25"},{"start":"2013-01-01","end":"2013-03-31","val":0.18,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30","frame":"CY2013Q1"},{"start":"2013-01-01","end":"2013-06-30","val":0.16,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26"},{"start":"2013-01-01","end":"2013-06-30","val":0.16,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2013-04-01","end":"2013-06-30","val":-0.02,"accn":"0001193125-13-303204","fy":2013,"fp":"Q2","form":"10-Q","filed":"2013-07-26"},{"start":"2013-04-01","end":"2013-06-30","val":-0.02,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2013-04-01","end":"2013-06-30","val":-0.02,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2013-04-01","end":"2013-06-30","val":-0.02,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30","frame":"CY2013Q2"},{"start":"2013-01-01","end":"2013-09-30","val":0.08,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25"},{"start":"2013-01-01","end":"2013-09-30","val":0.08,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24"},{"start":"2013-07-01","end":"2013-09-30","val":-0.09,"accn":"0001445305-13-002495","fy":2013,"fp":"Q3","form":"10-Q","filed":"2013-10-25"},{"start":"2013-07-01","end":"2013-09-30","val":-0.09,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2013-07-01","end":"2013-09-30","val":-0.09,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24"},{"start":"2013-07-01","end":"2013-09-30","val":-0.09,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30","frame":"CY2013Q3"},{"start":"2013-01-01","end":"2013-12-31","val":0.6,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2013-01-01","end":"2013-12-31","val":0.6,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2013-01-01","end":"2013-12-31","val":0.6,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29","frame":"CY2013"},{"start":"2013-10-01","end":"2013-12-31","val":0.52,"accn":"0001018724-14-000006","fy":2013,"fp":"FY","form":"10-K","filed":"2014-01-31"},{"start":"2013-10-01","end":"2013-12-31","val":0.52,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30","frame":"CY2013Q4"},{"start":"2014-01-01","end":"2014-03-31","val":0.23,"accn":"0001018724-14-000014","fy":2014,"fp":"Q1","form":"10-Q","filed":"2014-04-25"},{"start":"2014-01-01","end":"2014-03-31","val":0.23,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2014-01-01","end":"2014-03-31","val":0.23,"accn":"0001018724-15-000038","fy":2015,"fp":"Q1","form":"10-Q","filed":"2015-04-24"},{"start":"2014-01-01","end":"2014-03-31","val":0.23,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29","frame":"CY2014Q1"},{"start":"2014-01-01","end":"2014-06-30","val":-0.04,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2014-01-01","end":"2014-06-30","val":-0.04,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24"},{"start":"2014-04-01","end":"2014-06-30","val":-0.27,"accn":"0001018724-14-000025","fy":2014,"fp":"Q2","form":"10-Q","filed":"2014-07-25"},{"start":"2014-04-01","end":"2014-06-30","val":-0.27,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2014-04-01","end":"2014-06-30","val":-0.27,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24"},{"start":"2014-04-01","end":"2014-06-30","val":-0.27,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29","frame":"CY2014Q2"},{"start":"2014-01-01","end":"2014-09-30","val":-0.99,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24"},{"start":"2014-01-01","end":"2014-09-30","val":-0.99,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23"},{"start":"2014-07-01","end":"2014-09-30","val":-0.95,"accn":"0001018724-14-000055","fy":2014,"fp":"Q3","form":"10-Q","filed":"2014-10-24"},{"start":"2014-07-01","end":"2014-09-30","val":-0.95,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2014-07-01","end":"2014-09-30","val":-0.95,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23"},{"start":"2014-07-01","end":"2014-09-30","val":-0.95,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29","frame":"CY2014Q3"},{"start":"2014-01-01","end":"2014-12-31","val":-0.52,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2014-01-01","end":"2014-12-31","val":-0.52,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2014-01-01","end":"2014-12-31","val":-0.52,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10","frame":"CY2014"},{"start":"2014-10-01","end":"2014-12-31","val":0.46,"accn":"0001018724-15-000006","fy":2014,"fp":"FY","form":"10-K","filed":"2015-01-30"},{"start":"2014-10-01","end":"2014-12-31","val":0.46,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29","frame":"CY2014Q4"},{"start":"2015-01-01","end":"2015-03-31","val":-0.12,"accn":"0001018724-15-000038","fy":2015,"fp":"Q1","form":"10-Q","filed":"2015-04-24"},{"start":"2015-01-01","end":"2015-03-31","val":-0.12,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2015-01-01","end":"2015-03-31","val":-0.12,"accn":"0001018724-16-000227","fy":2016,"fp":"Q1","form":"10-Q","filed":"2016-04-29"},{"start":"2015-01-01","end":"2015-03-31","val":-0.12,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10","frame":"CY2015Q1"},{"start":"2015-01-01","end":"2015-06-30","val":0.07,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24"},{"start":"2015-01-01","end":"2015-06-30","val":0.07,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29"},{"start":"2015-04-01","end":"2015-06-30","val":0.2,"accn":"0001018724-15-000087","fy":2015,"fp":"Q2","form":"10-Q","filed":"2015-07-24"},{"start":"2015-04-01","end":"2015-06-30","val":0.2,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2015-04-01","end":"2015-06-30","val":0.2,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29"},{"start":"2015-04-01","end":"2015-06-30","val":0.2,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10","frame":"CY2015Q2"},{"start":"2015-01-01","end":"2015-09-30","val":0.24,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23"},{"start":"2015-01-01","end":"2015-09-30","val":0.24,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28"},{"start":"2015-07-01","end":"2015-09-30","val":0.17,"accn":"0001018724-15-000126","fy":2015,"fp":"Q3","form":"10-Q","filed":"2015-10-23"},{"start":"2015-07-01","end":"2015-09-30","val":0.17,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2015-07-01","end":"2015-09-30","val":0.17,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28"},{"start":"2015-07-01","end":"2015-09-30","val":0.17,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10","frame":"CY2015Q3"},{"start":"2015-01-01","end":"2015-12-31","val":1.28,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2015-01-01","end":"2015-12-31","val":1.28,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2015-01-01","end":"2015-12-31","val":1.28,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2015"},{"start":"2015-10-01","end":"2015-12-31","val":1.03,"accn":"0001018724-16-000172","fy":2015,"fp":"FY","form":"10-K","filed":"2016-01-29"},{"start":"2015-10-01","end":"2015-12-31","val":1.03,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10","frame":"CY2015Q4"},{"start":"2016-01-01","end":"2016-03-31","val":1.09,"accn":"0001018724-16-000227","fy":2016,"fp":"Q1","form":"10-Q","filed":"2016-04-29"},{"start":"2016-01-01","end":"2016-03-31","val":1.09,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2016-01-01","end":"2016-03-31","val":1.09,"accn":"0001018724-17-000051","fy":2017,"fp":"Q1","form":"10-Q","filed":"2017-04-28"},{"start":"2016-01-01","end":"2016-03-31","val":1.09,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2016Q1"},{"start":"2016-01-01","end":"2016-06-30","val":2.9,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29"},{"start":"2016-01-01","end":"2016-06-30","val":2.9,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28"},{"start":"2016-04-01","end":"2016-06-30","val":1.81,"accn":"0001018724-16-000286","fy":2016,"fp":"Q2","form":"10-Q","filed":"2016-07-29"},{"start":"2016-04-01","end":"2016-06-30","val":1.81,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2016-04-01","end":"2016-06-30","val":1.81,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28"},{"start":"2016-04-01","end":"2016-06-30","val":1.81,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2016Q2"},{"start":"2016-01-01","end":"2016-09-30","val":3.43,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28"},{"start":"2016-01-01","end":"2016-09-30","val":3.43,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27"},{"start":"2016-07-01","end":"2016-09-30","val":0.53,"accn":"0001018724-16-000324","fy":2016,"fp":"Q3","form":"10-Q","filed":"2016-10-28"},{"start":"2016-07-01","end":"2016-09-30","val":0.53,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2016-07-01","end":"2016-09-30","val":0.53,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27"},{"start":"2016-07-01","end":"2016-09-30","val":0.53,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2016Q3"},{"start":"2016-01-01","end":"2016-12-31","val":5.01,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2016-01-01","end":"2016-12-31","val":5.01,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02"},{"start":"2016-01-01","end":"2016-12-31","val":5.01,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01","frame":"CY2016"},{"start":"2016-10-01","end":"2016-12-31","val":1.57,"accn":"0001018724-17-000011","fy":2016,"fp":"FY","form":"10-K","filed":"2017-02-10"},{"start":"2016-10-01","end":"2016-12-31","val":1.57,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02","frame":"CY2016Q4"},{"start":"2017-01-01","end":"2017-03-31","val":1.52,"accn":"0001018724-17-000051","fy":2017,"fp":"Q1","form":"10-Q","filed":"2017-04-28"},{"start":"2017-01-01","end":"2017-03-31","val":1.52,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02"},{"start":"2017-01-01","end":"2017-03-31","val":1.52,"accn":"0001018724-18-000072","fy":2018,"fp":"Q1","form":"10-Q","filed":"2018-04-27"},{"start":"2017-01-01","end":"2017-03-31","val":1.52,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01","frame":"CY2017Q1"},{"start":"2017-01-01","end":"2017-06-30","val":1.93,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28"},{"start":"2017-01-01","end":"2017-06-30","val":1.93,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27"},{"start":"2017-04-01","end":"2017-06-30","val":0.41,"accn":"0001018724-17-000100","fy":2017,"fp":"Q2","form":"10-Q","filed":"2017-07-28"},{"start":"2017-04-01","end":"2017-06-30","val":0.41,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02"},{"start":"2017-04-01","end":"2017-06-30","val":0.41,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27"},{"start":"2017-04-01","end":"2017-06-30","val":0.41,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01","frame":"CY2017Q2"},{"start":"2017-01-01","end":"2017-09-30","val":2.46,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27"},{"start":"2017-01-01","end":"2017-09-30","val":2.46,"accn":"0001018724-18-000159","fy":2018,"fp":"Q3","form":"10-Q","filed":"2018-10-26"},{"start":"2017-07-01","end":"2017-09-30","val":0.53,"accn":"0001018724-17-000135","fy":2017,"fp":"Q3","form":"10-Q","filed":"2017-10-27"},{"start":"2017-07-01","end":"2017-09-30","val":0.53,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02"},{"start":"2017-07-01","end":"2017-09-30","val":0.53,"accn":"0001018724-18-000159","fy":2018,"fp":"Q3","form":"10-Q","filed":"2018-10-26"},{"start":"2017-07-01","end":"2017-09-30","val":0.53,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01","frame":"CY2017Q3"},{"start":"2017-01-01","end":"2017-12-31","val":6.32,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02"},{"start":"2017-01-01","end":"2017-12-31","val":6.32,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01"},{"start":"2017-01-01","end":"2017-12-31","val":6.32,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31","frame":"CY2017"},{"start":"2017-10-01","end":"2017-12-31","val":3.85,"accn":"0001018724-18-000005","fy":2017,"fp":"FY","form":"10-K","filed":"2018-02-02"},{"start":"2017-10-01","end":"2017-12-31","val":3.85,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01","frame":"CY2017Q4"},{"start":"2018-01-01","end":"2018-03-31","val":3.36,"accn":"0001018724-18-000072","fy":2018,"fp":"Q1","form":"10-Q","filed":"2018-04-27"},{"start":"2018-01-01","end":"2018-03-31","val":3.36,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01"},{"start":"2018-01-01","end":"2018-03-31","val":3.36,"accn":"0001018724-19-000043","fy":2019,"fp":"Q1","form":"10-Q","filed":"2019-04-26"},{"start":"2018-01-01","end":"2018-03-31","val":3.36,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31","frame":"CY2018Q1"},{"start":"2018-01-01","end":"2018-06-30","val":8.58,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27"},{"start":"2018-01-01","end":"2018-06-30","val":8.58,"accn":"0001018724-19-000071","fy":2019,"fp":"Q2","form":"10-Q","filed":"2019-07-26"},{"start":"2018-04-01","end":"2018-06-30","val":5.21,"accn":"0001018724-18-000108","fy":2018,"fp":"Q2","form":"10-Q","filed":"2018-07-27"},{"start":"2018-04-01","end":"2018-06-30","val":5.21,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01"},{"start":"2018-04-01","end":"2018-06-30","val":5.21,"accn":"0001018724-19-000071","fy":2019,"fp":"Q2","form":"10-Q","filed":"2019-07-26"},{"start":"2018-04-01","end":"2018-06-30","val":5.21,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31","frame":"CY2018Q2"},{"start":"2018-01-01","end":"2018-09-30","val":14.49,"accn":"0001018724-18-000159","fy":2018,"fp":"Q3","form":"10-Q","filed":"2018-10-26"},{"start":"2018-01-01","end":"2018-09-30","val":14.49,"accn":"0001018724-19-000089","fy":2019,"fp":"Q3","form":"10-Q","filed":"2019-10-25"},{"start":"2018-07-01","end":"2018-09-30","val":5.91,"accn":"0001018724-18-000159","fy":2018,"fp":"Q3","form":"10-Q","filed":"2018-10-26"},{"start":"2018-07-01","end":"2018-09-30","val":5.91,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01"},{"start":"2018-07-01","end":"2018-09-30","val":5.91,"accn":"0001018724-19-000089","fy":2019,"fp":"Q3","form":"10-Q","filed":"2019-10-25"},{"start":"2018-07-01","end":"2018-09-30","val":5.91,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31","frame":"CY2018Q3"},{"start":"2018-01-01","end":"2018-12-31","val":20.68,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01"},{"start":"2018-01-01","end":"2018-12-31","val":20.68,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31"},{"start":"2018-01-01","end":"2018-12-31","val":20.68,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03","frame":"CY2018"},{"start":"2018-10-01","end":"2018-12-31","val":6.18,"accn":"0001018724-19-000004","fy":2018,"fp":"FY","form":"10-K","filed":"2019-02-01"},{"start":"2018-10-01","end":"2018-12-31","val":6.18,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31","frame":"CY2018Q4"},{"start":"2019-01-01","end":"2019-03-31","val":7.24,"accn":"0001018724-19-000043","fy":2019,"fp":"Q1","form":"10-Q","filed":"2019-04-26"},{"start":"2019-01-01","end":"2019-03-31","val":7.24,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31"},{"start":"2019-01-01","end":"2019-03-31","val":7.24,"accn":"0001018724-20-000010","fy":2020,"fp":"Q1","form":"10-Q","filed":"2020-05-01"},{"start":"2019-01-01","end":"2019-03-31","val":7.24,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03","frame":"CY2019Q1"},{"start":"2019-01-01","end":"2019-06-30","val":12.57,"accn":"0001018724-19-000071","fy":2019,"fp":"Q2","form":"10-Q","filed":"2019-07-26"},{"start":"2019-01-01","end":"2019-06-30","val":12.57,"accn":"0001018724-20-000021","fy":2020,"fp":"Q2","form":"10-Q","filed":"2020-07-31"},{"start":"2019-04-01","end":"2019-06-30","val":5.32,"accn":"0001018724-19-000071","fy":2019,"fp":"Q2","form":"10-Q","filed":"2019-07-26"},{"start":"2019-04-01","end":"2019-06-30","val":5.32,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31"},{"start":"2019-04-01","end":"2019-06-30","val":5.32,"accn":"0001018724-20-000021","fy":2020,"fp":"Q2","form":"10-Q","filed":"2020-07-31"},{"start":"2019-04-01","end":"2019-06-30","val":5.32,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03","frame":"CY2019Q2"},{"start":"2019-01-01","end":"2019-09-30","val":16.87,"accn":"0001018724-19-000089","fy":2019,"fp":"Q3","form":"10-Q","filed":"2019-10-25"},{"start":"2019-01-01","end":"2019-09-30","val":16.87,"accn":"0001018724-20-000030","fy":2020,"fp":"Q3","form":"10-Q","filed":"2020-10-30"},{"start":"2019-07-01","end":"2019-09-30","val":4.31,"accn":"0001018724-19-000089","fy":2019,"fp":"Q3","form":"10-Q","filed":"2019-10-25"},{"start":"2019-07-01","end":"2019-09-30","val":4.31,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31"},{"start":"2019-07-01","end":"2019-09-30","val":4.31,"accn":"0001018724-20-000030","fy":2020,"fp":"Q3","form":"10-Q","filed":"2020-10-30"},{"start":"2019-07-01","end":"2019-09-30","val":4.31,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03","frame":"CY2019Q3"},{"start":"2019-01-01","end":"2019-12-31","val":23.46,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31"},{"start":"2019-01-01","end":"2019-12-31","val":23.46,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03"},{"start":"2019-01-01","end":"2019-12-31","val":23.46,"accn":"0001018724-22-000005","fy":2021,"fp":"FY","form":"10-K","filed":"2022-02-04","frame":"CY2019"},{"start":"2019-10-01","end":"2019-12-31","val":6.58,"accn":"0001018724-20-000004","fy":2019,"fp":"FY","form":"10-K","filed":"2020-01-31"},{"start":"2019-10-01","end":"2019-12-31","val":6.58,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03","frame":"CY2019Q4"},{"start":"2020-01-01","end":"2020-03-31","val":5.09,"accn":"0001018724-20-000010","fy":2020,"fp":"Q1","form":"10-Q","filed":"2020-05-01"},{"start":"2020-01-01","end":"2020-03-31","val":5.09,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03"},{"start":"2020-01-01","end":"2020-03-31","val":5.09,"accn":"0001018724-21-000010","fy":2021,"fp":"Q1","form":"10-Q","filed":"2021-04-30","frame":"CY2020Q1"},{"start":"2020-01-01","end":"2020-06-30","val":15.59,"accn":"0001018724-20-000021","fy":2020,"fp":"Q2","form":"10-Q","filed":"2020-07-31"},{"start":"2020-01-01","end":"2020-06-30","val":15.59,"accn":"0001018724-21-000020","fy":2021,"fp":"Q2","form":"10-Q","filed":"2021-07-30"},{"start":"2020-04-01","end":"2020-06-30","val":10.5,"accn":"0001018724-20-000021","fy":2020,"fp":"Q2","form":"10-Q","filed":"2020-07-31"},{"start":"2020-04-01","end":"2020-06-30","val":10.5,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03"},{"start":"2020-04-01","end":"2020-06-30","val":10.5,"accn":"0001018724-21-000020","fy":2021,"fp":"Q2","form":"10-Q","filed":"2021-07-30","frame":"CY2020Q2"},{"start":"2020-01-01","end":"2020-09-30","val":28.24,"accn":"0001018724-20-000030","fy":2020,"fp":"Q3","form":"10-Q","filed":"2020-10-30"},{"start":"2020-01-01","end":"2020-09-30","val":28.24,"accn":"0001018724-21-000028","fy":2021,"fp":"Q3","form":"10-Q","filed":"2021-10-29"},{"start":"2020-07-01","end":"2020-09-30","val":12.63,"accn":"0001018724-20-000030","fy":2020,"fp":"Q3","form":"10-Q","filed":"2020-10-30"},{"start":"2020-07-01","end":"2020-09-30","val":12.63,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03"},{"start":"2020-07-01","end":"2020-09-30","val":12.63,"accn":"0001018724-21-000028","fy":2021,"fp":"Q3","form":"10-Q","filed":"2021-10-29","frame":"CY2020Q3"},{"start":"2020-01-01","end":"2020-12-31","val":42.64,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03"},{"start":"2020-01-01","end":"2020-12-31","val":42.64,"accn":"0001018724-22-000005","fy":2021,"fp":"FY","form":"10-K","filed":"2022-02-04"},{"start":"2020-01-01","end":"2020-12-31","val":2.13,"accn":"0001018724-23-000004","fy":2022,"fp":"FY","form":"10-K","filed":"2023-02-03","frame":"CY2020"},{"start":"2020-10-01","end":"2020-12-31","val":14.38,"accn":"0001018724-21-000004","fy":2020,"fp":"FY","form":"10-K","filed":"2021-02-03","frame":"CY2020Q4"},{"start":"2021-01-01","end":"2021-03-31","val":16.09,"accn":"0001018724-21-000010","fy":2021,"fp":"Q1","form":"10-Q","filed":"2021-04-30"},{"start":"2021-01-01","end":"2021-03-31","val":16.09,"accn":"0001018724-22-000013","fy":2022,"fp":"Q1","form":"10-Q","filed":"2022-04-29","frame":"CY2021Q1"},{"start":"2021-01-01","end":"2021-06-30","val":31.49,"accn":"0001018724-21-000020","fy":2021,"fp":"Q2","form":"10-Q","filed":"2021-07-30"},{"start":"2021-01-01","end":"2021-06-30","val":1.57,"accn":"0001018724-22-000019","fy":2022,"fp":"Q2","form":"10-Q","filed":"2022-07-29"},{"start":"2021-04-01","end":"2021-06-30","val":15.4,"accn":"0001018724-21-000020","fy":2021,"fp":"Q2","form":"10-Q","filed":"2021-07-30"},{"start":"2021-04-01","end":"2021-06-30","val":0.77,"accn":"0001018724-22-000019","fy":2022,"fp":"Q2","form":"10-Q","filed":"2022-07-29","frame":"CY2021Q2"},{"start":"2021-01-01","end":"2021-09-30","val":37.69,"accn":"0001018724-21-000028","fy":2021,"fp":"Q3","form":"10-Q","filed":"2021-10-29"},{"start":"2021-01-01","end":"2021-09-30","val":1.88,"accn":"0001018724-22-000023","fy":2022,"fp":"Q3","form":"10-Q","filed":"2022-10-28"},{"start":"2021-07-01","end":"2021-09-30","val":6.23,"accn":"0001018724-21-000028","fy":2021,"fp":"Q3","form":"10-Q","filed":"2021-10-29"},{"start":"2021-07-01","end":"2021-09-30","val":0.31,"accn":"0001018724-22-000023","fy":2022,"fp":"Q3","form":"10-Q","filed":"2022-10-28","frame":"CY2021Q3"},{"start":"2021-01-01","end":"2021-12-31","val":65.96,"accn":"0001018724-22-000005","fy":2021,"fp":"FY","form":"10-K","filed":"2022-02-04"},{"start":"2021-01-01","end":"2021-12-31","val":3.3,"accn":"0001018724-23-000004","fy":2022,"fp":"FY","form":"10-K","filed":"2023-02-03"},{"start":"2021-01-01","end":"2021-12-31","val":3.3,"accn":"0001018724-24-000008","fy":2023,"fp":"FY","form":"10-K","filed":"2024-02-02","frame":"CY2021"},{"start":"2022-01-01","end":"2022-03-31","val":-7.56,"accn":"0001018724-22-000013","fy":2022,"fp":"Q1","form":"10-Q","filed":"2022-04-29"},{"start":"2022-01-01","end":"2022-03-31","val":-0.38,"accn":"0001018724-23-000008","fy":2023,"fp":"Q1","form":"10-Q","filed":"2023-04-28","frame":"CY2022Q1"},{"start":"2022-01-01","end":"2022-06-30","val":-0.58,"accn":"0001018724-22-000019","fy":2022,"fp":"Q2","form":"10-Q","filed":"2022-07-29"},{"start":"2022-01-01","end":"2022-06-30","val":-0.58,"accn":"0001018724-23-000012","fy":2023,"fp":"Q2","form":"10-Q","filed":"2023-08-04"},{"start":"2022-04-01","end":"2022-06-30","val":-0.2,"accn":"0001018724-22-000019","fy":2022,"fp":"Q2","form":"10-Q","filed":"2022-07-29"},{"start":"2022-04-01","end":"2022-06-30","val":-0.2,"accn":"0001018724-23-000012","fy":2023,"fp":"Q2","form":"10-Q","filed":"2023-08-04","frame":"CY2022Q2"},{"start":"2022-01-01","end":"2022-09-30","val":-0.29,"accn":"0001018724-22-000023","fy":2022,"fp":"Q3","form":"10-Q","filed":"2022-10-28"},{"start":"2022-01-01","end":"2022-09-30","val":-0.29,"accn":"0001018724-23-000018","fy":2023,"fp":"Q3","form":"10-Q","filed":"2023-10-27"},{"start":"2022-07-01","end":"2022-09-30","val":0.28,"accn":"0001018724-22-000023","fy":2022,"fp":"Q3","form":"10-Q","filed":"2022-10-28"},{"start":"2022-07-01","end":"2022-09-30","val":0.28,"accn":"0001018724-23-000018","fy":2023,"fp":"Q3","form":"10-Q","filed":"2023-10-27","frame":"CY2022Q3"},{"start":"2022-01-01","end":"2022-12-31","val":-0.27,"accn":"0001018724-23-000004","fy":2022,"fp":"FY","form":"10-K","filed":"2023-02-03"},{"start":"2022-01-01","end":"2022-12-31","val":-0.27,"accn":"0001018724-24-000008","fy":2023,"fp":"FY","form":"10-K","filed":"2024-02-02"},{"start":"2022-01-01","end":"2022-12-31","val":-0.27,"accn":"0001018724-25-000004","fy":2024,"fp":"FY","form":"10-K","filed":"2025-02-07","frame":"CY2022"},{"start":"2023-01-01","end":"2023-03-31","val":0.31,"accn":"0001018724-23-000008","fy":2023,"fp":"Q1","form":"10-Q","filed":"2023-04-28"},{"start":"2023-01-01","end":"2023-03-31","val":0.31,"accn":"0001018724-24-000083","fy":2024,"fp":"Q1","form":"10-Q","filed":"2024-05-01","frame":"CY2023Q1"},{"start":"2023-01-01","end":"2023-06-30","val":0.97,"accn":"0001018724-23-000012","fy":2023,"fp":"Q2","form":"10-Q","filed":"2023-08-04"},{"start":"2023-01-01","end":"2023-06-30","val":0.97,"accn":"0001018724-24-000130","fy":2024,"fp":"Q2","form":"10-Q","filed":"2024-08-02"},{"start":"2023-04-01","end":"2023-06-30","val":0.66,"accn":"0001018724-23-000012","fy":2023,"fp":"Q2","form":"10-Q","filed":"2023-08-04"},{"start":"2023-04-01","end":"2023-06-30","val":0.66,"accn":"0001018724-24-000130","fy":2024,"fp":"Q2","form":"10-Q","filed":"2024-08-02","frame":"CY2023Q2"},{"start":"2023-01-01","end":"2023-09-30","val":1.93,"accn":"0001018724-23-000018","fy":2023,"fp":"Q3","form":"10-Q","filed":"2023-10-27"},{"start":"2023-01-01","end":"2023-09-30","val":1.93,"accn":"0001018724-24-000161","fy":2024,"fp":"Q3","form":"10-Q","filed":"2024-11-01"},{"start":"2023-07-01","end":"2023-09-30","val":0.96,"accn":"0001018724-23-000018","fy":2023,"fp":"Q3","form":"10-Q","filed":"2023-10-27"},{"start":"2023-07-01","end":"2023-09-30","val":0.96,"accn":"0001018724-24-000161","fy":2024,"fp":"Q3","form":"10-Q","filed":"2024-11-01","frame":"CY2023Q3"},{"start":"2023-01-01","end":"2023-12-31","val":2.95,"accn":"0001018724-24-000008","fy":2023,"fp":"FY","form":"10-K","filed":"2024-02-02"},{"start":"2023-01-01","end":"2023-12-31","val":2.95,"accn":"0001018724-25-000004","fy":2024,"fp":"FY","form":"10-K","filed":"2025-02-07"},{"start":"2023-01-01","end":"2023-12-31","val":2.95,"accn":"0001018724-26-000004","fy":2025,"fp":"FY","form":"10-K","filed":"2026-02-06","frame":"CY2023"},{"start":"2024-01-01","end":"2024-03-31","val":1,"accn":"0001018724-24-000083","fy":2024,"fp":"Q1","form":"10-Q","filed":"2024-05-01"},{"start":"2024-01-01","end":"2024-03-31","val":1,"accn":"0001018724-25-000036","fy":2025,"fp":"Q1","form":"10-Q","filed":"2025-05-02","frame":"CY2024Q1"},{"start":"2024-01-01","end":"2024-06-30","val":2.3,"accn":"0001018724-24-000130","fy":2024,"fp":"Q2","form":"10-Q","filed":"2024-08-02"},{"start":"2024-01-01","end":"2024-06-30","val":2.3,"accn":"0001018724-25-000086","fy":2025,"fp":"Q2","form":"10-Q","filed":"2025-08-01"},{"start":"2024-04-01","end":"2024-06-30","val":1.29,"accn":"0001018724-24-000130","fy":2024,"fp":"Q2","form":"10-Q","filed":"2024-08-02"},{"start":"2024-04-01","end":"2024-06-30","val":1.29,"accn":"0001018724-25-000086","fy":2025,"fp":"Q2","form":"10-Q","filed":"2025-08-01","frame":"CY2024Q2"},{"start":"2024-01-01","end":"2024-09-30","val":3.76,"accn":"0001018724-24-000161","fy":2024,"fp":"Q3","form":"10-Q","filed":"2024-11-01"},{"start":"2024-01-01","end":"2024-09-30","val":3.76,"accn":"0001018724-25-000123","fy":2025,"fp":"Q3","form":"10-Q","filed":"2025-10-31"},{"start":"2024-07-01","end":"2024-09-30","val":1.46,"accn":"0001018724-24-000161","fy":2024,"fp":"Q3","form":"10-Q","filed":"2024-11-01"},{"start":"2024-07-01","end":"2024-09-30","val":1.46,"accn":"0001018724-25-000123","fy":2025,"fp":"Q3","form":"10-Q","filed":"2025-10-31","frame":"CY2024Q3"},{"start":"2024-01-01","end":"2024-12-31","val":5.66,"accn":"0001018724-25-000004","fy":2024,"fp":"FY","form":"10-K","filed":"2025-02-07"},{"start":"2024-01-01","end":"2024-12-31","val":5.66,"accn":"0001018724-26-000004","fy":2025,"fp":"FY","form":"10-K","filed":"2026-02-06","frame":"CY2024"},{"start":"2025-01-01","end":"2025-03-31","val":1.62,"accn":"0001018724-25-000036","fy":2025,"fp":"Q1","form":"10-Q","filed":"2025-05-02"},{"start":"2025-01-01","end":"2025-03-31","val":1.62,"accn":"0001018724-26-000014","fy":2026,"fp":"Q1","form":"10-Q","filed":"2026-04-30","frame":"CY2025Q1"},{"start":"2025-01-01","end":"2025-06-30","val":3.32,"accn":"0001018724-25-000086","fy":2025,"fp":"Q2","form":"10-Q","filed":"2025-08-01"},{"start":"2025-01-01","end":"2025-06-30","val":3.32,"accn":"0001018724-26-000026","fy":2026,"fp":"Q2","form":"10-Q","filed":"2026-07-31"},{"start":"2025-04-01","end":"2025-06-30","val":1.71,"accn":"0001018724-25-000086","fy":2025,"fp":"Q2","form":"10-Q","filed":"2025-08-01"},{"start":"2025-04-01","end":"2025-06-30","val":1.71,"accn":"0001018724-26-000026","fy":2026,"fp":"Q2","form":"10-Q","filed":"2026-07-31","frame":"CY2025Q2"},{"start":"2025-01-01","end":"2025-09-30","val":5.31,"accn":"0001018724-25-000123","fy":2025,"fp":"Q3","form":"10-Q","filed":"2025-10-31"},{"start":"2025-07-01","end":"2025-09-30","val":1.98,"accn":"0001018724-25-000123","fy":2025,"fp":"Q3","form":"10-Q","filed":"2025-10-31","frame":"CY2025Q3"},{"start":"2025-01-01","end":"2025-12-31","val":7.29,"accn":"0001018724-26-000004","fy":2025,"fp":"FY","form":"10-K","filed":"2026-02-06","frame":"CY2025"},{"start":"2026-01-01","end":"2026-03-31","val":2.82,"accn":"0001018724-26-000014","fy":2026,"fp":"Q1","form":"10-Q","filed":"2026-04-30","frame":"CY2026Q1"},{"start":"2026-01-01","end":"2026-06-30","val":8.64,"accn":"0001018724-26-000026","fy":2026,"fp":"Q2","form":"10-Q","filed":"2026-07-31"},{"start":"2026-04-01","end":"2026-06-30","val":5.82,"accn":"0001018724-26-000026","fy":2026,"fp":"Q2","form":"10-Q","filed":"2026-07-31","frame":"CY2026Q2"}]}}'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Encoding:
-      - gzip
-      Content-Length:
-      - '3457'
-      Content-Type:
-      - application/json
-      Date:
-      - Sun, 09 Aug 2026 20:29:48 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      Vary:
-      - Accept-Encoding
-      X-Amzn-Trace-Id:
-      - Root=1-6a78e30d-602b266b45c023e6540955e2
-      x-amz-apigw-id:
-      - B2hqNFCCoAMEtlA=
-      x-amzn-RequestId:
-      - 33cc02dc-6f84-4de7-a8a7-d267fe48cf0e
+      - 1dcf7ce1-2370-4393-8a57-f0b8bc451c77
     status:
       code: 200
       message: OK
@@ -730,90 +839,18 @@ interactions:
       Content-Type:
       - application/json
       Date:
-      - Sun, 09 Aug 2026 20:29:48 GMT
+      - Wed, 16 Sep 2026 14:28:25 GMT
       Strict-Transport-Security:
       - max-age=31536000 ; preload
       Vary:
       - Accept-Encoding
       X-Amzn-Trace-Id:
-      - Root=1-6a78e336-36b8b6675c5a99e978c15cfc
+      - Root=1-6aaaa784-807cfe88e3a5ceb55cddcb29
       x-amz-apigw-id:
-      - B2hwoFlwoAMEtgg=
+      - Dy8ctFK9oAMEgHQ=
       x-amzn-RequestId:
-      - ccf316f6-7821-4a17-b567-709beec158c8
+      - 68b95b55-18ad-4162-a1c4-067716ddc1a1
     status:
       code: 200
       message: OK
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/CostOfGoodsSold.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/CostOfGoodsSold.json</Key><RequestId>8A31A63XZ2YBS563</RequestId><HostId>dNr6G8lSTZnj6wPPd0cvwiD8lS4y8ilaHSik6Hl7Hf3djSAS5tWTZeiqixzVLvGMnrB6zG5N0eY=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '337'
-      Content-Type:
-      - application/xml
-      Date:
-      - Thu, 10 Sep 2026 18:29:26 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa2f702-6cde9e9df60f480de3e76f88
-      x-amz-apigw-id:
-      - DfuIhG6zIAMEBVw=
-      x-amzn-RequestId:
-      - 7cc26e20-6440-4687-b444-ea01d819d3ab
-    status:
-      code: 404
-      message: Not Found
-- request:
-    body: null
-    headers:
-      Accept:
-      - '*/*'
-      Accept-Encoding:
-      - gzip, deflate
-      Connection:
-      - keep-alive
-    method: GET
-    uri: https://data.sec.gov/api/xbrl/companyconcept/CIK0001018724/us-gaap/DepreciationAmortizationAndAccretionNet.json
-  response:
-    body:
-      string: '<?xml version="1.0" encoding="UTF-8"?>
-
-        <Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message><Key>api/xbrl/companyconcept/CIK0001018724/us-gaap/DepreciationAmortizationAndAccretionNet.json</Key><RequestId>W499NKTKWXGWP32J</RequestId><HostId>rvReemKJ0NB/C2GL00fHIxZoELbb9zWDDzBZrtfxKPvOWLS7Y2sjis56WNGw3vM6Q4UTQ+8e5Zw=</HostId></Error>'
-    headers:
-      Connection:
-      - keep-alive
-      Content-Length:
-      - '361'
-      Content-Type:
-      - application/xml
-      Date:
-      - Fri, 11 Sep 2026 01:55:26 GMT
-      Strict-Transport-Security:
-      - max-age=31536000 ; preload
-      X-Amzn-Trace-Id:
-      - Root=1-6aa35f8a-75291d13aaec78a6a659fa8c
-      x-amz-apigw-id:
-      - DgvdpG5WIAMEdpw=
-      x-amzn-RequestId:
-      - 3986b19f-4dff-4f89-9369-9682e4a00f67
-    status:
-      code: 404
-      message: Not Found
 version: 1
