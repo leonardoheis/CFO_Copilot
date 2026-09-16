@@ -47,6 +47,15 @@ MISSING_USER_AGENT_MESSAGE: Final = (
 )
 
 
+def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
+    """Treat a superseded tag's 0 as not-reported rather than as data.
+
+    Returns:
+        The series with zeros replaced by NaN.
+    """
+    return values.where(values != 0)
+
+
 class SecEdgarSource:
     def __init__(self, user_agent: str, registry: CompanyRegistry) -> None:
         self._user_agent = user_agent
@@ -172,7 +181,7 @@ class SecEdgarSource:
                         records["filed"],
                         splits,
                     )
-                combined = combined.combine_first(values)
+                combined = combined.combine_first(_without_placeholder_zeros(values))
             if combined.notna().all():
                 break
         return combined

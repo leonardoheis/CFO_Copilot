@@ -131,6 +131,21 @@ uv run poe docker-build       # Build Docker image
 uv run poe docker-run         # Run container (.env required)
 ```
 
+## Naming over commentary
+
+Say it in the name, not in a paragraph above it.
+
+- A helper's name should make its docstring nearly redundant.
+  `_without_placeholder_zeros` needs no essay; `_clean` does.
+- Keep docstrings to one line plus the `Returns:` block mypy and pydoclint
+  require. Drop the rest.
+- Reserve comments for **why**, never **what** — a rule that is surprising, a
+  workaround for a vendor quirk, a constraint the reader cannot infer from the
+  code. If the comment restates the line below it, delete the comment and
+  rename instead.
+- Same for variables: `annual_candidates` beats `tmp` plus a note explaining
+  what `tmp` holds.
+
 ## Typing conventions
 
 - **Do not use `# type: ignore[no-any-return]`.**

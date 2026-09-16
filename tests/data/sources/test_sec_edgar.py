@@ -163,3 +163,53 @@ def test_dep_amort_chain_uses_later_tag_when_earlier_tags_are_empty(
     assert values.loc[quarter] == pytest.approx(expected_value)
     assert "DepreciationAmortizationAndOther" in requested_tags
     assert "OtherDepreciationAndAmortization" not in requested_tags
+
+
+def test_tag_chain_skips_zero_from_earlier_tag_and_uses_real_value(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A zero from a superseded tag must not block a later tag's real value.
+
+    Oracle reports 0 under SalesRevenueNet for quarters it actually reports
+    under Revenues. Treating that 0 as data writes a false revenue collapse
+    into the panel, which is worse than a gap: NaN is visibly missing, 0 is
+    silently wrong.
+    """
+    expected_value = 5_453_000_000.0
+    quarter = date(2009, 3, 31)
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        if tag == "SalesRevenueNet":
+            return [
+                {
+                    "start": "2008-12-01",
+                    "end": "2009-02-28",
+                    "val": 0.0,
+                    "filed": "2009-04-01",
+                },
+            ]
+        if tag == "Revenues":
+            return [
+                {
+                    "start": "2008-12-01",
+                    "end": "2009-02-28",
+                    "val": expected_value,
+                    "filed": "2009-04-01",
+                },
+            ]
+        return []
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
+        "0001341439",
+        TAG_CHAINS["revenue"],
+        [quarter],
+        None,
+    )
+
+    assert values.loc[quarter] == pytest.approx(expected_value)

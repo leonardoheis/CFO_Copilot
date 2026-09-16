@@ -85,3 +85,14 @@ companies:
       cik: "0000080424"
     market:
       type: from_ticker
+  - tickers:
+      - ORCL
+    panel:
+      company: Oracle
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001341439"
+    market:
+      type: from_ticker
