@@ -97,8 +97,9 @@ def merge_panel(
     )
     market = sources.yfinance.fetch_market_panel(ticker, start, end)
     macro = sources.fred.fetch_macro_panel(start, end)
+    index_returns = sources.yfinance.fetch_index_return_panel(start, end)
 
-    for source_panel in (financials, market, macro):
+    for source_panel in (financials, market, macro, index_returns):
         panel = panel.merge(source_panel, on="date", how="left")
 
     panel["market_cap_usd_m"] = (

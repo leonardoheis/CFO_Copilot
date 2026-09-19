@@ -114,7 +114,7 @@ class FakeYahooTicker:
         return self._history  # type: ignore[return-value]
 
 
-def test_fetch_splits_returns_empty_sentinel_when_yahoo_returns_none(
+def test_fetch_splits_returns_empty_series_when_yahoo_returns_none(
     company_registry: CompanyRegistry,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -125,8 +125,7 @@ def test_fetch_splits_returns_empty_sentinel_when_yahoo_returns_none(
     )
     source = YfinanceSource(registry=company_registry)
 
-    with pytest.raises(TickerNotFoundError, match="AMZN"):
-        source.fetch_splits("AMZN")
+    assert source.fetch_splits("AMZN").empty
 
 
 def test_fetch_splits_propagates_api_failure_as_data_source_error(
@@ -171,7 +170,7 @@ def test_fetch_stock_history_propagates_api_failure_as_data_source_error(
         source.fetch_stock_history("AMZN", date(2020, 1, 1), date(2020, 6, 30))
 
 
-def test_fetch_splits_raises_when_every_market_ticker_is_empty(
+def test_fetch_splits_returns_empty_series_when_every_market_ticker_is_empty(
     company_registry: CompanyRegistry,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -181,8 +180,7 @@ def test_fetch_splits_raises_when_every_market_ticker_is_empty(
         lambda _ticker: FakeYahooTicker(splits=None),
     )
 
-    with pytest.raises(TickerNotFoundError, match="GOOGL"):
-        source.fetch_splits("GOOGL")
+    assert source.fetch_splits("GOOGL").empty
 
 
 def test_fetch_splits_skips_empty_ticker_and_uses_fallback(
@@ -252,3 +250,29 @@ def test_fetch_market_panel_skips_empty_ticker_and_uses_fallback(
 
     assert panel.loc[0, "stock_price_usd"] == pytest.approx(100.0)
     assert "No price history available for GOOGL" in caplog.text
+
+
+def test_fetch_index_return_panel_lags_quarterly_return_by_one_quarter(
+    company_registry: CompanyRegistry,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    closes = {
+        "2019-09-30": 100.0,
+        "2019-12-31": 110.0,
+        "2020-03-31": 132.0,
+        "2020-06-30": 99.0,
+    }
+    history = pd.DataFrame(
+        {"Close": list(closes.values())},
+        index=pd.DatetimeIndex([pd.Timestamp(day) for day in closes]),
+    )
+    monkeypatch.setattr(
+        "app.data.sources.yfinance_source.source.yf.Ticker",
+        lambda _ticker: FakeYahooTicker(history=history),
+    )
+    source = YfinanceSource(registry=company_registry)
+
+    panel = source.fetch_index_return_panel(date(2020, 1, 1), date(2020, 6, 30))
+
+    assert list(panel.columns) == ["date", "sp500_return_lag1"]
+    assert panel["sp500_return_lag1"].tolist() == pytest.approx([0.10, 0.20])

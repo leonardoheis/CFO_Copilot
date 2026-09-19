@@ -1,7 +1,8 @@
 """Yahoo Finance market data source, including per-company ticker fallback."""
 
 import logging
-from datetime import date
+from datetime import date, timedelta
+from typing import Final
 
 import pandas as pd
 import yfinance as yf
@@ -13,11 +14,15 @@ from app.data.dates import (
     quarter_end_dates,
 )
 from app.data.exceptions import TickerNotFoundError
-from app.data.schema import MARKET_COLUMNS
+from app.data.schema import INDEX_COLUMNS, MARKET_COLUMNS
 
 from .fetching import quarterly_dividend_yield, try_splits, try_stock_history
 
 logger = logging.getLogger(__name__)
+
+SP500_TICKER: Final = "^GSPC"
+TWO_QUARTERS: Final = timedelta(days=190)
+(SP500_RETURN_COLUMN,) = INDEX_COLUMNS
 
 
 class YfinanceSource:
@@ -67,14 +72,33 @@ class YfinanceSource:
             },
         )
 
+    def fetch_index_return_panel(self, start: date, end: date) -> pd.DataFrame:
+        """Return the S&P 500 return of the prior quarter for each quarter end.
+
+        Returns:
+            A DataFrame with ``date`` and ``sp500_return_lag1`` columns.
+        """
+        quarter_dates = quarter_end_dates(start, end)
+        # The first row's lagged return needs the two quarter ends before it.
+        lookback_dates = quarter_end_dates(start - TWO_QUARTERS, end)
+        close = self.fetch_stock_history(SP500_TICKER, start - TWO_QUARTERS, end)[
+            "Close"
+        ]
+        quarterly_close = align_series_to_quarters(close, lookback_dates)
+        lagged_return = quarterly_close.pct_change(fill_method=None).shift(1)
+        return pd.DataFrame(
+            {
+                "date": quarter_dates,
+                SP500_RETURN_COLUMN: lagged_return.reindex(quarter_dates).tolist(),
+            },
+        )
+
     def fetch_splits(self, ticker: str) -> pd.Series:
         """Return the raw split history for a ticker.
 
         Returns:
-            A series indexed by split effective date and valued by ratio.
-
-        Raises:
-            TickerNotFoundError: If Yahoo Finance has no data for any market ticker.
+            A series indexed by split effective date and valued by ratio; empty
+            when the company has never split.
         """
         normalized_ticker = ticker.upper()
         splits = pd.Series(dtype=float)
@@ -88,9 +112,6 @@ class YfinanceSource:
                 if splits.empty
                 else pd.concat([splits, ticker_splits]).sort_index()
             )
-        if splits.empty:
-            message = f"No Yahoo Finance data found for ticker {normalized_ticker}"
-            raise TickerNotFoundError(message)
         return splits[~splits.index.duplicated(keep="last")]
 
     def _combined_close_history(

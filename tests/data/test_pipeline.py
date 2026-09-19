@@ -16,7 +16,7 @@ from app.data.pipeline import (
 )
 from app.data.schema import (
     FINANCIAL_COLUMNS,
-    MACRO_COLUMNS,
+    FRED_MACRO_COLUMNS,
     MARKET_COLUMNS,
     PANEL_COLUMNS,
 )
@@ -29,6 +29,7 @@ TEST_QUARTER_DATES = quarter_end_dates(date(2020, 1, 1), date(2020, 6, 30))
 EXPECTED_REVENUE = 1_000.0
 EXPECTED_STOCK_PRICE = 100.0
 EXPECTED_FED_FUNDS = 1.0
+EXPECTED_SP500 = 0.05
 EXPECTED_EPS = 5.0
 EXPECTED_SPLIT_FACTOR = 20.0
 EXPECTED_ADJUSTED_EPS = EXPECTED_EPS / EXPECTED_SPLIT_FACTOR
@@ -40,7 +41,7 @@ EXPECTED_FALLBACK_EBITDA = 275.0
 class FakeMacroSource:
     @staticmethod
     def fetch_macro_panel(_start: date, _end: date) -> pd.DataFrame:
-        values = {column: [math.nan] * 2 for column in MACRO_COLUMNS}
+        values = {column: [math.nan] * 2 for column in FRED_MACRO_COLUMNS}
         values["fed_funds"] = [EXPECTED_FED_FUNDS, 2.0]
         return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
 
@@ -55,6 +56,12 @@ class FakeMarketSource:
         values = {column: [math.nan] * 2 for column in MARKET_COLUMNS}
         values["stock_price_usd"] = [EXPECTED_STOCK_PRICE, 110.0]
         return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
+
+    @staticmethod
+    def fetch_index_return_panel(_start: date, _end: date) -> pd.DataFrame:
+        return pd.DataFrame(
+            {"date": TEST_QUARTER_DATES, "sp500_return_lag1": [EXPECTED_SP500, 0.02]},
+        )
 
     @staticmethod
     def fetch_splits(
@@ -170,6 +177,7 @@ def test_merge_panel_fills_columns_from_every_source(
     assert panel.loc[0, "revenue_usd_m"] == pytest.approx(EXPECTED_REVENUE)
     assert panel.loc[0, "stock_price_usd"] == pytest.approx(EXPECTED_STOCK_PRICE)
     assert panel.loc[0, "fed_funds"] == pytest.approx(EXPECTED_FED_FUNDS)
+    assert panel.loc[0, "sp500_return_lag1"] == pytest.approx(EXPECTED_SP500)
     assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
 
 

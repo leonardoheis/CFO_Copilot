@@ -17,7 +17,7 @@
 |---|---|---|
 | D1 | Frequency: **quarterly** | Finest granularity for 10-Q fundamentals |
 | D2 | Window: **2006-Q2 → 2026-Q2** (81 quarters) | Covers GFC, COVID, 2022–24 rate cycle |
-| D3 | Universe: **60 companies, 8 sectors**, no banks or insurers | Schema has gross_profit/EBITDA/FCF/margins — meaningless for financials |
+| D3 | Universe: **60 companies, 9 sectors**, no banks or insurers | Schema has gross_profit/EBITDA/FCF/margins — meaningless for financials |
 | D4 | Default target transform: **`log(x)`, panel-wide**, with alternatives as measured arms | One rule keeps errors commensurable across companies; per-company Box-Cox (λ −0.46 to 2.33) would not |
 | D5 | Horizons: **h ∈ {1,2,3,4}**, direct (one model per h) | Avoids recursive error compounding |
 | D6 | Mandatory baseline: **seasonal naive**, reported even when it wins | Currently beats everything; hiding that would be dishonest |
@@ -38,6 +38,7 @@
 | D21 | Pooling is **conditioned on series relatedness** (sector / size cluster), not assumed global | Global models are not more restrictive than local ones [`monteromanso2021global`], but mixing *unrelated* financial series measurably degrades accuracy [`das2026chronosfinance`]. Both must be reconciled. |
 | D22 | Significance testing: **HLN-corrected Diebold-Mariano + Model Confidence Set** | 81 quarters is a small sample, so uncorrected DM over-rejects [`harvey1997testing`]; MCS gives family-wise error control across many model families [`hansen2011mcs`] |
 | D23 | The residual-shrinkage design is framed as **forecast combination with a benchmark anchor** | Puts it in an established literature (FFORMA, M4 combination findings) rather than presenting it as ad hoc [`monteromanso2020fforma`, `makridakis2020m4`] |
+| D24 | Macro block expanded to 10 variables: +yield_spread_10y2y, +mfg_confidence, +sp500_return_lag1 | Yield spread and mfg_confidence are FRED, same pipeline as the existing 7; S&P500 is yfinance and must be lagged to avoid reverse causality with the panel's own constituents |
 
 ### 0.2 Deferred — decide at the named point, not now
 
@@ -200,7 +201,8 @@ financial : revenue_usd_m, gross_profit_usd_m, opex_usd_m,
             free_cash_flow_usd_m
 ratios    : gross_margin, operating_margin, net_margin, eps, pe_ratio
 market    : stock_price_usd, dividend_yield, market_cap_usd_m
-macro     : gdp_yoy, fed_funds, unemployment_rate, cpi_yoy, dxy, vix, wti_oil
+macro     : gdp_yoy, fed_funds, unemployment_rate, cpi_yoy, dxy, vix, wti_oil,
+            yield_spread_10y2y, mfg_confidence, sp500_return_lag1
 flags     : covid, structural_break, outlier_flag, is_projected
 ```
 
@@ -212,8 +214,20 @@ Macro is identical across companies (verified byte-for-byte on the first 7 files
 |---|---|---|---|
 | Fundamentals | **SEC EDGAR XBRL Company Facts** | none | `data/sources/sec/`, `data/xbrl.py` |
 | Prices, market cap, dividends | **yfinance** | generous | `data/sources/yahoo/` |
-| Macro (7 series) | **FRED** | 120 req/min, free key | `data/sources/fred/` |
+| Macro (9 FRED series) | **FRED** | 120 req/min, free key | `data/sources/fred/` |
+| S&P 500 return (lagged) | **yfinance** | generous | `data/sources/yahoo/` — new `index.py`, mirrors per-company price puller but pulls `^GSPC` once |
 | Gap-filling only | Alpha Vantage | ~25 req/day | `data/sources/alpha_vantage/` |
+
+**New in rev 5 (D24):** yield_spread_10y2y (FRED `T10Y2Y`, already spread-computed
+by FRED) and mfg_confidence (FRED `BSCICP02USM460S` — OECD Business Confidence
+Indicator, manufacturing, seasonally adjusted; a survey-sentiment index, not the
+ISM PMI diffusion index — verify the series' start date covers 2006) join the
+macro block. sp500_return_lag1 is **lagged by one quarter, always** — the S&P 500
+partially reflects the panel's own largest constituents (AAPL, MSFT...), so using
+it contemporaneously risks reverse causality; the lag makes the causal direction
+(financial conditions → future fundamentals) explicit. Use return, not level —
+the level is nonstationary and correlates with revenue trend for reasons
+unrelated to any macro link.
 
 Tickers come from `config/companies.yaml` via `CompanyRegistry` — adding 53 companies is a config change, not new code. Cache raw responses to disk before parsing; make per-ticker failures non-fatal and logged.
 
@@ -369,7 +383,8 @@ The residual arm exists because the winning baseline *is* a lag-1 of YoY growth 
 L   lags 1,2,3,4,5,8 of the differenced target      ← dominant signal
 R   rolling mean/std 4 and 8q; momentum (lag1 − lag2)
 M   lag-1 YoY growth of ebitda, opex, fcf; lag-1 margins; op-income ratio
-X   lag-1 levels of all 7 macro variables            ← best non-lag group
+X   lag-1 levels of all 10 macro variables            ← best non-lag group
+    (includes yield_spread_10y2y, mfg_confidence, sp500_return_lag1 — see D24)
 XD  real rate (fed_funds − cpi_yoy) only — mechanical d1/d4 measured useless
 C   quarter dummy
 S   ticker, sector, seasonality-regime id
@@ -378,6 +393,16 @@ F   covid, structural_break, outlier flags
 - Full group ablation, each a separate W&B run; local vs pooled on identical features; SHAP by sector
 - **Relatedness-conditioned pooling test (D21).** Run pooling three ways: all 60, within-sector only, within size/volatility cluster only. The literature supports global models in general but also documents accuracy *loss* from mixing unrelated financial series, so this is a measurement, not an assumption.
 - **Exit:** pooled beats local (confirmed at 7 companies: −10.5% MAE, −17% RMSE) **and** the macro group's marginal contribution is re-measured at 60. At 7 companies macro improved MAE 10.7% with zero cross-sectional variation, so it may be a time/regime proxy. If the gain survives with sector-varying sensitivity, the macro block is a genuine contribution; if it vanishes, say so. **Fallback rule:** if all-60 pooling fails to beat per-cluster pooling inside the Model Confidence Set at the 10% level, adopt clustered-global models as the production configuration.
+
+**D24 — three new macro variables (yield spread, mfg_confidence, S&P 500 lagged
+return), run through the same ablation as the original 7, not assumed useful.**
+The panel's own group ablation already found mechanical macro deltas added
+nothing (Appendix D, finding 3); these three get identical treatment —
+with-vs-without in the group ablation, not appended on faith. Additionally, per
+D21, check whether S&P500 sensitivity varies by sector as expected (cyclical
+names loading harder than utilities/staples) — if it doesn't show that pattern,
+that's a sign of residual endogeneity rather than genuine macro signal, and the
+variable should be dropped or the lag lengthened.
 
 ### NB05 — Deep global
 LSTM (committed in TP5 — **performed regardless of outcome**), NHITS, N-BEATS, TFT, PatchTST via `neuralforecast`. Static covariates = ticker, sector, regime. 10-seed ensembles for CI. TFT variable importances → explainability artifact.
@@ -601,16 +626,17 @@ If an override falls outside the training range, conformal intervals are no long
 
 | Sector | Tickers | n |
 |---|---|---|
-| Technology | AAPL, MSFT, ORCL, CSCO, IBM, INTC, TXN, ADBE | 8 |
-| Consumer Cyclical | AMZN, TSLA, HD, MCD, NKE, F, M, BBY | 8 |
-| Consumer Defensive | PEP, PG, KO, WMT, COST, CL, GIS, KMB | 8 |
-| Communication Services | GOOGL, T, VZ, CMCSA, DIS, NFLX | 6 |
-| Healthcare | JNJ, PFE, MRK, ABT, UNH, LLY, BMY | 7 |
-| Energy | XOM, CVX, COP, SLB, OXY | 5 |
-| Industrials | CAT, DE, GE, BA, HON | 5 |
-| Utilities | NEE, DUK, SO | 3 |
+| Technology | AAPL (Apple), MSFT (Microsoft), ORCL (Oracle), CSCO (Cisco), IBM (IBM), INTC (Intel), TXN (Texas Instruments), ADBE (Adobe), QCOM (Qualcomm) | 9 |
+| Consumer Cyclical | AMZN (Amazon), TSLA (Tesla), HD (Home Depot), MCD (McDonald's), NKE (Nike), F (Ford), M (Macy's), BBY (Best Buy), SBUX (Starbucks) | 9 |
+| Consumer Defensive | PEP (PepsiCo), PG (Procter & Gamble), KO (Coca-Cola), WMT (Walmart), COST (Costco), CL (Colgate-Palmolive), GIS (General Mills), KMB (Kimberly-Clark) | 8 |
+| Communication Services | GOOGL (Alphabet), T (AT&T), VZ (Verizon), CMCSA (Comcast), DIS (Disney), NFLX (Netflix) | 6 |
+| Healthcare | JNJ (Johnson & Johnson), PFE (Pfizer), MRK (Merck), ABT (Abbott), UNH (UnitedHealth), LLY (Eli Lilly), BMY (Bristol-Myers Squibb), AMGN (Amgen), MDT (Medtronic) | 9 |
+| Energy | XOM (Exxon Mobil), CVX (Chevron), COP (ConocoPhillips), SLB (Schlumberger), OXY (Occidental Petroleum) | 5 |
+| Industrials | CAT (Caterpillar), DE (Deere), GE (General Electric), BA (Boeing), HON (Honeywell), UNP (Union Pacific), UPS (United Parcel Service), LMT (Lockheed Martin) | 8 |
+| Utilities | NEE (NextEra Energy), DUK (Duke Energy), SO (Southern Company) | 3 |
+| Materials | APD (Air Products), SHW (Sherwin-Williams), ECL (Ecolab) | 3 |
 
-50 named; 10 more to reach 60, same profile (listed pre-2006, non-financial, full quarterly history). Distressed names included deliberately (F, GE, BA, OXY, M, BBY, INTC) so NB11's Altman Z target is not degenerate.
+**60 of 60 named.** Same profile throughout: listed pre-2006, non-financial, full quarterly history. Distressed names included deliberately (F, GE, BA, OXY, M, BBY, INTC) so NB11's Altman Z target is not degenerate. Materials is a new sector, added to broaden macro sensitivity — APD/ECL are exposed to industrial-production and energy-cost swings distinct from Energy-sector names, and SHW/ECL carry housing/construction cyclicality not otherwise represented.
 
 ## Appendix B — Baseline results at 7 companies
 
@@ -723,6 +749,7 @@ Every design decision in this plan now has a citation. Full BibTeX in `reference
 | §2.3, §8 governance | W&B, model cards | `sculley2015debt`, `mitchell2019modelcards`, `gebru2021datasheets` |
 | §7, §9 benchmark evidence | D6 | `makridakis2020m4` (combination won; pure ML underperformed), `makridakis2022m5acc`, `makridakis2022m5unc`, `makridakis2024m6` |
 | §4 panel structure | 60 × 81 panel | `baltagi2021panel`, `arellano1991tests` |
+| §3 macro block (D24) | Yield spread, mfg_confidence, S&P500 lagged | `stock2002diffusion` (factor rationale for adding correlated macro signals); yield-curve and business-confidence indices are standard covariates already covered by the macro/MIDAS references in §4 |
 
 ### F.2 The five plan claims, tested against the literature
 

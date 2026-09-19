@@ -602,3 +602,113 @@ companies:
       cik: "0000092122"
     market:
       type: from_ticker
+
+  - tickers:
+      - QCOM
+    panel:
+      company: Qualcomm
+      sector: Technology
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - SBUX
+    panel:
+      company: Starbucks
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - AMGN
+    panel:
+      company: Amgen
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - MDT
+    panel:
+      company: Medtronic
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - UNP
+    panel:
+      company: Union Pacific
+      sector: Industrials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - UPS
+    panel:
+      company: United Parcel Service
+      sector: Industrials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - LMT
+    panel:
+      company: Lockheed Martin
+      sector: Industrials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - APD
+    panel:
+      company: Air Products
+      sector: Materials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - SHW
+    panel:
+      company: Sherwin-Williams
+      sector: Materials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - ECL
+    panel:
+      company: Ecolab
+      sector: Materials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker

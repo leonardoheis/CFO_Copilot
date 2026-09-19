@@ -5,7 +5,7 @@ import pytest
 
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError
-from app.data.schema import MACRO_COLUMNS
+from app.data.schema import FRED_MACRO_COLUMNS
 from app.data.sources.fred import FredSource
 from app.settings import Settings
 
@@ -35,7 +35,7 @@ def test_fetch_macro_panel_has_macro_columns(fred_source: FredSource) -> None:
     panel = fred_source.fetch_macro_panel(start, end)
     expected_rows = len(quarter_end_dates(start, end))
 
-    assert list(panel.columns) == ["date", *MACRO_COLUMNS]
+    assert list(panel.columns) == ["date", *FRED_MACRO_COLUMNS]
     assert len(panel) == expected_rows
     assert panel.loc[0, "fed_funds"] == pytest.approx(0.65, rel=1e-2)
     assert panel["gdp_yoy"].notna().any()

@@ -16,7 +16,7 @@ METADATA_COLUMNS: Final[tuple[str, ...]] = (
     "is_public",
 )
 
-MACRO_COLUMNS: Final[tuple[str, ...]] = (
+FRED_MACRO_COLUMNS: Final[tuple[str, ...]] = (
     "gdp_yoy",
     "fed_funds",
     "unemployment_rate",
@@ -24,7 +24,13 @@ MACRO_COLUMNS: Final[tuple[str, ...]] = (
     "dxy",
     "vix",
     "wti_oil",
+    "yield_spread_10y2y",
+    "mfg_confidence",
 )
+
+INDEX_COLUMNS: Final[tuple[str, ...]] = ("sp500_return_lag1",)
+
+MACRO_COLUMNS: Final[tuple[str, ...]] = (*FRED_MACRO_COLUMNS, *INDEX_COLUMNS)
 
 FINANCIAL_COLUMNS: Final[tuple[str, ...]] = (
     "revenue_usd_m",
@@ -133,3 +139,6 @@ class PanelRow(BaseModel):
     dxy: float | None = None
     vix: float | None = None
     wti_oil: float | None = None
+    yield_spread_10y2y: float | None = None
+    mfg_confidence: float | None = None
+    sp500_return_lag1: float | None = None

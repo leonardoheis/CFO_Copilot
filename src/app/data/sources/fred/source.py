@@ -7,7 +7,7 @@ from fredapi import Fred
 
 from app.data.dates import align_series_to_quarters, quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError
-from app.data.schema import MACRO_COLUMNS
+from app.data.schema import FRED_MACRO_COLUMNS
 
 FRED_SERIES_BY_COLUMN: Final[dict[str, str]] = {
     "gdp_yoy": "A191RL1Q225SBEA",
@@ -17,6 +17,8 @@ FRED_SERIES_BY_COLUMN: Final[dict[str, str]] = {
     "dxy": "DTWEXBGS",
     "vix": "VIXCLS",
     "wti_oil": "DCOILWTICO",
+    "yield_spread_10y2y": "T10Y2Y",
+    "mfg_confidence": "BSCICP02USM460S",
 }
 
 CPI_COLUMN: Final = "cpi_yoy"
@@ -76,7 +78,7 @@ class FredSource:
         quarter_dates = quarter_end_dates(start, end)
         panel_data: dict[str, object] = {"date": quarter_dates}
 
-        for column in MACRO_COLUMNS:
+        for column in FRED_MACRO_COLUMNS:
             series_id = FRED_SERIES_BY_COLUMN[column]
             extra_kwargs: dict[str, str] = {}
             if column == CPI_COLUMN:
@@ -95,7 +97,7 @@ class FredSource:
 
     @property
     def macro_columns(self) -> tuple[str, ...]:
-        return MACRO_COLUMNS
+        return FRED_MACRO_COLUMNS
 
     @property
     def series_by_column(self) -> dict[str, str]:
