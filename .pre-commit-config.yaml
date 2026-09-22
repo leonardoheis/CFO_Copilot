@@ -13,8 +13,11 @@ repos:
     rev: "v6.0.0"
     hooks:
     -   id: trailing-whitespace
-        exclude: README
+        # Vendored skill mirrors, generated reports, and notebooks (nbstripout
+        # already normalizes those) - not hand-edited source.
+        exclude: '^(README|(\.(cursor|claude)|results|data/coverage|src/app/playground)/)'
     -   id: end-of-file-fixer
+        exclude: '^(\.(cursor|claude)|results|data/coverage|src/app/playground)/'
     -   id: check-yaml
     -   id: debug-statements
 

@@ -85,7 +85,7 @@ companies:
       cik: "0000080424"
     market:
       type: from_ticker
-      
+
   - tickers:
       - ORCL
     panel:
