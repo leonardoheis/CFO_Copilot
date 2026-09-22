@@ -134,6 +134,7 @@ omit = [
     "**/__main__.py",
     "src/app/frontend/*",
     "src/app/settings.py",
+    "scripts/*",
 ]
 
 
