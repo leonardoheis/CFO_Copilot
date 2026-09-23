@@ -135,6 +135,7 @@ omit = [
     "src/app/frontend/*",
     "src/app/settings.py",
     "scripts/*",
+    "*/dependency_injector/*",
 ]
 
 
