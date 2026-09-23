@@ -43,10 +43,7 @@ def test_fetch_macro_panel_has_macro_columns(fred_source: FredSource) -> None:
 
 def test_fetch_macro_series_raises_without_api_key() -> None:
     source = FredSource(api_key="")
+    start, end = date(2020, 1, 1), date(2020, 6, 30)
 
     with pytest.raises(DataSourceUnavailableError, match="FRED_API_KEY"):
-        source.fetch_macro_series(
-            "FEDFUNDS",
-            start=date(2020, 1, 1),
-            end=date(2020, 6, 30),
-        )
+        source.fetch_macro_series("FEDFUNDS", start=start, end=end)

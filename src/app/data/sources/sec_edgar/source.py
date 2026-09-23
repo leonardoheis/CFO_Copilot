@@ -37,6 +37,8 @@ from .parsing import (
     split_factors_for_filing_dates,
 )
 
+type JsonObject = dict[str, object]
+
 SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
 SEC_CONCEPT_URL: Final = (
     "https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/us-gaap/{tag}.json"
@@ -99,8 +101,8 @@ class SecEdgarSource:
                 msg,
             ) from error
 
-        payload = cast("dict[str, object]", response)
-        units = cast("dict[str, object]", payload.get("units", {}))
+        payload = cast("JsonObject", response)
+        units = cast("JsonObject", payload.get("units", {}))
         return cast("list[XbrlFact]", units.get(unit, []))
 
     def fetch_quarterly_financials(
@@ -242,10 +244,10 @@ class SecEdgarSource:
         if self._ticker_ciks is not None:
             return self._ticker_ciks
 
-        payload = cast("dict[str, object]", self._get_json(SEC_TICKERS_URL))
+        payload = cast("JsonObject", self._get_json(SEC_TICKERS_URL))
         ticker_ciks: dict[str, str] = {}
         for entry in payload.values():
-            ticker_entry = cast("dict[str, object]", entry)
+            ticker_entry = cast("JsonObject", entry)
             try:
                 ticker = str(ticker_entry["ticker"]).upper()
                 cik = str(ticker_entry["cik_str"]).zfill(10)

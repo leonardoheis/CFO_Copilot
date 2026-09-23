@@ -138,27 +138,29 @@ def test_quarterly_facts_returns_nan_for_missing_quarter() -> None:
 
 
 def test_malformed_duration_fact_date_raises_data_source_error() -> None:
+    facts = [_fact("not-a-date", "2020-03-31", 100)]
+    quarter_dates = [date(2020, 3, 31)]
+
     with pytest.raises(MalformedPayloadError, match="duration fact dates"):
-        quarterly_facts_from_facts(
-            [_fact("not-a-date", "2020-03-31", 100)],
-            [date(2020, 3, 31)],
-        )
+        quarterly_facts_from_facts(facts, quarter_dates)
 
 
 def test_malformed_fact_value_raises_data_source_error() -> None:
+    facts = [_fact("2020-01-01", "2020-03-31", "not-a-number")]  # type: ignore[arg-type]
+    quarter_dates = [date(2020, 3, 31)]
+
     with pytest.raises(MalformedPayloadError, match="fact value"):
-        quarterly_facts_from_facts(
-            [_fact("2020-01-01", "2020-03-31", "not-a-number")],  # type: ignore[arg-type]
-            [date(2020, 3, 31)],
-        )
+        quarterly_facts_from_facts(facts, quarter_dates)
 
 
 def test_malformed_instant_fact_date_raises_data_source_error() -> None:
+    facts: list[InstantXbrlFact] = [
+        {"end": "not-a-date", "val": 100, "filed": "2021-01-01"},
+    ]
+    quarter_dates = [date(2020, 3, 31)]
+
     with pytest.raises(MalformedPayloadError, match="instant fact date"):
-        instant_series_from_facts(
-            [{"end": "not-a-date", "val": 100, "filed": "2021-01-01"}],
-            [date(2020, 3, 31)],
-        )
+        instant_series_from_facts(facts, quarter_dates)
 
 
 def test_instant_fact_under_a_duration_concept_is_skipped() -> None:

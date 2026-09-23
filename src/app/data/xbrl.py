@@ -99,12 +99,14 @@ def _find_native_fact(
     values_by_period: dict[tuple[date, date], QuarterlyFact],
     quarter_date: date,
 ) -> QuarterlyFact | None:
-    candidates = [
-        (end - start).days
-        for start, end in values_by_period
-        if _matches_quarter(end, quarter_date)
-        and MIN_QUARTER_DAYS <= (end - start).days <= MAX_QUARTER_DAYS
-    ]
+    candidates: list[int] = []
+    for period in values_by_period:
+        start, end = period
+        if (
+            _matches_quarter(end, quarter_date)
+            and MIN_QUARTER_DAYS <= (end - start).days <= MAX_QUARTER_DAYS
+        ):
+            candidates.append((end - start).days)
     if not candidates:
         return None
 

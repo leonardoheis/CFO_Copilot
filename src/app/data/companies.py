@@ -157,6 +157,16 @@ def _to_domain_market(
             assert_never(unreachable)
 
 
+def _history_ticker(market: MarketFromTicker | MarketWithHistoryTicker) -> str | None:
+    match market:
+        case MarketWithHistoryTicker(history_ticker=history_ticker):
+            return history_ticker
+        case MarketFromTicker():
+            return None
+        case _ as unreachable:
+            assert_never(unreachable)
+
+
 def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
     panel = CompanyPanelMetadata(
         company=config.panel.company,
@@ -259,13 +269,9 @@ class CompanyRegistry:
         """
         company = self.scraped_company(ticker)
         tickers: list[str] = [ticker.upper()]
-        match company.market:
-            case MarketWithHistoryTicker(history_ticker=history_ticker):
-                tickers.append(history_ticker)
-            case MarketFromTicker():
-                pass
-            case _ as unreachable:
-                assert_never(unreachable)
+        history_ticker = _history_ticker(company.market)
+        if history_ticker is not None:
+            tickers.append(history_ticker)
         return tuple(dict.fromkeys(tickers))
 
     def sec_ciks(
@@ -281,13 +287,14 @@ class CompanyRegistry:
         company = self.scraped_company(ticker)
         match company.sec:
             case DualCikFiling(legacy_cik=legacy_cik, current_cik=current_cik):
-                return (legacy_cik, current_cik)
+                ciks = [legacy_cik, current_cik]
             case KnownCik(cik=cik):
-                return (cik,)
+                ciks = [cik]
             case SecTickerLookup():
-                return (lookup_cik(ticker.upper()),)
+                ciks = [lookup_cik(ticker.upper())]
             case _ as unreachable:
                 assert_never(unreachable)
+        return tuple(ciks)
 
     def primary_sec_cik(
         self,

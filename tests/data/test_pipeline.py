@@ -264,18 +264,16 @@ def test_merge_panel_adjusts_eps_to_current_share_basis(
 def test_merge_panel_propagates_source_errors(
     company_registry: CompanyRegistry,
 ) -> None:
+    start, end = date(2020, 1, 1), date(2020, 6, 30)
+    sources = IngestionSources(
+        fred=FailingMacroSource(),
+        yfinance=FakeMarketSource(),
+        sec_edgar=FakeFinancialsSource(),
+        registry=company_registry,
+    )
+
     with pytest.raises(DataSourceUnavailableError, match="macro source unavailable"):
-        merge_panel(
-            ticker="AMZN",
-            start=date(2020, 1, 1),
-            end=date(2020, 6, 30),
-            sources=IngestionSources(
-                fred=FailingMacroSource(),
-                yfinance=FakeMarketSource(),
-                sec_edgar=FakeFinancialsSource(),
-                registry=company_registry,
-            ),
-        )
+        merge_panel(ticker="AMZN", start=start, end=end, sources=sources)
 
 
 @pytest.mark.vcr

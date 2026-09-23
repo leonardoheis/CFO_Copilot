@@ -21,10 +21,13 @@ class ScaledLinearRegression:
     def __init__(self) -> None:
         self._pipeline = cast(
             "_Estimator",
-            Pipeline([
-                ("scaler", StandardScaler()),
-                ("regression", LinearRegression()),
-            ]),
+            Pipeline(
+                [
+                    ("scaler", StandardScaler()),
+                    ("regression", LinearRegression()),
+                ],
+                memory=None,
+            ),
         )
 
     def fit(self, X: Sequence[Sequence[float]], y: Sequence[float]) -> Self:

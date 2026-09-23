@@ -10,9 +10,10 @@ from app.services.training.scaled_linear_regression import ScaledLinearRegressio
 
 def test_predict_without_a_saved_model_raises(tmp_path: Path) -> None:
     service = PredictionService(model_path=tmp_path / "missing.joblib")
+    prediction_input = PredictionInput(age=10)
 
     with pytest.raises(NoTrainedModelError):
-        service.predict(PredictionInput(age=10))
+        service.predict(prediction_input)
 
 
 def test_predict_uses_the_saved_model(tmp_path: Path) -> None:

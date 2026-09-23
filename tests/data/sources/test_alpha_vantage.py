@@ -141,13 +141,10 @@ def test_api_quota_payload_raises_data_source_error(
     monkeypatch.setattr(GET_TARGET, get)
     monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
     source = AlphaVantageSource("test-key", tmp_path)
+    start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(DataSourceError, match="Alpha Vantage Note"):
-        source.fetch_financials_panel(
-            "AMZN",
-            date(2006, 1, 1),
-            date(2006, 3, 31),
-        )
+        source.fetch_financials_panel("AMZN", start, end)
 
 
 def test_rate_limit_information_retries_then_succeeds(
@@ -224,13 +221,10 @@ def test_missing_api_key_fails_before_http(
     tmp_path: Path,
 ) -> None:
     source = AlphaVantageSource("", tmp_path)
+    start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(DataSourceError, match="ALPHA_VANTAGE_API_KEY"):
-        source.fetch_financials_panel(
-            "AMZN",
-            date(2006, 1, 1),
-            date(2006, 3, 31),
-        )
+        source.fetch_financials_panel("AMZN", start, end)
 
 
 def test_reported_zero_diluted_eps_is_not_replaced_by_basic_eps(
@@ -289,9 +283,10 @@ def test_unparsable_fiscal_date_raises_instead_of_dropping_the_quarter(
         "2006-13-45"
     )
     source = _source(tmp_path, monkeypatch, payloads)
+    start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(MalformedPayloadError, match="not an ISO date"):
-        source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
+        source.fetch_financials_panel("AMZN", start, end)
 
 
 def test_absent_fiscal_date_raises(
@@ -301,9 +296,10 @@ def test_absent_fiscal_date_raises(
     payloads = _payloads()
     del payloads["INCOME_STATEMENT"]["quarterlyReports"][0]["fiscalDateEnding"]  # type: ignore[index]
     source = _source(tmp_path, monkeypatch, payloads)
+    start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(MalformedPayloadError, match="no usable fiscalDateEnding"):
-        source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
+        source.fetch_financials_panel("AMZN", start, end)
 
 
 def test_fiscal_date_outside_the_tolerance_raises(

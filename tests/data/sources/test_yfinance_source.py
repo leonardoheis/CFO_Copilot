@@ -70,12 +70,10 @@ def test_fetch_market_panel_uses_goog_history_for_googl(
 def test_fetch_stock_history_raises_for_unknown_ticker(
     yfinance_source: YfinanceSource,
 ) -> None:
+    start, end = date(2020, 1, 1), date(2020, 6, 30)
+
     with pytest.raises(TickerNotFoundError, match="INVALIDTICKER123"):
-        yfinance_source.fetch_stock_history(
-            "INVALIDTICKER123",
-            start=date(2020, 1, 1),
-            end=date(2020, 6, 30),
-        )
+        yfinance_source.fetch_stock_history("INVALIDTICKER123", start=start, end=end)
 
 
 class FakeYahooTicker:
@@ -151,9 +149,10 @@ def test_fetch_stock_history_treats_none_payload_as_missing(
         lambda _ticker: FakeYahooTicker(history=None),
     )
     source = YfinanceSource(registry=company_registry)
+    start, end = date(2020, 1, 1), date(2020, 6, 30)
 
     with pytest.raises(TickerNotFoundError, match="AMZN"):
-        source.fetch_stock_history("AMZN", date(2020, 1, 1), date(2020, 6, 30))
+        source.fetch_stock_history("AMZN", start, end)
 
 
 def test_fetch_stock_history_propagates_api_failure_as_data_source_error(
@@ -165,9 +164,10 @@ def test_fetch_stock_history_propagates_api_failure_as_data_source_error(
         lambda _ticker: FakeYahooTicker(error=RuntimeError("connection reset")),
     )
     source = YfinanceSource(registry=company_registry)
+    start, end = date(2020, 1, 1), date(2020, 6, 30)
 
     with pytest.raises(DataSourceUnavailableError, match="connection reset"):
-        source.fetch_stock_history("AMZN", date(2020, 1, 1), date(2020, 6, 30))
+        source.fetch_stock_history("AMZN", start, end)
 
 
 def test_fetch_splits_returns_empty_series_when_every_market_ticker_is_empty(
@@ -219,9 +219,10 @@ def test_fetch_market_panel_raises_when_every_ticker_is_empty(
         lambda _ticker: FakeYahooTicker(history=pd.DataFrame()),
     )
     source = YfinanceSource(registry=company_registry)
+    start, end = date(2020, 1, 1), date(2020, 6, 30)
 
     with pytest.raises(TickerNotFoundError, match="GOOGL"):
-        source.fetch_market_panel("GOOGL", date(2020, 1, 1), date(2020, 6, 30))
+        source.fetch_market_panel("GOOGL", start, end)
 
 
 def test_fetch_market_panel_skips_empty_ticker_and_uses_fallback(
