@@ -1,0 +1,714 @@
+companies:
+  - tickers:
+      - AMZN
+    panel:
+      company: Amazon
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001018724"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - GOOGL
+      - GOOG
+    panel:
+      company: Alphabet
+      sector: Communication Services
+      is_public: true
+    sec:
+      type: dual_cik
+      legacy_cik: "0001288776"
+      current_cik: "0001652044"
+    market:
+      type: history_ticker
+      history_ticker: GOOG
+
+  - tickers:
+      - MSFT
+    panel:
+      company: Microsoft
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000789019"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - TSLA
+    panel:
+      company: Tesla
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001318605"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - PEP
+    panel:
+      company: PepsiCo
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000077476"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - AAPL
+    panel:
+      company: Apple
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000320193"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - PG
+    panel:
+      company: Procter & Gamble
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000080424"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - ORCL
+    panel:
+      company: Oracle
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001341439"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - IBM
+    panel:
+      company: IBM
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000051143"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - CSCO
+    panel:
+      company: Cisco
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000858877"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - INTC
+    panel:
+      company: Intel
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000050863"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - TXN
+    panel:
+      company: Texas Instruments
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000097476"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - ADBE
+    panel:
+      company: Adobe
+      sector: Technology
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000796343"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - HD
+    panel:
+      company: Home Depot
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000354950"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - MCD
+    panel:
+      company: McDonald's
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000063908"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - NKE
+    panel:
+      company: Nike
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000320187"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - F
+    panel:
+      company: Ford
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000037996"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - M
+    panel:
+      company: Macy's
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000794367"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - BBY
+    panel:
+      company: Best Buy
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000764478"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - KO
+    panel:
+      company: Coca-Cola
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000021344"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - WMT
+    panel:
+      company: Walmart
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000104169"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - COST
+    panel:
+      company: Costco
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000909832"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - CL
+    panel:
+      company: Colgate-Palmolive
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000021665"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - GIS
+    panel:
+      company: General Mills
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000040704"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - KMB
+    panel:
+      company: Kimberly-Clark
+      sector: Consumer Defensive
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000055785"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - T
+    panel:
+      company: AT&T
+      sector: Communication Services
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000732717"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - VZ
+    panel:
+      company: Verizon
+      sector: Communication Services
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000732712"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - CMCSA
+    panel:
+      company: Comcast
+      sector: Communication Services
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001166691"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - DIS
+    panel:
+      company: Disney
+      sector: Communication Services
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001744489"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - NFLX
+    panel:
+      company: Netflix
+      sector: Communication Services
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001065280"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - JNJ
+    panel:
+      company: Johnson & Johnson
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000200406"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - PFE
+    panel:
+      company: Pfizer
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000078003"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - MRK
+    panel:
+      company: Merck
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000310158"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - ABT
+    panel:
+      company: Abbott
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000001800"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - UNH
+    panel:
+      company: UnitedHealth
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000731766"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - LLY
+    panel:
+      company: Eli Lilly
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000059478"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - BMY
+    panel:
+      company: Bristol-Myers Squibb
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000014272"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - XOM
+    panel:
+      company: ExxonMobil
+      sector: Energy
+      is_public: true
+    sec:
+      type: dual_cik
+      legacy_cik: "0000034088"
+      current_cik: "0002115436"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - CVX
+    panel:
+      company: Chevron
+      sector: Energy
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000093410"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - COP
+    panel:
+      company: ConocoPhillips
+      sector: Energy
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001163165"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - SLB
+    panel:
+      company: SLB
+      sector: Energy
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000087347"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - OXY
+    panel:
+      company: Occidental Petroleum
+      sector: Energy
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000797468"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - CAT
+    panel:
+      company: Caterpillar
+      sector: Industrials
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000018230"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - DE
+    panel:
+      company: Deere
+      sector: Industrials
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000315189"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - GE
+    panel:
+      company: General Electric
+      sector: Industrials
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000040545"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - BA
+    panel:
+      company: Boeing
+      sector: Industrials
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000012927"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - HON
+    panel:
+      company: Honeywell
+      sector: Industrials
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000773840"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - NEE
+    panel:
+      company: NextEra Energy
+      sector: Utilities
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000753308"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - DUK
+    panel:
+      company: Duke Energy
+      sector: Utilities
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0001326160"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - SO
+    panel:
+      company: Southern Company
+      sector: Utilities
+      is_public: true
+    sec:
+      type: known_cik
+      cik: "0000092122"
+    market:
+      type: from_ticker
+
+  - tickers:
+      - QCOM
+    panel:
+      company: Qualcomm
+      sector: Technology
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - SBUX
+    panel:
+      company: Starbucks
+      sector: Consumer Cyclical
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - AMGN
+    panel:
+      company: Amgen
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - MDT
+    panel:
+      company: Medtronic
+      sector: Healthcare
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - UNP
+    panel:
+      company: Union Pacific
+      sector: Industrials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - UPS
+    panel:
+      company: United Parcel Service
+      sector: Industrials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - LMT
+    panel:
+      company: Lockheed Martin
+      sector: Industrials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - APD
+    panel:
+      company: Air Products
+      sector: Materials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - SHW
+    panel:
+      company: Sherwin-Williams
+      sector: Materials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker
+
+  - tickers:
+      - ECL
+    panel:
+      company: Ecolab
+      sector: Materials
+      is_public: true
+    sec:
+      type: sec_ticker_lookup
+    market:
+      type: from_ticker

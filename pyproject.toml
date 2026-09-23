@@ -4,19 +4,28 @@ build-backend = "uv_build"
 
 [project]
 name = "app"
-version = "0.3.1"
+version = "0.4.0"
 requires-python = "==3.12.*"
 dependencies = [
+    "click>=8.1.0,<8.2",
     "dependency-injector>=4.48.1",
     "fastapi==0.116.1",
+    "fredapi>=0.5.2",
     "httpx>=0.28.1",
     "joblib>=1.5.1",
+    "matplotlib>=3.11.2",
+    "numpy>=2.3.2",
+    "pandas>=2.3.1",
     "polyfactory>=2.22.2",
+    "pyarrow>=21.0.0",
     "pydantic-settings>=2.10.1",
+    "pyyaml>=6.0.2",
     "requests>=2.32.4",
     "scikit-learn>=1.7.1",
+    "statsmodels>=0.15.0",
     "streamlit>=1.48.0",
     "uvicorn[standard]==0.35.0",
+    "yfinance>=0.2.65",
 ]
 
 [tool.uv]
@@ -44,6 +53,9 @@ dev = [
     "poethepoet==0.37.0",
     "joblib-stubs==1.5.0.1.20250510",
     "mypy>=2.3.0",
+    "pandas-stubs>=2.3.0.250703",
+    "types-requests>=2.32.4",
+    "types-pyyaml>=6.0.12.20250516",
 ]
 
 
@@ -55,6 +67,9 @@ dev = [
 serve = "uv run python -m app"
 serve-api = "uv run python -m app.api"
 serve-ui = "uv run python -m app.frontend"
+ingest-data = "uv run python -m app.data"
+add-company = "uv run python -m app.data.add_company"
+probe-alpha-vantage = "uv run python -m app.data.coverage_runner"
 lint       = { shell = "uv run --all-groups ruff check . && uv run --all-groups ruff format --check ." }
 typecheck  = "uv run --all-groups pre-commit run mypy --all-files"
 test = "uv run --all-groups pytest"
@@ -119,6 +134,8 @@ omit = [
     "**/__main__.py",
     "src/app/frontend/*",
     "src/app/settings.py",
+    "scripts/*",
+    "*/dependency_injector/*",
 ]
 
 
@@ -134,6 +151,11 @@ skip_covered = true
 [tool.mypy]
 strict = true
 
+# Vendored agent-skill scripts and repo tooling, not application code. Both
+# editor directories hold the same files, so type-checking them also collides
+# on module names.
+exclude = '^(\.(cursor|claude)|scripts)[/\\]'
+
 follow_imports = "normal"
 
 python_version = "3.12"
@@ -147,6 +169,16 @@ disallow_untyped_calls = true
 disallow_untyped_defs = true
 disallow_untyped_decorators = true
 
+[[tool.mypy.overrides]]
+module = [
+    "yfinance",
+    "yfinance.*",
+    "fredapi",
+    "fredapi.*",
+    "sklearn.*",
+]
+ignore_missing_imports = true
+
 
 #########################
 # RUFF
@@ -155,7 +187,7 @@ disallow_untyped_decorators = true
 [tool.ruff]
 fix = true
 preview = true
-exclude = ['app\views\templates\books', 'books', '.cursor']
+exclude = ['app\views\templates\books', 'books', '.cursor', '.claude', 'scripts']
 target-version = "py312"
 unsafe-fixes = true
 
@@ -264,7 +296,7 @@ bad-functions = ["map", "filter"]
 
 [tool.pylint.design]
 max-args = 7
-max-attributes = 7
+max-attributes = 9
 max-bool-expr = 5
 max-branches = 12
 max-complexity = 10
@@ -317,6 +349,7 @@ disable = [
     "assignment-from-no-return",              # Too many false positives
     "magic-value-comparison",
     "consider-using-namedtuple-or-dataclass",
+    "too-few-public-methods",                 # Intentional for typing.Protocol sources
 ]
 
 enable = [

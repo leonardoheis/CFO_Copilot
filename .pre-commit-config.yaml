@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "0.12.3"
+    rev: "0.12.18"
     hooks:
     -   id: uv-lock
 
@@ -13,8 +13,11 @@ repos:
     rev: "v6.0.0"
     hooks:
     -   id: trailing-whitespace
-        exclude: README
+        # Vendored skill mirrors, generated reports, and notebooks (nbstripout
+        # already normalizes those) - not hand-edited source.
+        exclude: '^(README|(\.(cursor|claude)|results|data/coverage|src/app/playground)/)'
     -   id: end-of-file-fixer
+        exclude: '^(\.(cursor|claude)|results|data/coverage|src/app/playground)/'
     -   id: check-yaml
     -   id: debug-statements
 
@@ -39,7 +42,7 @@ repos:
     -   id: pre-commit-update
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.16.2"
+    rev: "v0.16.8"
     hooks:
     -   id: ruff-format
     -   id: ruff-check
@@ -47,9 +50,10 @@ repos:
         -   "--exit-non-zero-on-fix"
 
 -   repo: https://github.com/pycqa/pylint
-    rev: "v4.0.6"
+    rev: "v4.0.8"
     hooks:
     -   id: pylint
+        exclude: '^(\.(cursor|claude)|scripts)/'
         additional_dependencies:
         -   "dependency-injector>=4.48.1"
         -   "fastapi==0.116.1"
@@ -66,11 +70,22 @@ repos:
         -   "pytest-recording==0.13.4"
         -   "syrupy==4.9.1"
         -   "py-automapper>=2.2.0"
+        -   "pandas>=2.3.1"
+        -   "fredapi>=0.5.2"
+        -   "yfinance>=0.2.65"
+        -   "click>=8.1.0,<8.2"
+        -   "pyarrow>=21.0.0"
+        -   "httpx>=0.28.1"
+        -   "pyyaml>=6.0.2"
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v2.3.0"
+    rev: "v2.3.1"
     hooks:
     -   id: mypy
+        # Vendored agent-skill scripts and repo tooling, not application code.
+        # pre-commit passes files explicitly, so mypy's own `exclude` setting
+        # does not apply here.
+        exclude: '^(\.(cursor|claude)|scripts)/'
         additional_dependencies:
         -   "dependency-injector>=4.48.1"
         -   "fastapi==0.116.1"
@@ -89,6 +104,13 @@ repos:
         -   "polyfactory>=2.22.2"
         -   "py-automapper>=2.2.0"
         -   "git+https://github.com/microsoft/python-type-stubs.git"
+        -   "pandas-stubs>=2.3.0.250703"
+        -   "pandas>=2.3.1"
+        -   "fredapi>=0.5.2"
+        -   "yfinance>=0.2.65"
+        -   "click>=8.1.0,<8.2"
+        -   "pyyaml>=6.0.2"
+        -   "types-pyyaml>=6.0.12.20250516"
 
 -   repo: https://github.com/nbQA-dev/nbQA
     rev: "1.9.1"
@@ -130,6 +152,13 @@ repos:
         -   "polyfactory>=2.22.2"
         -   "py-automapper>=2.2.0"
         -   "git+https://github.com/microsoft/python-type-stubs.git"
+        -   "pandas-stubs>=2.3.0.250703"
+        -   "pandas>=2.3.1"
+        -   "fredapi>=0.5.2"
+        -   "yfinance>=0.2.65"
+        -   "click>=8.1.0,<8.2"
+        -   "pyyaml>=6.0.2"
+        -   "types-pyyaml>=6.0.12.20250516"
 
 -   repo: https://github.com/kynan/nbstripout
     rev: "0.9.1"
@@ -137,7 +166,7 @@ repos:
     -   id: nbstripout
 
 -   repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: "v9.26.0"
+    rev: "v9.27.0"
     hooks:
     -   id: commitlint
         stages:

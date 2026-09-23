@@ -2,15 +2,13 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
-from sklearn.linear_model import LinearRegression
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
 
 from app.domain import MLModel
 from app.services.helper import load_model, save_model
 from app.settings import Settings
 
 from .exceptions import DimensionalityMismatchError
+from .scaled_linear_regression import ScaledLinearRegression
 
 
 class TrainingService(BaseModel):
@@ -25,7 +23,7 @@ class TrainingService(BaseModel):
             if model:
                 return model
 
-        return make_pipeline([StandardScaler(), LinearRegression()])  # type: ignore[return-value]
+        return ScaledLinearRegression()
 
     def train(self, X: Sequence[Sequence[float]], y: Sequence[float]) -> MLModel:
         if len(X) != len(y):

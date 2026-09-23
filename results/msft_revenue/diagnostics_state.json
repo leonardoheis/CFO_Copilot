@@ -1,0 +1,8 @@
+{
+  "date_col": "date",
+  "value_col": "revenue_usd_m",
+  "d": 2,
+  "series_used_for_acf": "differenced_d2",
+  "seasonal_period": 4,
+  "frequency": "quarterly"
+}

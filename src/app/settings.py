@@ -3,13 +3,26 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The container sets WORKDIR to the directory holding .env, so the bare relative
+# name must stay. It resolves against the current directory though, which leaves
+# every credential empty when the CLI is run from anywhere but the repo root, so
+# the checkout's own .env is offered alongside it.
+_REPOSITORY_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class _Settings(BaseSettings):
     UI_PORT: int = 10000
     API_PORT: int = 8000
+    REQUEST_TIMEOUT: int = 30
     HOST: str = "0.0.0.0"  # nosec  # ruff: ignore[hardcoded-bind-all-interfaces]
+    FRED_API_KEY: str = ""
+    SEC_USER_AGENT: str = ""
+    ALPHA_VANTAGE_API_KEY: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=(_REPOSITORY_ENV_FILE, ".env"),
+        extra="ignore",
+    )
 
     @property
     def MODEL_DIRECTORY(self) -> Path:
@@ -58,6 +71,21 @@ class _Settings(BaseSettings):
     @property
     def API_HOST(self) -> str:
         return self.SOCKET_URL.format(port=self.API_PORT)
+
+    @property
+    def DATA_DIRECTORY(self) -> Path:
+        data_directory = self.ROOT_PATH / "data"
+        data_directory.mkdir(parents=True, exist_ok=True)
+        return data_directory
+
+    @property
+    def COMPANY_REGISTRY_PATH(self) -> Path:
+        return self.ROOT_PATH / "config" / "companies.yaml"
+
+    def panel_output_path(self, ticker: str) -> Path:
+        processed_directory = self.DATA_DIRECTORY / "processed"
+        processed_directory.mkdir(parents=True, exist_ok=True)
+        return processed_directory / f"{ticker.upper()}_panel.parquet"
 
 
 Settings = _Settings()

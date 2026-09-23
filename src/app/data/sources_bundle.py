@@ -1,0 +1,52 @@
+from dataclasses import dataclass
+from datetime import date
+from typing import Protocol
+
+import pandas as pd
+
+from app.data.companies import CompanyRegistry
+
+
+class MacroSource(Protocol):
+    def fetch_macro_panel(self, start: date, end: date) -> pd.DataFrame: ...
+
+
+class MarketSource(Protocol):
+    def fetch_market_panel(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+    ) -> pd.DataFrame: ...
+
+    def fetch_index_return_panel(self, start: date, end: date) -> pd.DataFrame: ...
+
+    def fetch_splits(self, ticker: str) -> pd.Series: ...
+
+
+class FinancialsSource(Protocol):
+    def fetch_financials_panel(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+        splits: pd.Series,
+    ) -> pd.DataFrame: ...
+
+
+class FallbackFinancialsSource(Protocol):
+    def fetch_financials_panel(
+        self,
+        ticker: str,
+        start: date,
+        end: date,
+    ) -> pd.DataFrame: ...
+
+
+@dataclass(frozen=True, slots=True)
+class IngestionSources:
+    fred: MacroSource
+    yfinance: MarketSource
+    sec_edgar: FinancialsSource
+    registry: CompanyRegistry
+    financials_fallback: FallbackFinancialsSource | None = None

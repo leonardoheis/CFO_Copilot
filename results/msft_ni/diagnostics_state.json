@@ -1,0 +1,8 @@
+{
+  "date_col": "date",
+  "value_col": "net_income_usd_m",
+  "d": 1,
+  "series_used_for_acf": "differenced_d1",
+  "seasonal_period": null,
+  "frequency": "quarterly"
+}

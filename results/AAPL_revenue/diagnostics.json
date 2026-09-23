@@ -1,0 +1,93 @@
+{
+  "data_quality": {
+    "n_observations": 81,
+    "date_start": "2006-06-30",
+    "date_end": "2026-06-30",
+    "frequency": "quarterly",
+    "missing_values": 0,
+    "missing_pct": 0.0
+  },
+  "distribution": {
+    "mean": 56675.1111,
+    "median": 53265.0,
+    "std": 35659.5474,
+    "min": 4370.0,
+    "max": 143756.0,
+    "skewness": 0.2565,
+    "kurtosis": -0.8264
+  },
+  "stationarity": {
+    "adf_statistic": -0.0329,
+    "adf_p_value": 0.9557,
+    "adf_stationary": false,
+    "kpss_statistic": 1.4146,
+    "kpss_p_value": 0.01,
+    "kpss_stationary": false,
+    "differencing_needed": 1,
+    "differencing_verified": true,
+    "series_used_for_acf": "differenced_d1"
+  },
+  "seasonality": {
+    "is_seasonal": true,
+    "period": 4,
+    "strength": 0.9333
+  },
+  "trend": {
+    "has_trend": true,
+    "direction": "increasing",
+    "strength": 0.9921,
+    "slope_normalized": 0.040646
+  },
+  "autocorrelation": {
+    "significant_acf_lags": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      12
+    ],
+    "significant_pacf_lags": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      9,
+      10,
+      11,
+      15
+    ],
+    "confidence_threshold": 0.2191
+  },
+  "forecastability": {
+    "ljung_box_results": {
+      "lag_10": {
+        "statistic": 199.0237,
+        "p_value": 0.0
+      },
+      "lag_16": {
+        "statistic": 333.3177,
+        "p_value": 0.0
+      },
+      "lag_20": {
+        "statistic": 398.2489,
+        "p_value": 0.0
+      }
+    },
+    "min_p_value": 0.0,
+    "is_white_noise": false,
+    "forecastable": true
+  },
+  "transform": {
+    "variance_stable": false,
+    "recommendation": "sqrt",
+    "boxcox_lambda": 0.5958,
+    "note": "Box-Cox \u03bb \u2248 0.5 suggests sqrt transform"
+  }
+}

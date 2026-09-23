@@ -21,5 +21,5 @@ class PredictionService(BaseModel):
     def predict(self, prediction_input: PredictionInput) -> PredictionOutput:
         if self.model is None:
             raise NoTrainedModelError
-        time_for_failure = self.model.predict([[prediction_input.age]])
+        (time_for_failure,) = self.model.predict([[prediction_input.age]])
         return PredictionOutput(time_for_failure=time_for_failure)
