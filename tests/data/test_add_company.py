@@ -5,6 +5,8 @@ from click.testing import CliRunner
 
 from app.data.add_company import add_company
 
+pytestmark = pytest.mark.usefixtures("stub_sec_lookup")
+
 REGISTRY = """companies:
   - tickers:
       - AMZN
@@ -27,7 +29,7 @@ def registry(tmp_path: Path) -> Path:
     return path
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def stub_sec_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "app.data.add_company.lookup_ticker",

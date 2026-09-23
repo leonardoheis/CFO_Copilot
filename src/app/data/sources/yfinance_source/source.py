@@ -29,7 +29,7 @@ class YfinanceSource:
     def __init__(self, registry: CompanyRegistry) -> None:
         self._registry = registry
 
-    def fetch_stock_history(  # ruff: ignore[no-self-use]  # public API of the source
+    def fetch_stock_history(
         self,
         ticker: str,
         start: date,
@@ -37,23 +37,23 @@ class YfinanceSource:
     ) -> pd.DataFrame:
         """Return the daily price history for a ticker.
 
+        Falls back through the registry's other market tickers for a
+        dual-listed company (e.g. GOOGL falling back to GOOG) when the
+        primary symbol has no data.
+
         Returns:
             A DataFrame of OHLCV rows indexed by trading day.
 
         Raises:
             TickerNotFoundError: If Yahoo Finance has no history for the ticker.
         """
-        normalized_ticker = ticker.upper()
-        history = try_stock_history(
-            yf.Ticker(normalized_ticker),
-            normalized_ticker,
-            start,
-            end,
-        )
-        if history.empty:
-            message = f"No Yahoo Finance history found for ticker {normalized_ticker}"
-            raise TickerNotFoundError(message)
-        return history
+        for candidate in self._registry.market_history_tickers(ticker):
+            history = try_stock_history(yf.Ticker(candidate), candidate, start, end)
+            if not history.empty:
+                return history
+
+        message = f"No Yahoo Finance history found for ticker {ticker.upper()}"
+        raise TickerNotFoundError(message)
 
     def fetch_market_panel(self, ticker: str, start: date, end: date) -> pd.DataFrame:
         normalized_ticker = ticker.upper()

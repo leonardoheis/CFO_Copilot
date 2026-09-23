@@ -128,42 +128,46 @@ def _validate_cik(cik: str) -> str:
     return cik
 
 
+def _to_domain_sec(
+    config: _KnownCikConfig | _DualCikConfig | _SecTickerLookupConfig,
+) -> KnownCik | DualCikFiling | SecTickerLookup:
+    match config:
+        case _KnownCikConfig(cik=cik):
+            return KnownCik(cik=_validate_cik(cik))
+        case _DualCikConfig(legacy_cik=legacy_cik, current_cik=current_cik):
+            return DualCikFiling(
+                legacy_cik=_validate_cik(legacy_cik),
+                current_cik=_validate_cik(current_cik),
+            )
+        case _SecTickerLookupConfig():
+            return SecTickerLookup()
+        case _ as unreachable:
+            assert_never(unreachable)
+
+
+def _to_domain_market(
+    config: _FromTickerConfig | _HistoryTickerConfig,
+) -> MarketFromTicker | MarketWithHistoryTicker:
+    match config:
+        case _FromTickerConfig():
+            return MarketFromTicker()
+        case _HistoryTickerConfig(history_ticker=history_ticker):
+            return MarketWithHistoryTicker(history_ticker=history_ticker.upper())
+        case _ as unreachable:
+            assert_never(unreachable)
+
+
 def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
     panel = CompanyPanelMetadata(
         company=config.panel.company,
         sector=config.panel.sector,
         is_public=config.panel.is_public,
     )
-    match config.sec:
-        case _KnownCikConfig(cik=cik):
-            sec: KnownCik | DualCikFiling | SecTickerLookup = KnownCik(
-                cik=_validate_cik(cik),
-            )
-        case _DualCikConfig(legacy_cik=legacy_cik, current_cik=current_cik):
-            sec = DualCikFiling(
-                legacy_cik=_validate_cik(legacy_cik),
-                current_cik=_validate_cik(current_cik),
-            )
-        case _SecTickerLookupConfig():
-            sec = SecTickerLookup()
-        case _ as unreachable:
-            assert_never(unreachable)
-
-    match config.market:
-        case _FromTickerConfig():
-            market: MarketFromTicker | MarketWithHistoryTicker = MarketFromTicker()
-        case _HistoryTickerConfig(history_ticker=history_ticker):
-            market = MarketWithHistoryTicker(
-                history_ticker=history_ticker.upper(),
-            )
-        case _ as unreachable_market:
-            assert_never(unreachable_market)
-
     return ScrapedCompany(
         tickers=config.tickers,
         panel=panel,
-        sec=sec,
-        market=market,
+        sec=_to_domain_sec(config.sec),
+        market=_to_domain_market(config.market),
     )
 
 
@@ -189,7 +193,8 @@ def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
     )
     duplicates = sorted(ticker for ticker, count in ticker_counts.items() if count > 1)
     if duplicates:
-        duplicate_msg = f"Duplicate company ticker aliases: {', '.join(duplicates)}"
+        alias_list = ", ".join(duplicates)
+        duplicate_msg = f"Duplicate company ticker aliases: {alias_list}"
         raise ValueError(duplicate_msg)
     return companies
 

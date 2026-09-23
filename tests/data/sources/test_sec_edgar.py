@@ -7,9 +7,8 @@ import pytest
 from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
-from app.data.schema import FINANCIAL_COLUMNS
+from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR
 from app.data.sources.sec_edgar import SecEdgarSource, merge_raw_financial_frames
-from app.data.sources.sec_edgar.concepts import TAG_CHAINS
 from app.data.xbrl import XbrlFact
 
 TEST_USER_AGENT = "CFO Copilot tests test@example.com"
@@ -18,6 +17,10 @@ TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 @pytest.fixture
 def sec_source(company_registry: CompanyRegistry) -> SecEdgarSource:
     return SecEdgarSource(user_agent=TEST_USER_AGENT, registry=company_registry)
+
+
+def _duration_fact(start: str, end: str, val: float, *, filed: str) -> XbrlFact:
+    return {"start": start, "end": end, "val": val, "filed": filed}
 
 
 def test_resolve_cik_for_amazon(sec_source: SecEdgarSource) -> None:
@@ -131,7 +134,8 @@ def test_dep_amort_chain_uses_later_tag_when_earlier_tags_are_empty(
     sec_source: SecEdgarSource,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    expected_value = 42.0
+    dep_amort_value = 42.0
+    operating_income_value = 1_000_000.0
     quarter = date(2020, 3, 31)
     requested_tags: list[str] = []
 
@@ -141,26 +145,29 @@ def test_dep_amort_chain_uses_later_tag_when_earlier_tags_are_empty(
         _unit: str = "USD",
     ) -> list[XbrlFact]:
         requested_tags.append(tag)
+        if tag == "OperatingIncomeLoss":
+            return [
+                _duration_fact(
+                    "2020-01-01",
+                    "2020-03-31",
+                    operating_income_value,
+                    filed="2020-05-01",
+                ),
+            ]
         if tag != "DepreciationAmortizationAndOther":
             return []
         return [
-            {
-                "start": "2020-01-01",
-                "end": "2020-03-31",
-                "val": expected_value,
-                "filed": "2020-05-01",
-            },
+            _duration_fact(
+                "2020-01-01", "2020-03-31", dep_amort_value, filed="2020-05-01"
+            ),
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
-    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
-        "0000789019",
-        TAG_CHAINS["dep_amort"],
-        [quarter],
-        None,
-    )
 
-    assert values.loc[quarter] == pytest.approx(expected_value)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    expected_ebitda = (operating_income_value + dep_amort_value) / MILLIONS_DIVISOR
+    assert panel.loc[0, "ebitda_usd_m"] == pytest.approx(expected_ebitda)
     assert "DepreciationAmortizationAndOther" in requested_tags
 
 
@@ -184,34 +191,25 @@ def test_tag_chain_skips_zero_from_earlier_tag_and_uses_real_value(
         _unit: str = "USD",
     ) -> list[XbrlFact]:
         if tag == "SalesRevenueNet":
-            return [
-                {
-                    "start": "2008-12-01",
-                    "end": "2009-02-28",
-                    "val": 0.0,
-                    "filed": "2009-04-01",
-                },
-            ]
+            return [_duration_fact("2008-12-01", "2009-02-28", 0.0, filed="2009-04-01")]
         if tag == "Revenues":
             return [
-                {
-                    "start": "2008-12-01",
-                    "end": "2009-02-28",
-                    "val": expected_value,
-                    "filed": "2009-04-01",
-                },
+                _duration_fact(
+                    "2008-12-01",
+                    "2009-02-28",
+                    expected_value,
+                    filed="2009-04-01",
+                ),
             ]
         return []
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
-    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
-        "0001341439",
-        TAG_CHAINS["revenue"],
-        [quarter],
-        None,
-    )
 
-    assert values.loc[quarter] == pytest.approx(expected_value)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(
+        expected_value / MILLIONS_DIVISOR
+    )
 
 
 def test_tag_chain_prefers_largest_when_a_superseded_tag_reports_a_subtotal(
@@ -232,23 +230,14 @@ def test_tag_chain_prefers_largest_when_a_superseded_tag_reports_a_subtotal(
         if tag not in values:
             return []
         return [
-            {
-                "start": "2009-12-01",
-                "end": "2010-02-28",
-                "val": values[tag],
-                "filed": "2010-04-01",
-            },
+            _duration_fact("2009-12-01", "2010-02-28", values[tag], filed="2010-04-01")
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
-    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
-        "0001341439",
-        TAG_CHAINS["revenue"],
-        [quarter],
-        None,
-    )
 
-    assert values.loc[quarter] == pytest.approx(total)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(total / MILLIONS_DIVISOR)
 
 
 def test_tag_chain_keeps_first_tag_when_concept_is_not_a_total(
@@ -272,23 +261,14 @@ def test_tag_chain_keeps_first_tag_when_concept_is_not_a_total(
         if tag not in values:
             return []
         return [
-            {
-                "start": "2023-01-01",
-                "end": "2023-03-31",
-                "val": values[tag],
-                "filed": "2023-04-25",
-            },
+            _duration_fact("2023-01-01", "2023-03-31", values[tag], filed="2023-04-25")
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
-    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
-        "0000789019",
-        TAG_CHAINS["eps"],
-        [quarter],
-        None,
-    )
 
-    assert values.loc[quarter] == pytest.approx(diluted)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    assert panel.loc[0, "eps"] == pytest.approx(diluted)
 
 
 def test_tag_chain_reads_goods_net_when_it_is_the_only_revenue_tag(
@@ -307,23 +287,18 @@ def test_tag_chain_reads_goods_net_when_it_is_the_only_revenue_tag(
         if tag != "SalesRevenueGoodsNet":
             return []
         return [
-            {
-                "start": "2015-01-01",
-                "end": "2015-03-31",
-                "val": expected_value,
-                "filed": "2015-04-23",
-            },
+            _duration_fact(
+                "2015-01-01", "2015-03-31", expected_value, filed="2015-04-23"
+            )
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
-    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
-        "0000021344",
-        TAG_CHAINS["revenue"],
-        [quarter],
-        None,
-    )
 
-    assert values.loc[quarter] == pytest.approx(expected_value)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(
+        expected_value / MILLIONS_DIVISOR
+    )
 
 
 def test_tag_chain_keeps_the_total_when_goods_net_is_a_component(
@@ -344,20 +319,11 @@ def test_tag_chain_keeps_the_total_when_goods_net_is_a_component(
         if tag not in values:
             return []
         return [
-            {
-                "start": "2015-01-01",
-                "end": "2015-03-31",
-                "val": values[tag],
-                "filed": "2015-04-22",
-            },
+            _duration_fact("2015-01-01", "2015-03-31", values[tag], filed="2015-04-22")
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
-    values = sec_source._fetch_tag_chain(  # ruff: ignore[private-member-access]
-        "0000063908",
-        TAG_CHAINS["revenue"],
-        [quarter],
-        None,
-    )
 
-    assert values.loc[quarter] == pytest.approx(total)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(total / MILLIONS_DIVISOR)

@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -321,10 +321,8 @@ def test_fiscal_date_outside_the_tolerance_raises(
 
 def test_every_calendar_date_maps_to_a_quarter_at_the_shipped_tolerance() -> None:
     """46 days is exactly half the longest quarter, so no date falls outside one."""
-    day = date(2006, 1, 1)
-    while day <= date(2006, 12, 31):
-        assert report_date({"fiscalDateEnding": day.isoformat()}) is not None
-        day += timedelta(days=1)
+    for day in pd.date_range(date(2006, 1, 1), date(2006, 12, 31)):
+        assert report_date({"fiscalDateEnding": day.date().isoformat()}) is not None
 
 
 def test_out_of_bounds_fiscal_date_raises_with_placement_message() -> None:

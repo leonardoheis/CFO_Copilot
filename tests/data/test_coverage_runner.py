@@ -9,7 +9,7 @@ from click.testing import CliRunner
 
 from app.data import coverage_runner
 from app.data.coverage import CoverageReport
-from app.data.coverage_runner import ProbeContext, probe_alpha_vantage, run_probe
+from app.data.coverage_runner import probe_alpha_vantage, run_probe
 from app.data.exceptions import DataSourceUnavailableError
 
 START = date(2020, 3, 31)
@@ -49,10 +49,6 @@ def probed_tickers(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 
     monkeypatch.setattr(coverage_runner, "_probe_ticker", fake_probe)
     return probed
-
-
-def test_default_start_is_twenty_years_before_end() -> None:
-    assert coverage_runner._default_start(END) == date(2004, 3, 31)  # ruff: ignore[private-member-access]
 
 
 def test_probe_writes_a_report_per_ticker(
@@ -105,9 +101,9 @@ def test_probe_records_a_data_source_error_and_continues(
     assert written["reports"][1]["ticker"] == "AMZN"
 
 
+@pytest.mark.usefixtures("probed_tickers")
 def test_probe_defaults_the_range_to_twenty_years_ending_last_quarter(
     tmp_path: Path,
-    probed_tickers: list[str],  # ruff: ignore[unused-function-argument]
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(coverage_runner, "most_recent_completed_quarter", lambda _: END)
@@ -123,43 +119,42 @@ def test_probe_defaults_the_range_to_twenty_years_ending_last_quarter(
     assert written["start"] == "2004-03-31"
 
 
-def test_build_probe_context_wires_sources_from_the_container(
+def test_probe_wires_sources_from_the_container_and_evaluates_the_overlap(
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Drives _build_probe_context and _probe_ticker through the public CLI.
+
+    Both are private and have no other seam to test through — the
+    `probed_tickers` fixture monkeypatches them away for every other test.
+    """
     container = MagicMock()
     alpha_vantage = MagicMock()
+    evaluate = MagicMock(return_value=_report("AMZN", passed=True))
     monkeypatch.setattr(coverage_runner, "configure_container", lambda: container)
     monkeypatch.setattr(coverage_runner, "AlphaVantageSource", alpha_vantage)
-
-    context = coverage_runner._build_probe_context(  # ruff: ignore[private-member-access]
-        START, END, refresh=True
-    )
-
-    assert context.sec_source is container.sec_edgar_source.return_value
-    assert context.market_source is container.yfinance_source.return_value
-    assert context.client is alpha_vantage.return_value
-    assert alpha_vantage.call_args.kwargs["refresh"] is True
-
-
-def test_probe_ticker_evaluates_alpha_against_sec_over_the_overlap(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    context = ProbeContext(
-        start=START,
-        end=END,
-        client=MagicMock(),
-        sec_source=MagicMock(),
-        market_source=MagicMock(),
-    )
-    evaluate = MagicMock(return_value=_report("AMZN", passed=True))
     monkeypatch.setattr(coverage_runner, "evaluate_coverage", evaluate)
+    output = tmp_path / "report.json"
 
-    report = coverage_runner._probe_ticker("AMZN", context)  # ruff: ignore[private-member-access]
+    result = CliRunner().invoke(
+        probe_alpha_vantage,
+        [
+            "--ticker", "amzn",
+            "--start", "2020-03-31",
+            "--end", "2024-03-31",
+            "--refresh",
+            "--output", str(output),
+        ],
+    )  # fmt: skip
 
-    assert report.passed is True
-    context.client.fetch_financials_panel.assert_called_once_with("AMZN", START, END)
-    sec_args = context.sec_source.fetch_financials_panel.call_args.args
-    assert sec_args[3] is context.market_source.fetch_splits.return_value
+    assert result.exit_code == 0, result.output
+    assert alpha_vantage.call_args.kwargs["refresh"] is True
+    client = alpha_vantage.return_value
+    client.fetch_financials_panel.assert_called_once_with("AMZN", START, END)
+    sec_source = container.sec_edgar_source.return_value
+    market_source = container.yfinance_source.return_value
+    sec_args = sec_source.fetch_financials_panel.call_args.args
+    assert sec_args[3] is market_source.fetch_splits.return_value
     assert evaluate.call_args.args[0] == "AMZN"
 
 

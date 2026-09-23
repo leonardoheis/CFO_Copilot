@@ -1,11 +1,10 @@
 """Register a new ticker in config/companies.yaml after verifying it with SEC."""
 
-import json
-import urllib.request
 from pathlib import Path
 from typing import Final
 
 import click
+import requests
 
 from app.data.companies import CompanyRegistry
 from app.settings import Settings
@@ -36,12 +35,13 @@ def lookup_ticker(ticker: str) -> tuple[str, str] | None:
         Its zero-padded CIK and registered title, or None when SEC has no
         such ticker.
     """
-    request = urllib.request.Request(  # https, fixed SEC URL
+    response = requests.get(
         SEC_TICKERS_URL,
         headers={"User-Agent": Settings.SEC_USER_AGENT},
+        timeout=Settings.REQUEST_TIMEOUT,
     )
-    with urllib.request.urlopen(request, timeout=Settings.REQUEST_TIMEOUT) as response:  # ruff: ignore[suspicious-url-open-usage]
-        payload = json.load(response)
+    response.raise_for_status()
+    payload = response.json()
 
     wanted = ticker.upper()
     for entry in payload.values():

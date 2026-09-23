@@ -191,9 +191,20 @@ def _find_annual_minus_three_quarters(
     }
 
 
-def _deduplicate_fact_records(
+def _fact_period(fact: XbrlFact) -> tuple[date, date]:
+    try:
+        return (
+            date.fromisoformat(fact["start"]),
+            date.fromisoformat(fact["end"]),
+        )
+    except ValueError as error:
+        msg = f"Malformed SEC duration fact dates: {fact!r}"
+        raise MalformedPayloadError(msg) from error
+
+
+def _group_facts_by_period(
     facts: list[XbrlFact],
-) -> dict[tuple[date, date], QuarterlyFact]:
+) -> dict[tuple[date, date], list[XbrlFact]]:
     grouped: dict[tuple[date, date], list[XbrlFact]] = defaultdict(list)
     for fact in facts:
         if "start" not in fact:
@@ -201,18 +212,16 @@ def _deduplicate_fact_records(
             # describes a balance, not a period, so it cannot be a quarter.
             logger.warning("Skipping instant fact under a duration concept: %r", fact)
             continue
-        try:
-            period = (
-                date.fromisoformat(fact["start"]),
-                date.fromisoformat(fact["end"]),
-            )
-        except ValueError as error:
-            msg = f"Malformed SEC duration fact dates: {fact!r}"
-            raise MalformedPayloadError(
-                msg,
-            ) from error
-        grouped[period].append(fact)
+        grouped[_fact_period(fact)].append(fact)
+    return grouped
 
+
+def _rejected_accessions(grouped: dict[tuple[date, date], list[XbrlFact]]) -> set[str]:
+    """Accessions outvoted by the majority value in enough periods to distrust.
+
+    Returns:
+        Accession numbers to exclude when a period has an undisputed winner.
+    """
     outvoted_counts: dict[str, int] = defaultdict(int)
     for period_facts in grouped.values():
         majority = _majority_value(period_facts)
@@ -222,12 +231,17 @@ def _deduplicate_fact_records(
             accession = fact.get("accn")
             if accession and not _values_match(_fact_value(fact), majority):
                 outvoted_counts[accession] += 1
-    rejected = {
+    return {
         accession
         for accession, count in outvoted_counts.items()
         if count >= MIN_REJECTED_PERIODS
     }
 
+
+def _select_fact_per_period(
+    grouped: dict[tuple[date, date], list[XbrlFact]],
+    rejected: set[str],
+) -> dict[tuple[date, date], QuarterlyFact]:
     selected: dict[tuple[date, date], QuarterlyFact] = {}
     for period, period_facts in grouped.items():
         candidates = [fact for fact in period_facts if fact.get("accn") not in rejected]
@@ -239,6 +253,14 @@ def _deduplicate_fact_records(
             "filed": fact["filed"],
         }
     return selected
+
+
+def _deduplicate_fact_records(
+    facts: list[XbrlFact],
+) -> dict[tuple[date, date], QuarterlyFact]:
+    grouped = _group_facts_by_period(facts)
+    rejected = _rejected_accessions(grouped)
+    return _select_fact_per_period(grouped, rejected)
 
 
 def _deduplicate_instant_facts(

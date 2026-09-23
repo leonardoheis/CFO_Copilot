@@ -11,13 +11,13 @@ from app.services import PredictionService, TrainingService
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(_isolated_model_path: None) -> TestClient:
     app = create_app()
     return TestClient(app)
 
 
-@pytest.fixture(autouse=True)
-def isolated_model_path(tmp_path: Path) -> Generator[None]:
+@pytest.fixture
+def _isolated_model_path(tmp_path: Path) -> Generator[None]:
     container = configure_container()
     model_path = tmp_path / "model.joblib"
     with (
