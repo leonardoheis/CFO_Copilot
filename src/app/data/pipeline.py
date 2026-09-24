@@ -82,7 +82,7 @@ def merge_panel(
         list(METADATA_COLUMNS),
     ]
     splits = sources.yfinance.fetch_splits(ticker)
-    financials = sources.sec_edgar.fetch_financials_panel(
+    financials = sources.fetch_sec_financials(
         ticker,
         start,
         end,
@@ -96,7 +96,7 @@ def merge_panel(
         sources,
     )
     market = sources.yfinance.fetch_market_panel(ticker, start, end)
-    macro = sources.fred.fetch_macro_panel(start, end)
+    macro = sources.fetch_macro_panel(start, end)
     index_returns = sources.yfinance.fetch_index_return_panel(start, end)
 
     for source_panel in (financials, market, macro, index_returns):
@@ -119,13 +119,13 @@ def _fill_missing_financials(
     end: date,
     sources: IngestionSources,
 ) -> pd.DataFrame:
-    fallback_source = sources.financials_fallback
+    fetch_fallback = sources.fetch_fallback_financials
     value_columns = [*FINANCIAL_COLUMNS, "shares_outstanding"]
     missing_count = int(financials[value_columns].isna().to_numpy().sum())
     if missing_count == 0:
         return financials
 
-    if fallback_source is None:
+    if fetch_fallback is None:
         # Without this the panel is written with the gaps still in it and no
         # trace of why, which reads as missing source data rather than as a
         # fallback that was never wired (an unset ALPHA_VANTAGE_API_KEY).
@@ -136,7 +136,7 @@ def _fill_missing_financials(
         )
         return financials
 
-    fallback = fallback_source.fetch_financials_panel(ticker, start, end)
+    fallback = fetch_fallback(ticker, start, end)
     preferred = financials.set_index("date")
     supplemental = fallback.set_index("date")
     combined = preferred.combine_first(supplemental)

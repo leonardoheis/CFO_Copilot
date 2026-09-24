@@ -35,12 +35,10 @@ class Container(containers.DeclarativeContainer):
     )
 
     ingestion_sources = providers.Factory(
-        IngestionSources,
+        IngestionSources.from_sources,
         fred=fred_source,
         yfinance=yfinance_source,
         sec_edgar=sec_edgar_source,
         registry=company_registry,
-        financials_fallback=(
-            alpha_vantage_source if Settings.ALPHA_VANTAGE_API_KEY else None
-        ),
+        alpha_vantage=alpha_vantage_source if Settings.ALPHA_VANTAGE_API_KEY else None,
     )

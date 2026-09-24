@@ -4,7 +4,7 @@
 **Repo:** `leonardoheis/CFO_Copilot` (ELC FastAPI production template)
 **Deliverable:** FastAPI + Streamlit app on Render, serving per-series model selection with calibrated intervals, charts, and an NL-SQL chat.
 **Thesis scope:** ML / time-series forecasting. The chat layer is a product feature, not a thesis contribution.
-**Status:** data collection in progress (7 of 60 companies).
+**Status:** per-company panels ingested for 60 of 60 companies; NB00 consolidation next (`docs/plans/nb00-ingest-and-consolidate.md`).
 **Last updated:** 2026-09-16 — rev 4 (adds Appendix F literature grounding + references.bib)
 
 ---
@@ -51,7 +51,7 @@
 
 ### 0.3 Blocking task
 
-**E1 — is the 2026-Q2 row reported or projected?** Not answerable from the parquet alone. If projected values sit in the test set, every backtest number measures a forecast against a forecast. **Resolve before NB00 completes.**
+**E1 — is the 2026-Q2 row reported or projected?** **Resolved 2026-09-23: reported.** Confirmed by the project owner; all 60 companies carry 2026-Q2 revenue and none repeats the prior quarter. 2026-Q3 is the forecast quarter (horizon 1 from the 2026-Q2 origin). Recorded in `docs/specs/nb00-ingest-and-consolidate.md`; `is_projected` is true only for quarters after `Settings.LAST_REPORTED_QUARTER`.
 
 ---
 

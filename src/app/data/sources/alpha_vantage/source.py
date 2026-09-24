@@ -59,10 +59,10 @@ class AlphaVantageSource:
     ) -> pd.DataFrame:
         self._ensure_api_key()
         normalized_ticker = ticker.upper()
-        income = self._request(INCOME_STATEMENT, normalized_ticker)
-        cash_flow = self._request(CASH_FLOW, normalized_ticker)
-        balance = self._request(BALANCE_SHEET, normalized_ticker)
-        earnings = self._request(EARNINGS, normalized_ticker)
+        income = self.fetch_payload(INCOME_STATEMENT, normalized_ticker)
+        cash_flow = self.fetch_payload(CASH_FLOW, normalized_ticker)
+        balance = self.fetch_payload(BALANCE_SHEET, normalized_ticker)
+        earnings = self.fetch_payload(EARNINGS, normalized_ticker)
 
         values_by_date: dict[date, FinancialQuarterValues] = {}
         merge_income(values_by_date, income)
@@ -80,7 +80,7 @@ class AlphaVantageSource:
             ["date", *FINANCIAL_COLUMNS, "shares_outstanding"],
         ]
 
-    def _request(self, function: str, ticker: str) -> JsonObject:
+    def fetch_payload(self, function: str, ticker: str) -> JsonObject:
         cache_path = self._cache_path(function, ticker)
         if cache_path.exists() and not self._refresh:
             return _read_cache(cache_path)

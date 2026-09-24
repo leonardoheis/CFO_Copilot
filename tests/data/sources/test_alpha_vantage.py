@@ -102,6 +102,19 @@ def test_fetch_financials_panel_maps_quarterly_values(
     assert panel.loc[0, "shares_outstanding"] == pytest.approx(1_000_000_000)
 
 
+def test_fetch_payload_returns_the_raw_json_and_caches_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payloads = _payloads()
+    source = _source(tmp_path, monkeypatch, payloads)
+
+    payload = source.fetch_payload("EARNINGS", "AMZN")
+
+    assert payload == payloads["EARNINGS"]
+    assert (tmp_path / "AMZN" / "earnings.json").exists()
+
+
 def test_cache_is_reused_without_second_http_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

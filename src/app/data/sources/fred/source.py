@@ -1,9 +1,9 @@
+import importlib
 from datetime import date
-from typing import Any, Final, Protocol, cast
+from typing import Any, Final, cast
 
 import pandas as pd
 import requests
-from fredapi import Fred
 
 from app.data.dates import align_series_to_quarters, quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError
@@ -28,32 +28,22 @@ MISSING_FRED_API_KEY_MESSAGE: Final = (
 )
 
 
-class _FredClient(Protocol):
-    def get_series(
-        self,
-        series_id: str,
-        *,
-        observation_start: str,
-        observation_end: str,
-        **kwargs: Any,
-    ) -> pd.Series: ...
-
-
 class FredSource:
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
-        self._client: _FredClient | None = None
+        self._client: Any = None
 
     def _ensure_api_key(self) -> None:
         if not self._api_key:
             raise DataSourceUnavailableError(MISSING_FRED_API_KEY_MESSAGE)
 
-    @property
-    def _fred(self) -> _FredClient:
+    def _get_series(self, series_id: str, **kwargs: Any) -> pd.Series:
         self._ensure_api_key()
         if self._client is None:
-            self._client = cast("_FredClient", Fred(api_key=self._api_key))
-        return self._client
+            self._client = importlib.import_module("fredapi").Fred(
+                api_key=self._api_key,
+            )
+        return cast("pd.Series", self._client.get_series(series_id, **kwargs))
 
     def fetch_macro_series(
         self,
@@ -64,7 +54,7 @@ class FredSource:
     ) -> pd.Series:
         self._ensure_api_key()
         try:
-            return self._fred.get_series(
+            return self._get_series(
                 series_id,
                 observation_start=start.isoformat(),
                 observation_end=end.isoformat(),

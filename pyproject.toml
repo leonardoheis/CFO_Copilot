@@ -177,8 +177,6 @@ module = [
     "fredapi.*",
     "sklearn.*",
 ]
-ignore_missing_imports = true
-
 
 #########################
 # RUFF
@@ -296,7 +294,7 @@ bad-functions = ["map", "filter"]
 
 [tool.pylint.design]
 max-args = 7
-max-attributes = 9
+max-attributes = 7
 max-bool-expr = 5
 max-branches = 12
 max-complexity = 10
@@ -348,8 +346,7 @@ disable = [
     "not-an-iterable",                        # Too many false positives
     "assignment-from-no-return",              # Too many false positives
     "magic-value-comparison",
-    "consider-using-namedtuple-or-dataclass",
-    "too-few-public-methods",                 # Intentional for typing.Protocol sources
+    "consider-using-namedtuple-or-dataclass",               # Intentional for typing.Protocol sources
 ]
 
 enable = [

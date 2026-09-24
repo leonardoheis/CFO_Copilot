@@ -38,12 +38,10 @@ EXPECTED_SHARES = 1_000_000_000.0
 EXPECTED_FALLBACK_EBITDA = 275.0
 
 
-class FakeMacroSource:
-    @staticmethod
-    def fetch_macro_panel(_start: date, _end: date) -> pd.DataFrame:
-        values = {column: [math.nan] * 2 for column in FRED_MACRO_COLUMNS}
-        values["fed_funds"] = [EXPECTED_FED_FUNDS, 2.0]
-        return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
+def fake_macro_panel(_start: date, _end: date) -> pd.DataFrame:
+    values = {column: [math.nan] * 2 for column in FRED_MACRO_COLUMNS}
+    values["fed_funds"] = [EXPECTED_FED_FUNDS, 2.0]
+    return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
 
 
 class FakeMarketSource:
@@ -70,52 +68,46 @@ class FakeMarketSource:
         return pd.Series(dtype=float)
 
 
-class FakeFinancialsSource:
-    @staticmethod
-    def fetch_financials_panel(
-        _ticker: str,
-        _start: date,
-        _end: date,
-        _splits: pd.Series,
-    ) -> pd.DataFrame:
-        values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
-        values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
-        values["net_income_usd_m"] = [100.0, 110.0]
-        values["eps"] = [EXPECTED_ADJUSTED_EPS, -1.0]
-        return pd.DataFrame(
-            {
-                "date": TEST_QUARTER_DATES,
-                **values,
-                "shares_outstanding": [EXPECTED_SHARES] * 2,
-            },
-        )
+def fake_sec_financials(
+    _ticker: str,
+    _start: date,
+    _end: date,
+    _splits: pd.Series,
+) -> pd.DataFrame:
+    values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
+    values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
+    values["net_income_usd_m"] = [100.0, 110.0]
+    values["eps"] = [EXPECTED_ADJUSTED_EPS, -1.0]
+    return pd.DataFrame(
+        {
+            "date": TEST_QUARTER_DATES,
+            **values,
+            "shares_outstanding": [EXPECTED_SHARES] * 2,
+        },
+    )
 
 
-class FakeFallbackFinancialsSource:
-    @staticmethod
-    def fetch_financials_panel(
-        _ticker: str,
-        _start: date,
-        _end: date,
-    ) -> pd.DataFrame:
-        values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
-        values["revenue_usd_m"] = [900.0, 950.0]
-        values["ebitda_usd_m"] = [EXPECTED_FALLBACK_EBITDA, 300.0]
-        values["eps"] = [10.0, 2.0]
-        return pd.DataFrame(
-            {
-                "date": TEST_QUARTER_DATES,
-                **values,
-                "shares_outstanding": [900_000_000.0] * 2,
-            },
-        )
+def fake_fallback_financials(
+    _ticker: str,
+    _start: date,
+    _end: date,
+) -> pd.DataFrame:
+    values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
+    values["revenue_usd_m"] = [900.0, 950.0]
+    values["ebitda_usd_m"] = [EXPECTED_FALLBACK_EBITDA, 300.0]
+    values["eps"] = [10.0, 2.0]
+    return pd.DataFrame(
+        {
+            "date": TEST_QUARTER_DATES,
+            **values,
+            "shares_outstanding": [900_000_000.0] * 2,
+        },
+    )
 
 
-class FailingMacroSource:
-    @staticmethod
-    def fetch_macro_panel(_start: date, _end: date) -> pd.DataFrame:
-        msg = "macro source unavailable"
-        raise DataSourceUnavailableError(msg)
+def failing_macro_panel(_start: date, _end: date) -> pd.DataFrame:
+    msg = "macro source unavailable"
+    raise DataSourceUnavailableError(msg)
 
 
 def test_most_recent_completed_quarter_for_august() -> None:
@@ -165,9 +157,9 @@ def test_merge_panel_fills_columns_from_every_source(
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
         sources=IngestionSources(
-            fred=FakeMacroSource(),
+            fetch_macro_panel=fake_macro_panel,
             yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
+            fetch_sec_financials=fake_sec_financials,
             registry=company_registry,
         ),
     )
@@ -189,9 +181,9 @@ def test_merge_panel_derives_pe_ratio_from_price_and_earnings(
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
         sources=IngestionSources(
-            fred=FakeMacroSource(),
+            fetch_macro_panel=fake_macro_panel,
             yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
+            fetch_sec_financials=fake_sec_financials,
             registry=company_registry,
         ),
     )
@@ -208,11 +200,11 @@ def test_merge_panel_fills_only_missing_sec_values_from_fallback(
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
         sources=IngestionSources(
-            fred=FakeMacroSource(),
+            fetch_macro_panel=fake_macro_panel,
             yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
+            fetch_sec_financials=fake_sec_financials,
             registry=company_registry,
-            financials_fallback=FakeFallbackFinancialsSource(),
+            fetch_fallback_financials=fake_fallback_financials,
         ),
     )
 
@@ -232,9 +224,9 @@ def test_merge_panel_warns_when_gaps_remain_without_a_fallback(
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
             sources=IngestionSources(
-                fred=FakeMacroSource(),
+                fetch_macro_panel=fake_macro_panel,
                 yfinance=FakeMarketSource(),
-                sec_edgar=FakeFinancialsSource(),
+                fetch_sec_financials=fake_sec_financials,
                 registry=company_registry,
             ),
         )
@@ -251,9 +243,9 @@ def test_merge_panel_adjusts_eps_to_current_share_basis(
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
         sources=IngestionSources(
-            fred=FakeMacroSource(),
+            fetch_macro_panel=fake_macro_panel,
             yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
+            fetch_sec_financials=fake_sec_financials,
             registry=company_registry,
         ),
     )
@@ -266,9 +258,9 @@ def test_merge_panel_propagates_source_errors(
 ) -> None:
     start, end = date(2020, 1, 1), date(2020, 6, 30)
     sources = IngestionSources(
-        fred=FailingMacroSource(),
+        fetch_macro_panel=failing_macro_panel,
         yfinance=FakeMarketSource(),
-        sec_edgar=FakeFinancialsSource(),
+        fetch_sec_financials=fake_sec_financials,
         registry=company_registry,
     )
 
@@ -280,17 +272,19 @@ def test_merge_panel_propagates_source_errors(
 def test_merge_panel_returns_panel_after_all_sources_are_implemented(
     company_registry: CompanyRegistry,
 ) -> None:
+    fred = FredSource(api_key=Settings.FRED_API_KEY or "test-key")
+    sec_edgar = SecEdgarSource(
+        user_agent=Settings.SEC_USER_AGENT or TEST_USER_AGENT,
+        registry=company_registry,
+    )
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
         sources=IngestionSources(
-            fred=FredSource(api_key=Settings.FRED_API_KEY or "test-key"),
+            fetch_macro_panel=fred.fetch_macro_panel,
             yfinance=YfinanceSource(registry=company_registry),
-            sec_edgar=SecEdgarSource(
-                user_agent=Settings.SEC_USER_AGENT or TEST_USER_AGENT,
-                registry=company_registry,
-            ),
+            fetch_sec_financials=sec_edgar.fetch_financials_panel,
             registry=company_registry,
         ),
     )
