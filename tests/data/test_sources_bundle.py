@@ -1,4 +1,7 @@
-from pathlib import Path
+from datetime import date
+from unittest.mock import create_autospec
+
+import pandas as pd
 
 from app.data.companies import CompanyRegistry
 from app.data.sources import (
@@ -10,51 +13,70 @@ from app.data.sources import (
 from app.data.sources_bundle import IngestionSources
 from app.injections.production import Container
 
-TEST_USER_AGENT = "CFO Copilot tests@example.com"
+START = date(2020, 3, 31)
+END = date(2020, 6, 30)
+NO_SPLITS = pd.Series(dtype=float)
 
 
 def _bundle(
     registry: CompanyRegistry,
+    *,
+    fred: FredSource,
+    sec_edgar: SecEdgarSource,
     alpha_vantage: AlphaVantageSource | None = None,
-) -> tuple[IngestionSources, FredSource, SecEdgarSource]:
-    fred = FredSource(api_key="test-key")
-    sec_edgar = SecEdgarSource(user_agent=TEST_USER_AGENT, registry=registry)
-    sources = IngestionSources.from_sources(
+) -> IngestionSources:
+    return IngestionSources.from_sources(
         fred=fred,
         yfinance=YfinanceSource(registry=registry),
         sec_edgar=sec_edgar,
         registry=registry,
         alpha_vantage=alpha_vantage,
     )
-    return sources, fred, sec_edgar
 
 
 def test_from_sources_binds_each_sources_fetch_method(
     company_registry: CompanyRegistry,
 ) -> None:
-    sources, fred, sec_edgar = _bundle(company_registry)
+    fred = create_autospec(FredSource, instance=True)
+    sec_edgar = create_autospec(SecEdgarSource, instance=True)
+    sources = _bundle(company_registry, fred=fred, sec_edgar=sec_edgar)
 
-    assert sources.fetch_macro_panel == fred.fetch_macro_panel
-    assert sources.fetch_sec_financials == sec_edgar.fetch_financials_panel
+    sources.fetch_macro_panel(START, END)
+    sources.fetch_sec_financials("AAA", START, END, NO_SPLITS)
+
+    fred.fetch_macro_panel.assert_called_once_with(START, END)
+    sec_edgar.fetch_financials_panel.assert_called_once_with(
+        "AAA", START, END, NO_SPLITS
+    )
 
 
 def test_without_alpha_vantage_there_is_no_fallback(
     company_registry: CompanyRegistry,
 ) -> None:
-    sources, _, _ = _bundle(company_registry)
+    sources = _bundle(
+        company_registry,
+        fred=create_autospec(FredSource, instance=True),
+        sec_edgar=create_autospec(SecEdgarSource, instance=True),
+    )
 
     assert sources.fetch_fallback_financials is None
 
 
 def test_alpha_vantage_becomes_the_fallback(
     company_registry: CompanyRegistry,
-    tmp_path: Path,
 ) -> None:
-    alpha_vantage = AlphaVantageSource("test-key", tmp_path)
+    alpha_vantage = create_autospec(AlphaVantageSource, instance=True)
+    sources = _bundle(
+        company_registry,
+        fred=create_autospec(FredSource, instance=True),
+        sec_edgar=create_autospec(SecEdgarSource, instance=True),
+        alpha_vantage=alpha_vantage,
+    )
 
-    sources, _, _ = _bundle(company_registry, alpha_vantage)
+    assert sources.fetch_fallback_financials is not None
+    sources.fetch_fallback_financials("AAA", START, END)
 
-    assert sources.fetch_fallback_financials == alpha_vantage.fetch_financials_panel
+    alpha_vantage.fetch_financials_panel.assert_called_once_with("AAA", START, END)
 
 
 def test_the_container_builds_the_bundle() -> None:

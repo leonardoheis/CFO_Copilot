@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "0.12.18"
+    rev: "0.12.19"
     hooks:
     -   id: uv-lock
 
@@ -42,7 +42,7 @@ repos:
     -   id: pre-commit-update
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.16.8"
+    rev: "v0.16.9"
     hooks:
     -   id: ruff-format
     -   id: ruff-check
@@ -106,6 +106,10 @@ repos:
         -   "git+https://github.com/microsoft/python-type-stubs.git"
         -   "pandas-stubs>=2.3.0.250703"
         -   "pandas>=2.3.1"
+        -   "wandb>=0.26.1"
+        -   "matplotlib>=3.11.2"
+        -   "statsmodels>=0.15.0"
+        -   "scipy>=1.16.1"
         -   "fredapi>=0.5.2"
         -   "yfinance>=0.2.65"
         -   "click>=8.1.0,<8.2"
@@ -154,6 +158,10 @@ repos:
         -   "git+https://github.com/microsoft/python-type-stubs.git"
         -   "pandas-stubs>=2.3.0.250703"
         -   "pandas>=2.3.1"
+        -   "wandb>=0.26.1"
+        -   "matplotlib>=3.11.2"
+        -   "statsmodels>=0.15.0"
+        -   "scipy>=1.16.1"
         -   "fredapi>=0.5.2"
         -   "yfinance>=0.2.65"
         -   "click>=8.1.0,<8.2"

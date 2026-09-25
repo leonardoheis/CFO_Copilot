@@ -71,8 +71,23 @@ def merge_earnings(
         key="quarterlyEarnings",
     ):
         earnings_per_share = number(report, "reportedEPS")
-        if earnings_per_share is not None and values.eps is None:
-            values.eps = earnings_per_share
+        if earnings_per_share is None or values.eps is not None:
+            continue
+        if _is_placeholder_zero(earnings_per_share, values.net_income_usd_m):
+            logger.warning(
+                "Alpha Vantage reportedEPS is 0 despite non-zero net income for %s; "
+                "treating it as missing",
+                report.get("fiscalDateEnding"),
+            )
+            continue
+        values.eps = earnings_per_share
+
+
+def _is_placeholder_zero(
+    earnings_per_share: float, net_income_usd_m: float | None
+) -> bool:
+    # The vendor writes 0 for quarters it has no EPS for; a real 0 needs 0 net income.
+    return earnings_per_share == 0 and net_income_usd_m not in {None, 0}
 
 
 def _quarterly_reports(

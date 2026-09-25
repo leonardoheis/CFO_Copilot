@@ -272,6 +272,42 @@ def test_missing_diluted_eps_still_falls_back_to_basic_eps(
     assert panel.loc[0, "eps"] == pytest.approx(1.5)
 
 
+def _earnings_only_payloads(
+    reported_eps: str, net_income: str
+) -> dict[str, dict[str, object]]:
+    # No EPS on the income statement, as Alpha Vantage serves Costco's May quarters.
+    payloads = _payloads()
+    income_report = payloads["INCOME_STATEMENT"]["quarterlyReports"][0]  # type: ignore[index]
+    del income_report["dilutedEPS"]
+    income_report["netIncome"] = net_income
+    payloads["EARNINGS"]["quarterlyEarnings"][0]["reportedEPS"] = reported_eps  # type: ignore[index]
+    return payloads
+
+
+def test_reported_zero_eps_with_positive_net_income_is_treated_as_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    source = _source(tmp_path, monkeypatch, _earnings_only_payloads("0", "100000000"))
+
+    panel = source.fetch_financials_panel("COST", date(2006, 1, 1), date(2006, 3, 31))
+
+    assert pd.isna(panel.loc[0, "eps"])
+    assert "treating it as missing" in caplog.text
+
+
+def test_reported_zero_eps_with_zero_net_income_is_kept(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _source(tmp_path, monkeypatch, _earnings_only_payloads("0", "0"))
+
+    panel = source.fetch_financials_panel("COST", date(2006, 1, 1), date(2006, 3, 31))
+
+    assert panel.loc[0, "eps"] == pytest.approx(0.0)
+
+
 def test_zero_revenue_quarter_yields_no_margins_instead_of_dividing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

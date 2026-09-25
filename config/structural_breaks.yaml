@@ -1,0 +1,10 @@
+# Quarter in which a spin-off, merger or reorganisation broke the comparability
+# of year-over-year figures. Master plan §3.4. Add a company by editing this file.
+# GE: master says "2023-24"; these two quarters are proposed, please confirm.
+breaks:
+  ABT: [2013-03-31]
+  BMY: [2019-12-31]
+  PFE: [2020-12-31]
+  MRK: [2021-06-30]
+  T: [2022-06-30]
+  GE: [2023-03-31, 2024-06-30]

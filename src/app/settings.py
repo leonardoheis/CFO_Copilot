@@ -1,5 +1,7 @@
 import sys
+from datetime import date
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -7,7 +9,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # name must stay. It resolves against the current directory though, which leaves
 # every credential empty when the CLI is run from anywhere but the repo root, so
 # the checkout's own .env is offered alongside it.
-_REPOSITORY_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+_REPOSITORY_ENV_FILE = _REPOSITORY_ROOT / ".env"
 
 
 class _Settings(BaseSettings):
@@ -18,6 +21,13 @@ class _Settings(BaseSettings):
     FRED_API_KEY: str = ""
     SEC_USER_AGENT: str = ""
     ALPHA_VANTAGE_API_KEY: str = ""
+    LAST_REPORTED_QUARTER: date = date(2026, 6, 30)
+    WANDB_PROJECT: str = "cfo-copilot"
+    WANDB_ENTITY: str = ""
+    WANDB_API_KEY: str = ""
+    WANDB_MODE: Literal["online", "offline", "disabled"] = "offline"
+    # wandb appends its own `wandb/` folder, so runs land in <repo>/wandb/.
+    WANDB_DIR: Path = _REPOSITORY_ROOT
 
     model_config = SettingsConfigDict(
         env_file=(_REPOSITORY_ENV_FILE, ".env"),
@@ -81,6 +91,18 @@ class _Settings(BaseSettings):
     @property
     def COMPANY_REGISTRY_PATH(self) -> Path:
         return self.ROOT_PATH / "config" / "companies.yaml"
+
+    @property
+    def STRUCTURAL_BREAKS_PATH(self) -> Path:
+        return self.ROOT_PATH / "config" / "structural_breaks.yaml"
+
+    @property
+    def PANEL_LONG_PATH(self) -> Path:
+        return self.DATA_DIRECTORY / "processed" / "panel_long.parquet"
+
+    @property
+    def MACRO_Q_PATH(self) -> Path:
+        return self.DATA_DIRECTORY / "processed" / "macro_q.parquet"
 
     def panel_output_path(self, ticker: str) -> Path:
         processed_directory = self.DATA_DIRECTORY / "processed"

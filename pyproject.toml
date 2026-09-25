@@ -22,6 +22,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "requests>=2.32.4",
     "scikit-learn>=1.7.1",
+    "scipy>=1.16.1",
     "statsmodels>=0.15.0",
     "streamlit>=1.48.0",
     "uvicorn[standard]==0.35.0",
@@ -56,6 +57,10 @@ dev = [
     "pandas-stubs>=2.3.0.250703",
     "types-requests>=2.32.4",
     "types-pyyaml>=6.0.12.20250516",
+]
+research = [
+    "ipykernel>=7.3.0",
+    "wandb>=0.26.1",
 ]
 
 
@@ -177,6 +182,7 @@ module = [
     "fredapi.*",
     "sklearn.*",
 ]
+ignore_missing_imports = true
 
 #########################
 # RUFF
