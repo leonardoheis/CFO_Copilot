@@ -1,5 +1,5 @@
 import importlib
-from collections.abc import Callable, Generator, Mapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
 from types import ModuleType
@@ -7,6 +7,7 @@ from typing import Protocol
 
 import pandas as pd
 from matplotlib.figure import Figure
+from pydantic import BaseModel, ConfigDict
 
 from app.services.tracking.config import RunConfig, WandbSettings
 from app.services.tracking.exceptions import (
@@ -57,16 +58,12 @@ class WandbRun:
         self._run.log_artifact(artifact)
 
 
-class WandbTracker:
+class WandbTracker(BaseModel):
     """Start W&B runs; offline mode keeps a tracking outage from blocking work."""
 
-    def __init__(
-        self,
-        settings: WandbSettings,
-        load_wandb: Callable[[], ModuleType] = import_wandb,
-    ) -> None:
-        self._settings = settings
-        self._load_wandb = load_wandb
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    settings: WandbSettings
 
     @contextmanager
     def start_run(
@@ -77,17 +74,17 @@ class WandbTracker:
         Yields:
             A handle for logging metrics, tables, figures and datasets.
         """
-        wandb = self._load_wandb()
+        wandb = import_wandb()
         self._login_when_online(wandb)
-        self._settings.run_directory.mkdir(parents=True, exist_ok=True)
+        self.settings.run_directory.mkdir(parents=True, exist_ok=True)
         run = wandb.init(
-            dir=str(self._settings.run_directory),
-            project=self._settings.project,
-            entity=self._settings.entity,
+            dir=str(self.settings.run_directory),
+            project=self.settings.project,
+            entity=self.settings.entity,
             name=name,
             job_type=job_type,
             config=config.model_dump(mode="json"),
-            mode=self._settings.mode,
+            mode=self.settings.mode,
         )
         try:
             yield WandbRun(run, wandb)
@@ -95,9 +92,9 @@ class WandbTracker:
             run.finish()
 
     def _login_when_online(self, wandb: ModuleType) -> None:
-        if self._settings.mode != "online":
+        if self.settings.mode != "online":
             return
-        if not self._settings.api_key:
+        if not self.settings.api_key:
             message = "WANDB_MODE is online but WANDB_API_KEY is empty; set it in .env"
             raise MissingApiKeyError(message)
-        wandb.login(key=self._settings.api_key)
+        wandb.login(key=self.settings.api_key)

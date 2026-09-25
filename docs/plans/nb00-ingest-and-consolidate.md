@@ -6,7 +6,7 @@
 
 **Goal:** Turn the 60 ingested per-company panels into `panel_long` and `macro_q` with `covid`, `structural_break`, `outlier_flag` and `is_projected` flags and a missing-value ledger, tracked in W&B, so the EDA notebook has a finished dataset to read.
 
-**Architecture:** Stateful collaborators (panel store, tracker, structural-break registry) are constructor-injected through the existing `dependency-injector` `Container`. Consolidation, flags and the ledger are pure functions under `app/data/`, imported directly, because a class with no state fails `PLR6301`. W&B sits behind an `ExperimentTracker` protocol and is imported lazily, so the Docker image, which never installs the `research` group, still boots.
+**Architecture:** Stateful collaborators (panel store, tracker, structural-break registry) are constructor-injected through the existing `dependency-injector` `Container`. Consolidation, flags and the ledger are pure functions under `app/data/`, imported directly, because a class with no state fails `PLR6301`. W&B is imported lazily inside `WandbTracker.start_run`, so the Docker image, which never installs the `research` group, still boots.
 
 **Tech Stack:** pandas, scikit-learn (IsolationForest), pyyaml, pydantic v2, dependency-injector, wandb (new, `research` group), pytest.
 
@@ -36,7 +36,7 @@
 | `src/app/data/flags.py` | `covid_flag`, `is_projected`, `structural_break_flag`, `outlier_flag`, `add_flags` |
 | `src/app/data/structural_breaks.py`, `config/structural_breaks.yaml` | hand-entered break quarters and their validated loader |
 | `src/app/data/missing.py` | `missing_value_ledger` |
-| `src/app/services/tracking/` | `exceptions.py`, `config.py` (`RunConfig`, `run_name`), `tracker.py` (protocols), `wandb_tracker.py` |
+| `src/app/services/tracking/` | `exceptions.py`, `config.py` (`RunConfig`, `WandbSettings`, `run_name`), `wandb_tracker.py` |
 | `src/app/injections/production.py` | `panel_store`, `experiment_tracker`, `structural_breaks` providers |
 | `tests/conftest.py` | shared `make_panel` fixture |
 | `tests/data/`, `tests/services/tracking/` | tests; each new directory gets an `__init__.py` |
@@ -328,16 +328,15 @@ Expected: 8 passed.
 ### Task 2: Tracking service (R9)
 
 **Files:**
-- Create: `src/app/services/tracking/{__init__,exceptions,config,tracker,wandb_tracker}.py`, `tests/services/tracking/{__init__,test_config,test_wandb_tracker}.py`
+- Create: `src/app/services/tracking/{__init__,exceptions,config,wandb_tracker}.py`, `tests/services/tracking/{__init__,test_config,test_wandb_tracker}.py`
 - Modify: `src/app/injections/production.py`
 
 **Interfaces:**
 - Produces:
   - `run_name(*, notebook: str, model: str, variable: str, protocol: Literal["A","B"] | None = None, history_len: int | None = None) -> str`
   - `RunConfig(panel_size: int, n_rows: int, target_variable: str | None = None, target_transform: str | None = None, feature_groups: tuple[str, ...] = (), n_features: int | None = None, protocol: Literal["A","B"] | None = None, history_len: int | None = None, horizon: int | None = None, macro_source: Literal["final_revised","point_in_time"] = "final_revised", harness_version: str | None = None, seed: int = 42)`
-  - `TrackedRun` protocol: `log_metrics(Mapping[str, float])`, `log_table(name, DataFrame)`, `log_figure(name, Figure)`, `log_dataset(name, Path)`
-  - `ExperimentTracker` protocol: `start_run(name: str, config: RunConfig, *, job_type: str) -> AbstractContextManager[TrackedRun]`
-  - `WandbTracker(*, project: str, entity: str | None, mode: Literal["online","offline","disabled"], api_key: str, load_wandb: Callable[[], ModuleType] = ...)`
+  - `WandbSettings(project: str, entity: str | None, mode: Literal["online","offline","disabled"], api_key: str, run_directory: Path)`
+  - `WandbTracker(settings: WandbSettings)` (Pydantic model): `start_run(name: str, config: RunConfig, *, job_type: str)` yields a `WandbRun` with `log_metrics`, `log_table`, `log_figure`, `log_dataset`; tests install a fake `wandb` in `sys.modules`
   - `TrackingUnavailableError`, `MissingApiKeyError`, `InvalidRunNameError`
 
 - [ ] **Step 1: Write the failing config tests** (`tests/services/tracking/test_config.py`)
@@ -495,7 +494,7 @@ class RunConfig(BaseModel):
     seed: int = 42
 ```
 
-(add `from app.services.tracking.exceptions import InvalidRunNameError`). `__init__.py` re-exports `RunConfig`, `run_name`, the four exceptions, `ExperimentTracker`, `TrackedRun`, `WandbTracker`.
+(add `from app.services.tracking.exceptions import InvalidRunNameError`). `__init__.py` re-exports `RunConfig`, `run_name`, the four exceptions, `WandbSettings`, `WandbTracker`.
 
 - [ ] **Step 4: Run to verify pass**
 
@@ -675,32 +674,10 @@ def test_container_builds_the_tracker_without_wandb_installed(monkeypatch) -> No
 Run: `uv run pytest tests/services/tracking/test_wandb_tracker.py -v`
 Expected: FAIL, `cannot import name 'WandbTracker'`.
 
-- [ ] **Step 7: Implement.** `tracker.py`:
-
-```python
-from collections.abc import Mapping
-from contextlib import AbstractContextManager
-from pathlib import Path
-from typing import Protocol
-
-import pandas as pd
-from matplotlib.figure import Figure
-
-from app.services.tracking.config import RunConfig
-
-
-class TrackedRun(Protocol):
-    def log_metrics(self, metrics: Mapping[str, float]) -> None: ...
-    def log_table(self, name: str, table: pd.DataFrame) -> None: ...
-    def log_figure(self, name: str, figure: Figure) -> None: ...
-    def log_dataset(self, name: str, path: Path) -> None: ...
-
-
-class ExperimentTracker(Protocol):
-    def start_run(
-        self, name: str, config: RunConfig, *, job_type: str
-    ) -> AbstractContextManager[TrackedRun]: ...
-```
+- [ ] **Step 7: Implement.** No tracker Protocols: nothing consumed them, and the
+lazy import alone keeps the Docker image booting. `WandbTracker` is a frozen
+Pydantic model holding `WandbSettings`; the shipped code in
+`src/app/services/tracking/wandb_tracker.py` supersedes the sketch below.
 
 `wandb_tracker.py`:
 

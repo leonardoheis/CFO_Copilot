@@ -108,7 +108,7 @@ def test_add_flags_adds_four_boolean_columns_and_keeps_the_index(
     flagged = add_flags(panel_long, {}, last_reported_quarter=FAR_FUTURE)
 
     assert flagged.index.equals(panel_long.index)
-    assert flagged[FLAG_COLUMNS].dtypes.eq(bool).all()
+    assert flagged[FLAG_COLUMNS].dtypes.eq("bool").all()
     assert flagged["covid"].sum() == 2 * COVID_QUARTERS_PER_COMPANY
 
 

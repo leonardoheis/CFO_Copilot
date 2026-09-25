@@ -1,4 +1,5 @@
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
 from typing import Literal
@@ -19,11 +20,13 @@ CONFIG = RunConfig(panel_size=2, n_rows=48, target_variable="revenue_usd_m")
 Mode = Literal["online", "offline", "disabled"]
 
 
+@dataclass
 class _FakeArtifact:
-    def __init__(self, name: str, **fields: str) -> None:
-        self.name = name
-        self.type = fields["type"]  # the real keyword; a parameter would shadow `type`
-        self.files: list[str] = []
+    """Positional ``name`` like ``wandb.Artifact``, which Pydantic cannot mimic."""
+
+    name: str
+    type: str
+    files: list[str] = field(default_factory=list)
 
     def add_file(self, path: str) -> None:
         self.files.append(path)
@@ -63,12 +66,15 @@ class _FakeWandb(ModuleType):
         self.seen["login"] = key
 
 
+@pytest.fixture
+def wandb(monkeypatch: pytest.MonkeyPatch) -> _FakeWandb:
+    fake = _FakeWandb()
+    monkeypatch.setitem(sys.modules, "wandb", fake)
+    return fake
+
+
 def _tracker(
-    module: ModuleType,
-    run_directory: Path,
-    *,
-    mode: Mode = "offline",
-    api_key: str = "",
+    run_directory: Path, *, mode: Mode = "offline", api_key: str = ""
 ) -> WandbTracker:
     settings = WandbSettings(
         project="cfo-copilot",
@@ -77,15 +83,11 @@ def _tracker(
         api_key=api_key,
         run_directory=run_directory,
     )
-    return WandbTracker(settings=settings, load_wandb=lambda: module)
+    return WandbTracker(settings=settings)
 
 
-def test_run_receives_name_config_and_mode(tmp_path: Path) -> None:
-    wandb = _FakeWandb()
-
-    with _tracker(wandb, tmp_path).start_run(
-        "nb01-eda-revenue", CONFIG, job_type="eda"
-    ):
+def test_run_receives_name_config_and_mode(wandb: _FakeWandb, tmp_path: Path) -> None:
+    with _tracker(tmp_path).start_run("nb01-eda-revenue", CONFIG, job_type="eda"):
         pass
 
     assert wandb.seen["init"] == {
@@ -99,61 +101,50 @@ def test_run_receives_name_config_and_mode(tmp_path: Path) -> None:
     }
 
 
-def test_run_finishes_when_the_body_raises(tmp_path: Path) -> None:
-    wandb = _FakeWandb()
-
+def test_run_finishes_when_the_body_raises(wandb: _FakeWandb, tmp_path: Path) -> None:
     with (
         pytest.raises(RuntimeError),
-        _tracker(wandb, tmp_path).start_run("r", CONFIG, job_type="eda"),
+        _tracker(tmp_path).start_run("r", CONFIG, job_type="eda"),
     ):
         raise RuntimeError
 
     assert wandb.run.finished
 
 
-def test_table_and_metrics_are_logged(tmp_path: Path) -> None:
-    wandb = _FakeWandb()
-
-    with _tracker(wandb, tmp_path).start_run("r", CONFIG, job_type="eda") as tracked:
+def test_table_and_metrics_are_logged(wandb: _FakeWandb, tmp_path: Path) -> None:
+    with _tracker(tmp_path).start_run("r", CONFIG, job_type="eda") as tracked:
         tracked.log_table("diagnostics", pd.DataFrame({"a": [1, 2]}))
         tracked.log_metrics({"n_ok": 3.0})
 
     assert wandb.run.logged == [{"diagnostics": ("table", 2)}, {"n_ok": 3.0}]
 
 
-def test_dataset_is_logged_as_an_artifact(tmp_path: Path) -> None:
-    wandb = _FakeWandb()
+def test_dataset_is_logged_as_an_artifact(wandb: _FakeWandb, tmp_path: Path) -> None:
     path = tmp_path / "features_h1.parquet"
 
-    with _tracker(wandb, tmp_path).start_run(
-        "r", CONFIG, job_type="features"
-    ) as tracked:
+    with _tracker(tmp_path).start_run("r", CONFIG, job_type="features") as tracked:
         tracked.log_dataset("features_h1", path)
 
-    (artifact,) = wandb.run.artifacts
-    assert (artifact.name, artifact.type, artifact.files) == (
-        "features_h1",
-        "dataset",
-        [str(path)],
-    )
+    logged = [(a.name, a.type, a.files) for a in wandb.run.artifacts]
+    assert logged == [("features_h1", "dataset", [str(path)])]
 
 
-def test_online_without_key_fails_before_any_run(tmp_path: Path) -> None:
-    wandb = _FakeWandb()
-
+def test_online_without_key_fails_before_any_run(
+    wandb: _FakeWandb, tmp_path: Path
+) -> None:
     with (
         pytest.raises(MissingApiKeyError, match="WANDB_API_KEY"),
-        _tracker(wandb, tmp_path, mode="online").start_run("r", CONFIG, job_type="eda"),
+        _tracker(tmp_path, mode="online").start_run("r", CONFIG, job_type="eda"),
     ):
         pass
 
     assert "init" not in wandb.seen
 
 
-def test_online_logs_in_with_the_configured_key(tmp_path: Path) -> None:
-    wandb = _FakeWandb()
-
-    with _tracker(wandb, tmp_path, mode="online", api_key="secret").start_run(
+def test_online_logs_in_with_the_configured_key(
+    wandb: _FakeWandb, tmp_path: Path
+) -> None:
+    with _tracker(tmp_path, mode="online", api_key="secret").start_run(
         "r", CONFIG, job_type="eda"
     ):
         pass
@@ -161,10 +152,8 @@ def test_online_logs_in_with_the_configured_key(tmp_path: Path) -> None:
     assert wandb.seen["login"] == "secret"
 
 
-def test_offline_never_logs_in(tmp_path: Path) -> None:
-    wandb = _FakeWandb()
-
-    with _tracker(wandb, tmp_path).start_run("r", CONFIG, job_type="eda"):
+def test_offline_never_logs_in(wandb: _FakeWandb, tmp_path: Path) -> None:
+    with _tracker(tmp_path).start_run("r", CONFIG, job_type="eda"):
         pass
 
     assert "login" not in wandb.seen

@@ -68,4 +68,5 @@ def test_run_config_dumps_master_plan_keys() -> None:
 
 def test_run_config_rejects_unknown_keys() -> None:
     with pytest.raises(ValidationError):
-        RunConfig(panel_size=1, n_rows=1, target_variable="x", surprise=1)  # type: ignore[call-arg]  # the point of the test
+        # The unknown keyword is the point of the test.
+        RunConfig(panel_size=1, n_rows=1, target_variable="x", surprise=1)  # type: ignore[call-arg]

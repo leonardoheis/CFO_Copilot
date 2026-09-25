@@ -17,7 +17,8 @@ def _require_quarter_ends(
         if not pd.Timestamp(quarter).is_quarter_end
     ]
     if off_calendar:
-        message = f"not a calendar quarter end: {', '.join(off_calendar)}"
+        off_calendar_list = ", ".join(off_calendar)
+        message = f"not a calendar quarter end: {off_calendar_list}"
         raise ValueError(message)
     return breaks
 

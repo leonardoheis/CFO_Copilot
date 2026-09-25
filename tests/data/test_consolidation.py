@@ -49,7 +49,7 @@ def test_a_varying_is_public_is_refused(panels: dict[str, pd.DataFrame]) -> None
 
 
 def test_differing_macro_names_the_company(panels: dict[str, pd.DataFrame]) -> None:
-    panels["BBB"].loc[3, "vix"] += 1.0
+    panels["BBB"].loc[3, "vix"] = 999.0
 
     with pytest.raises(MacroMismatchError, match="BBB"):
         consolidate_panels(panels)

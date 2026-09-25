@@ -26,9 +26,8 @@ def _shared_macro(panels: Mapping[str, pd.DataFrame]) -> pd.DataFrame:
         .equals(reference_macro)
     ]
     if differing:
-        message = (
-            f"macro block differs from {reference_ticker} for: {', '.join(differing)}"
-        )
+        differing_list = ", ".join(differing)
+        message = f"macro block differs from {reference_ticker} for: {differing_list}"
         raise MacroMismatchError(message)
     return reference_macro
 
@@ -38,7 +37,8 @@ def _require_constant(panel: pd.DataFrame, columns: tuple[str, ...]) -> None:
         column for column in columns if panel[column].ne(panel[column].iloc[0]).any()
     ]
     if varying:
-        message = f"refusing to drop columns that vary: {', '.join(varying)}"
+        varying_list = ", ".join(varying)
+        message = f"refusing to drop columns that vary: {varying_list}"
         raise ConsolidationError(message)
 
 

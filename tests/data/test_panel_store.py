@@ -70,7 +70,7 @@ def test_load_all_keys_every_panel_on_disk(
 
 
 def test_missing_directory_holds_no_tickers(tmp_path: Path) -> None:
-    assert PanelStore(tmp_path / "absent").tickers() == ()
+    assert not PanelStore(tmp_path / "absent").tickers()
 
 
 def test_file_naming_matches_the_ingestion_writer() -> None:

@@ -105,9 +105,8 @@ def add_flags(
     """
     unknown = sorted(set(breaks) - set(panel_long["ticker"]))
     if unknown:
-        message = (
-            f"structural breaks for tickers not in the panel: {', '.join(unknown)}"
-        )
+        unknown_list = ", ".join(unknown)
+        message = f"structural breaks for tickers not in the panel: {unknown_list}"
         raise ConsolidationError(message)
     return pd.concat([
         _flag_company(

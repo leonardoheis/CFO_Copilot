@@ -13,7 +13,8 @@ _PANEL_SUFFIX: Final = "_panel.parquet"
 def _require_columns(ticker: str, panel: pd.DataFrame) -> None:
     missing = [column for column in REQUIRED_COLUMNS if column not in panel.columns]
     if missing:
-        message = f"Panel for {ticker} is missing columns: {', '.join(missing)}"
+        missing_list = ", ".join(missing)
+        message = f"Panel for {ticker} is missing columns: {missing_list}"
         raise MalformedPanelError(message)
 
 

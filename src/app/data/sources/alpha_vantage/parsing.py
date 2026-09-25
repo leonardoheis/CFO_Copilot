@@ -75,8 +75,7 @@ def merge_earnings(
             continue
         if _is_placeholder_zero(earnings_per_share, values.net_income_usd_m):
             logger.warning(
-                "Alpha Vantage reportedEPS is 0 despite non-zero net income for %s; "
-                "treating it as missing",
+                "Alpha Vantage EPS for %s is a placeholder 0; treating it as missing",
                 report.get("fiscalDateEnding"),
             )
             continue
