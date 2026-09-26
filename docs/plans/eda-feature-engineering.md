@@ -49,12 +49,12 @@ Task order follows dependencies: 0 → 1 → 2 (transforms) → 3 → 4 → 5 �
 **Interfaces:**
 - Produces: `Settings.features_output_path(horizon: int) -> Path`.
 
-- [ ] **Step 1: Check the NB00 outputs exist.**
+- [x] **Step 1: Check the NB00 outputs exist.**
 
 Run: `ls data/processed/panel_long.parquet data/processed/macro_q.parquet`
 Expected: both listed. If not, stop and ask the user to run the NB00 notebook; this plan reads its outputs.
 
-- [ ] **Step 2: Add the path helper** beside `panel_output_path` in `_Settings`:
+- [x] **Step 2: Add the path helper** beside `panel_output_path` in `_Settings`:
 
 ```python
     def features_output_path(self, horizon: int) -> Path:

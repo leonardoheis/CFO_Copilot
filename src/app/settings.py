@@ -109,5 +109,10 @@ class _Settings(BaseSettings):
         processed_directory.mkdir(parents=True, exist_ok=True)
         return processed_directory / f"{ticker.upper()}_panel.parquet"
 
+    def features_output_path(self, horizon: int) -> Path:
+        features_directory = self.DATA_DIRECTORY / "features"
+        features_directory.mkdir(parents=True, exist_ok=True)
+        return features_directory / f"features_h{horizon}.parquet"
+
 
 Settings = _Settings()

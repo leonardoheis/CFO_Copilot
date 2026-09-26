@@ -75,7 +75,8 @@ serve-ui = "uv run python -m app.frontend"
 ingest-data = "uv run python -m app.data"
 add-company = "uv run python -m app.data.add_company"
 probe-alpha-vantage = "uv run python -m app.data.coverage_runner"
-lint       = { shell = "uv run --all-groups ruff check . && uv run --all-groups ruff format --check ." }
+#lint       = { shell = "uv run --all-groups ruff check . && uv run --all-groups ruff format --check ." }
+lint = { cmd="uv run --all-groups pre-commit run --all-files --verbose", env = { SKIP = "pre-commit-update"} }
 typecheck  = "uv run --all-groups pre-commit run mypy --all-files"
 test = "uv run --all-groups pytest"
 format = "uv run --all-groups pre-commit run --all-files --verbose"
@@ -83,7 +84,8 @@ check-coverage = "uv run coverage report --fail-under=80"
 docker-build = "docker buildx build --progress plain -t app ."
 docker-run = "docker container run --env-file .env --publish 8000:8000 --publish 10000:10000 app"
 version-bump = "uv run semantic-release -v version --no-tag --no-commit --skip-build --changelog"
-check      = ["lint", "typecheck", "test"]
+#check      = ["lint", "typecheck", "test"]
+check      = ["lint", "test"]
 
 #########################
 # Semantic Release
