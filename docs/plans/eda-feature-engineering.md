@@ -6,7 +6,7 @@
 
 **Goal:** Build the tested helpers behind `playground/01_eda_feature_engineering.ipynb` (consolidated-panel loading, series diagnostics, target transforms, feature builder, leakage check) on top of the NB00 outputs, so the notebook only orchestrates.
 
-**Architecture:** The panel store, tracker and settings already exist from the NB00 plan; this plan adds `PanelStore.load_consolidated` and pure functions under `services/`, imported directly, because a class with no state fails `PLR6301`. Diagnostics and features never import W&B; the notebook passes their results to the tracker.
+**Architecture:** The panel store, tracker and settings already exist from the NB00 plan; this plan adds `load_consolidated` in `panel_store.py` and pure functions under `services/`, imported directly, because a class with no state fails `PLR6301`. Diagnostics and features never import W&B; the notebook passes their results to the tracker.
 
 **Tech Stack:** pandas, statsmodels (ADF/KPSS/STL/Ljung-Box), scipy (Box-Cox), scikit-learn (KMeans), pydantic v2, pytest. wandb and the tracker arrive with the NB00 plan.
 
@@ -31,7 +31,7 @@
 | File | Responsibility |
 |---|---|
 | `src/app/settings.py` | `features_output_path` |
-| `src/app/data/panel_store.py` | `PanelStore.load_consolidated`: NB00 outputs joined into one panel per ticker |
+| `src/app/data/panel_store.py` | `load_consolidated`: NB00 outputs joined into one panel per ticker |
 | `src/app/services/features/` | `exceptions.py`, `transforms.py`, `builder.py`, `leakage.py`, `dataset.py` |
 | `src/app/services/diagnostics/` | `models.py`, `series.py`, `panel.py` |
 | `tests/data/test_panel_store.py`, `tests/services/{features,diagnostics}/` | tests, each new directory with `__init__.py` |
@@ -74,120 +74,16 @@ Settings is outside the coverage gate, so it has no test of its own; the noteboo
 - Test: `tests/data/test_panel_store.py` (extend the file from the NB00 plan)
 
 **Interfaces:**
-- Consumes: `consolidate_panels`, `add_flags`, `PanelStore`, `PanelNotFoundError`, `MalformedPanelError` (NB00 plan); `Settings.PANEL_LONG_PATH`, `Settings.MACRO_Q_PATH`.
-- Produces: `PanelStore.panel_long_path` and `PanelStore.macro_q_path` (properties returning `Path`); `PanelStore.load_consolidated() -> dict[str, pd.DataFrame]`, one frame per ticker with the macro columns and the four flags, `is_projected` rows dropped, index reset.
+- Consumes: `consolidate_panels`, `add_flags`, `PanelNotFoundError`, `MalformedPanelError` (NB00 plan); `Settings.PANEL_LONG_PATH`, `Settings.MACRO_Q_PATH`.
+- Produces: module-level `load_consolidated(*, panel_long_path: Path, macro_q_path: Path) -> dict[str, pd.DataFrame]`, one frame per ticker with the macro columns and the four flags, `is_projected` rows dropped, index reset. The output paths live in `Settings` only; the caller passes them, tests pass `tmp_path` files.
 
-- [ ] **Step 1: Write the failing tests** (append to `tests/data/test_panel_store.py`; add `from datetime import date`, `from app.data.consolidation import consolidate_panels`, `from app.data.flags import add_flags`, `from app.data.schema import MACRO_COLUMNS`)
+- [x] **Step 1: Write the failing tests** in `tests/data/test_panel_store.py`: one frame per ticker with macro and flag columns and datetime dates; projected rows dropped; a missing NB00 file named in `PanelNotFoundError`; a macro table short of a panel date raises `MalformedPanelError`.
 
-```python
-@pytest.fixture
-def nb00_outputs(tmp_path, make_panel):
-    consolidated = consolidate_panels({
-        "AAA": make_panel(ticker="AAA"),
-        "BBB": make_panel(ticker="BBB"),
-    })
-    panel_long = add_flags(
-        consolidated.panel_long, {}, last_reported_quarter=date(2100, 1, 1)
-    )
-    store = PanelStore(tmp_path)
-    panel_long.to_parquet(store.panel_long_path, index=False)
-    consolidated.macro_q.to_parquet(store.macro_q_path, index=False)
-    return store, panel_long, consolidated.macro_q
+- [x] **Step 2: Run to verify failure.** `uv run pytest tests/data/test_panel_store.py -v`
 
+- [x] **Step 3: Implement** `load_consolidated` in `src/app/data/panel_store.py`: refuse absent files, left-merge `macro_q` on `date` with `validate="many_to_one"`, refuse any macro NaN, drop `is_projected` rows, group by ticker.
 
-def test_load_consolidated_returns_one_frame_per_ticker(nb00_outputs) -> None:
-    store, _, _ = nb00_outputs
-
-    panels = store.load_consolidated()
-
-    assert set(panels) == {"AAA", "BBB"}
-    frame = panels["AAA"]
-    flags = {"covid", "structural_break", "outlier_flag", "is_projected"}
-    assert {*MACRO_COLUMNS, *flags} <= set(frame.columns)
-    assert pd.api.types.is_datetime64_any_dtype(frame["date"])
-    assert frame.index.tolist() == list(range(24))
-
-
-def test_projected_rows_are_left_out(nb00_outputs) -> None:
-    store, panel_long, _ = nb00_outputs
-    panel_long.loc[panel_long.index[-1], "is_projected"] = True
-    panel_long.to_parquet(store.panel_long_path, index=False)
-
-    assert len(store.load_consolidated()["BBB"]) == 23
-
-
-def test_missing_nb00_output_is_named(tmp_path) -> None:
-    with pytest.raises(PanelNotFoundError, match="panel_long"):
-        PanelStore(tmp_path).load_consolidated()
-
-
-def test_macro_table_must_cover_every_panel_date(nb00_outputs) -> None:
-    store, _, macro_q = nb00_outputs
-    macro_q.iloc[:-1].to_parquet(store.macro_q_path, index=False)
-
-    with pytest.raises(MalformedPanelError, match="macro"):
-        store.load_consolidated()
-
-
-def test_paths_match_the_settings_used_by_nb00() -> None:
-    store = PanelStore(Settings.PANEL_LONG_PATH.parent)
-
-    assert store.panel_long_path == Settings.PANEL_LONG_PATH
-    assert store.macro_q_path == Settings.MACRO_Q_PATH
-```
-
-- [ ] **Step 2: Run to verify failure**
-
-Run: `uv run pytest tests/data/test_panel_store.py -v`
-Expected: the five new tests FAIL, `AttributeError: 'PanelStore' object has no attribute 'load_consolidated'`.
-
-- [ ] **Step 3: Implement.** In `panel_store.py` add constants `_PANEL_LONG_FILE: Final = "panel_long.parquet"` and `_MACRO_Q_FILE: Final = "macro_q.parquet"`, then in `PanelStore`:
-
-```python
-@property
-def panel_long_path(self) -> Path:
-    return self._directory / _PANEL_LONG_FILE
-
-
-@property
-def macro_q_path(self) -> Path:
-    return self._directory / _MACRO_Q_FILE
-
-
-def load_consolidated(self) -> dict[str, pd.DataFrame]:
-    """Load the NB00 outputs as one panel per ticker, macro joined on.
-
-    Returns:
-        Per-ticker frames with macro columns and flags; projected rows are dropped.
-    """
-    absent = [
-        path.name
-        for path in (self.panel_long_path, self.macro_q_path)
-        if not path.exists()
-    ]
-    if absent:
-        message = f"NB00 outputs missing in {self._directory}: {', '.join(absent)}"
-        raise PanelNotFoundError(message)
-    merged = pd.read_parquet(self.panel_long_path).merge(
-        pd.read_parquet(self.macro_q_path),
-        on="date",
-        how="left",
-        validate="many_to_one",
-    )
-    if merged[list(MACRO_COLUMNS)].isna().any().any():
-        message = "macro_q does not cover every panel date"
-        raise MalformedPanelError(message)
-    reported = merged.loc[~merged["is_projected"]]
-    return {
-        str(ticker): frame.reset_index(drop=True)
-        for ticker, frame in reported.groupby("ticker", sort=True)
-    }
-```
-
-- [ ] **Step 4: Run to verify pass**
-
-Run: `uv run pytest tests/data/test_panel_store.py -v`
-Expected: all pass (the NB00 tests in the same file still pass).
+- [x] **Step 4: Run to verify pass.** Also loads the real NB00 outputs: 60 tickers, 81 quarters each.
 
 ---
 
@@ -1135,7 +1031,8 @@ def _static_features(panel: pd.DataFrame, regimes: pd.Series | None) -> pd.DataF
 def _flag_features(panel: pd.DataFrame) -> pd.DataFrame:
     absent = [column for column in FLAG_COLUMNS if column not in panel.columns]
     if absent:
-        message = f"group F needs the NB00 flag columns: {', '.join(absent)}"
+        absent_list = ", ".join(absent)
+        message = f"group F needs the NB00 flag columns: {absent_list}"
         raise MissingFlagsError(message)
     return panel[list(FLAG_COLUMNS)]
 
@@ -1481,10 +1378,13 @@ from app.services.features import (
 from app.services.tracking import RunConfig, run_name
 from app.settings import Settings
 from app.data import write_panel
+from app.data.panel_store import load_consolidated
 
 container = configure_container()
 tracker = container.experiment_tracker()
-panels = container.panel_store().load_consolidated()
+panels = load_consolidated(
+    panel_long_path=Settings.PANEL_LONG_PATH, macro_q_path=Settings.MACRO_Q_PATH
+)
 
 n_rows = sum(len(panel) for panel in panels.values())
 assert len(panels) == 60 and all(len(p) == 81 for p in panels.values())  # A1
@@ -1605,4 +1505,4 @@ Expected: exit 0 for the first (no `def`/`class` at the start of a line in any c
 - Task 8's regime lookup needs every ticker in `regimes`. A company with `insufficient_data` revenue would raise `MissingRegimeError`, which is the intended loud failure (spec R6).
 - `build_features` now has eight group branches plus the ticker guard; if ruff reports `C901` or `PLR0912`, move the key frame and the guard into private helpers. Do not suppress.
 
-**Type consistency.** `make_target` and `reconstruct_level` take `(values, arm, horizon)` in that order everywhere; `build_features` and `assemble_dataset` take keyword-only `horizon`; `PanelStore.load_consolidated` returns the per-ticker frames the notebook and `assemble_dataset` consume.
+**Type consistency.** `make_target` and `reconstruct_level` take `(values, arm, horizon)` in that order everywhere; `build_features` and `assemble_dataset` take keyword-only `horizon`; `load_consolidated` returns the per-ticker frames the notebook and `assemble_dataset` consume.

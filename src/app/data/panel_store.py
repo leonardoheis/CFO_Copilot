@@ -64,3 +64,38 @@ class PanelStore:
             Validated panels keyed by upper-case ticker.
         """
         return {ticker: self.load(ticker) for ticker in self.tickers()}
+
+
+def load_consolidated(
+    *, panel_long_path: Path, macro_q_path: Path
+) -> dict[str, pd.DataFrame]:
+    """Load the NB00 outputs as one panel per ticker, macro joined on.
+
+    Returns:
+        Per-ticker frames with macro columns and flags; projected rows are dropped.
+
+    Raises:
+        PanelNotFoundError: An NB00 output file is absent.
+        MalformedPanelError: The macro table does not cover every panel date.
+    """
+    absent = [
+        str(path) for path in (panel_long_path, macro_q_path) if not path.exists()
+    ]
+    if absent:
+        absent_list = ", ".join(absent)
+        message = f"NB00 outputs missing: {absent_list}"
+        raise PanelNotFoundError(message)
+    merged = pd.read_parquet(panel_long_path).merge(
+        pd.read_parquet(macro_q_path),
+        on="date",
+        how="left",
+        validate="many_to_one",
+    )
+    if merged[list(MACRO_COLUMNS)].isna().any().any():
+        message = "macro_q does not cover every panel date"
+        raise MalformedPanelError(message)
+    reported = merged.loc[~merged["is_projected"]]
+    return {
+        str(ticker): frame.reset_index(drop=True)
+        for ticker, frame in reported.groupby("ticker", sort=True)
+    }
