@@ -11,8 +11,16 @@ import pandas as pd
 import requests
 
 from app.data.dates import quarter_end_dates
-from app.data.exceptions import DataSourceError, DataSourceUnavailableError
-from app.data.schema import FINANCIAL_COLUMNS, FinancialQuarterValues
+from app.data.exceptions import (
+    DataSourceError,
+    DataSourceUnavailableError,
+    RateLimitedError,
+)
+from app.data.schema import (
+    FINANCIAL_COLUMNS,
+    PROVENANCE_COLUMNS,
+    FinancialQuarterValues,
+)
 from app.settings import Settings
 
 from .parsing import (
@@ -77,7 +85,7 @@ class AlphaVantageSource:
         ]
         return pd.DataFrame(rows).loc[
             :,
-            ["date", *FINANCIAL_COLUMNS, "shares_outstanding"],
+            ["date", *FINANCIAL_COLUMNS, "shares_outstanding", *PROVENANCE_COLUMNS],
         ]
 
     def fetch_payload(self, function: str, ticker: str) -> JsonObject:
@@ -85,7 +93,7 @@ class AlphaVantageSource:
         if cache_path.exists() and not self._refresh:
             return _read_cache(cache_path)
 
-        last_rate_limit: DataSourceError | None = None
+        last_rate_limit: RateLimitedError | None = None
         for attempt in range(1, RATE_LIMIT_ATTEMPTS + 1):
             self._wait_for_rate_limit()
             typed_payload = self._get_json(function, ticker)
@@ -151,10 +159,10 @@ class AlphaVantageSource:
             raise DataSourceUnavailableError(MISSING_API_KEY_MESSAGE)
 
 
-def _rate_limit_error(payload: JsonObject) -> DataSourceError | None:
+def _rate_limit_error(payload: JsonObject) -> RateLimitedError | None:
     for key in RATE_LIMIT_KEYS:
         if key in payload:
-            return DataSourceError(f"Alpha Vantage {key}: {payload[key]}")
+            return RateLimitedError(f"Alpha Vantage {key}: {payload[key]}")
     return None
 
 

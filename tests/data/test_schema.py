@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from app.data.schema import (
     FINANCIAL_COLUMNS,
+    PROVENANCE_COLUMNS,
     FinancialQuarterValues,
     FinancialsRow,
 )
@@ -14,6 +15,7 @@ def test_financials_row_field_order_matches_panel_columns() -> None:
         "date",
         *FINANCIAL_COLUMNS,
         "shares_outstanding",
+        *PROVENANCE_COLUMNS,
     ]
 
 

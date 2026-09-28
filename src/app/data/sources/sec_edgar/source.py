@@ -1,5 +1,6 @@
 """SEC EDGAR HTTP client: CIK resolution and us-gaap concept retrieval."""
 
+import logging
 import math
 from datetime import date
 from typing import Final, cast
@@ -15,7 +16,9 @@ from app.data.exceptions import (
     TickerNotFoundError,
 )
 from app.data.xbrl import (
+    FactProvenance,
     InstantXbrlFact,
+    PeriodMeasure,
     XbrlFact,
     instant_series_from_facts,
     quarterly_facts_from_facts,
@@ -47,6 +50,7 @@ NOT_FOUND_STATUS: Final = 404
 MISSING_USER_AGENT_MESSAGE: Final = (
     "SEC_USER_AGENT is not set. Add it to your .env file (see .env.example)."
 )
+logger = logging.getLogger(__name__)
 
 
 def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
@@ -56,6 +60,74 @@ def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
         The series with zeros replaced by NaN.
     """
     return values.where(values != 0)
+
+
+def _empty_chain_records(quarter_dates: list[date]) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "value": math.nan,
+            "filed": "",
+            "period_end": None,
+            "provenance": FactProvenance.MISSING,
+        },
+        index=quarter_dates,
+    )
+
+
+def _take_winning_rows(
+    combined: pd.DataFrame,
+    candidate: pd.DataFrame,
+    *,
+    prefer_largest: bool,
+) -> pd.DataFrame:
+    """Replace whole rows, so a value never outlives the origin it came from.
+
+    Returns:
+        ``combined`` with the candidate's rows wherever the candidate wins.
+    """
+    if prefer_largest:
+        wins = candidate["value"].notna() & (
+            combined["value"].isna() | candidate["value"].gt(combined["value"])
+        )
+    else:
+        wins = combined["value"].isna() & candidate["value"].notna()
+    return combined.mask(wins, candidate)
+
+
+def _none_where_blank(filed: pd.Series) -> list[date | None]:
+    """Turn the no-fact placeholder into a null, and a filing date into a date.
+
+    Returns:
+        One entry per quarter, null where nothing was filed.
+    """
+    return [date.fromisoformat(value) if value else None for value in filed]
+
+
+def _none_where_missing(provenance: pd.Series) -> list[str | None]:
+    """Turn the missing marker into a null the fallback can overwrite.
+
+    Returns:
+        One entry per quarter, null where no rule produced a value.
+    """
+    return [
+        None if value is FactProvenance.MISSING else str(value) for value in provenance
+    ]
+
+
+def _without_impossible_counts(values: pd.Series, cik: str) -> pd.Series:
+    """Drop share counts that no company can have.
+
+    Returns:
+        The series with non-positive counts replaced by NaN.
+    """
+    impossible = values.notna() & (values <= 0)
+    if impossible.any():
+        logger.warning(
+            "Discarding %d non-positive share counts for CIK %s",
+            int(impossible.sum()),
+            cik,
+        )
+    return values.where(~impossible)
 
 
 class SecEdgarSource:
@@ -132,11 +204,20 @@ class SecEdgarSource:
         quarter_dates: list[date],
         splits: pd.Series | None,
     ) -> pd.DataFrame:
+        # Revenue anchors the row: it is the figure whose filing defines which
+        # period the row actually describes, so its origin is the row's origin.
+        revenue_records = self._fetch_tag_chain_records(
+            cik,
+            TAG_CHAINS["revenue"],
+            quarter_dates,
+            splits,
+        )
         series_by_name = {
             name: self._fetch_tag_chain(cik, spec, quarter_dates, splits)
             for name, spec in TAG_CHAINS.items()
-            if name != "shares_outstanding"
+            if name not in {"shares_outstanding", "revenue"}
         }
+        series_by_name["revenue"] = revenue_records["value"]
         shares = self._fetch_shares_chain(cik, quarter_dates, splits)
         if not shares.notna().all():
             # Some filers (e.g. Google's legacy CIK) report no share-count fact
@@ -146,12 +227,24 @@ class SecEdgarSource:
                 series_by_name["net_income"],
                 series_by_name["eps"],
             )
-            shares = shares.combine_first(implied)
+            # A split-restated EPS can disagree in sign with its own net income
+            # (see _fill_missing_financials), and the quotient of the two is then
+            # a negative share count.
+            shares = shares.combine_first(
+                _without_impossible_counts(implied, cik),
+            )
         series_by_name["shares_outstanding"] = shares
         return pd.DataFrame(
             {
                 "date": quarter_dates,
                 **{name: series.tolist() for name, series in series_by_name.items()},
+                # Null, not a "missing" marker: a null is what lets the vendor
+                # fallback overlay its own provenance where SEC found nothing.
+                "period_end": revenue_records["period_end"].tolist(),
+                "financials_filed": _none_where_blank(revenue_records["filed"]),
+                "financials_provenance": _none_where_missing(
+                    revenue_records["provenance"],
+                ),
             },
         )
 
@@ -172,7 +265,22 @@ class SecEdgarSource:
         quarter_dates: list[date],
         splits: pd.Series | None,
     ) -> pd.Series:
-        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
+        return self._fetch_tag_chain_records(cik, spec, quarter_dates, splits)["value"]
+
+    def _fetch_tag_chain_records(
+        self,
+        cik: str,
+        spec: ConceptSpec,
+        quarter_dates: list[date],
+        splits: pd.Series | None,
+    ) -> pd.DataFrame:
+        """Resolve a concept across its tag chain, keeping each value's origin.
+
+        Returns:
+            A frame of ``value``, ``filed``, ``period_end`` and ``provenance``,
+            each row taken from whichever tag supplied the winning value.
+        """
+        combined = _empty_chain_records(quarter_dates)
         for tag in spec.tags:
             facts = self.fetch_concept(cik, tag, spec.unit)
             if facts:
@@ -183,13 +291,15 @@ class SecEdgarSource:
                         records["filed"],
                         splits,
                     )
-                reported = _without_placeholder_zeros(values)
-                combined = (
-                    pd.concat([combined, reported], axis=1).max(axis=1)
-                    if spec.prefer_largest
-                    else combined.combine_first(reported)
+                records = records.assign(
+                    value=_without_placeholder_zeros(values),
                 )
-            if not spec.prefer_largest and combined.notna().all():
+                combined = _take_winning_rows(
+                    combined,
+                    records,
+                    prefer_largest=spec.prefer_largest,
+                )
+            if not spec.prefer_largest and combined["value"].notna().all():
                 break
         return combined
 
@@ -211,7 +321,9 @@ class SecEdgarSource:
                     records["filed"],
                     splits,
                 )
-                combined = combined.combine_first(values)
+                combined = combined.combine_first(
+                    _without_impossible_counts(values, cik),
+                )
 
         if combined.notna().all():
             return combined
@@ -232,12 +344,18 @@ class SecEdgarSource:
         for tag in DILUTED_SHARES_FALLBACK.tags:
             facts = self.fetch_concept(cik, tag, DILUTED_SHARES_FALLBACK.unit)
             if facts:
-                records = quarterly_facts_from_facts(facts, quarter_dates)
+                records = quarterly_facts_from_facts(
+                    facts,
+                    quarter_dates,
+                    PeriodMeasure.PERIOD_AVERAGE,
+                )
                 values = records["value"] * split_factors_for_filing_dates(
                     records["filed"],
                     splits,
                 )
-                combined = combined.combine_first(values)
+                combined = combined.combine_first(
+                    _without_impossible_counts(values, cik),
+                )
         return combined
 
     def _load_ticker_ciks(self) -> dict[str, str]:

@@ -10,6 +10,15 @@ class TickerNotFoundError(DataSourceError):
     """Raised when a ticker is unknown to a data source."""
 
 
+class RateLimitedError(DataSourceError):
+    """Raised when a provider refuses a request because the quota is spent.
+
+    Distinct from a permanent failure: the same request will succeed later, so a
+    caller working through a list should stop rather than treat the ticker as
+    broken and move on.
+    """
+
+
 class MalformedPayloadError(DataSourceError):
     """Raised when a provider's response is not the shape the parser expects.
 

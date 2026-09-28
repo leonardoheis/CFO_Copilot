@@ -109,7 +109,19 @@ def merge_panel(
         panel["stock_price_usd"],
         panel["eps"],
     )
+    panel["period_end_offset_days"] = _period_end_offset_days(panel)
     return panel.loc[:, list(PANEL_COLUMNS)]
+
+
+def _period_end_offset_days(panel: pd.DataFrame) -> pd.Series:
+    """Signed days between a row's own period end and the quarter it is filed under.
+
+    Returns:
+        A nullable integer series; zero for a calendar filer, non-zero for a
+        fiscal one, and null where no period end is known.
+    """
+    offset = pd.to_datetime(panel["period_end"]) - pd.to_datetime(panel["date"])
+    return offset.dt.days.astype("Int64")
 
 
 def _fill_missing_financials(

@@ -5,7 +5,7 @@ Pure functions: no HTTP and no knowledge of how the raw frame was fetched.
 
 import pandas as pd
 
-from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR
+from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
 from app.data.splits import cumulative_split_factors
 
 
@@ -98,6 +98,10 @@ def financial_panel_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
             "net_margin": net_income / safe_revenue,
             "eps": raw["eps"],
             "shares_outstanding": raw["shares_outstanding"],
+            **{column: raw[column] for column in PROVENANCE_COLUMNS},
         },
     )
-    return panel.loc[:, ["date", *FINANCIAL_COLUMNS, "shares_outstanding"]]
+    return panel.loc[
+        :,
+        ["date", *FINANCIAL_COLUMNS, "shares_outstanding", *PROVENANCE_COLUMNS],
+    ]

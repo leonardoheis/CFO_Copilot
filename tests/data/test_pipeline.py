@@ -1,6 +1,6 @@
 import logging
 import math
-from datetime import date
+from datetime import date, timedelta
 
 import pandas as pd
 import pytest
@@ -27,6 +27,7 @@ from app.settings import Settings
 TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 TEST_QUARTER_DATES = quarter_end_dates(date(2020, 1, 1), date(2020, 6, 30))
 EXPECTED_REVENUE = 1_000.0
+FISCAL_OFFSET_DAYS = 31
 EXPECTED_STOCK_PRICE = 100.0
 EXPECTED_FED_FUNDS = 1.0
 EXPECTED_SP500 = 0.05
@@ -83,6 +84,37 @@ def fake_sec_financials(
             "date": TEST_QUARTER_DATES,
             **values,
             "shares_outstanding": [EXPECTED_SHARES] * 2,
+            "period_end": TEST_QUARTER_DATES,
+            "financials_filed": TEST_QUARTER_DATES,
+            "financials_provenance": ["native"] * 2,
+        },
+    )
+
+
+def fake_fiscal_sec_financials(
+    _ticker: str,
+    _start: date,
+    _end: date,
+    _splits: pd.Series,
+) -> pd.DataFrame:
+    """A filer whose quarters end a month after the calendar quarter they land in.
+
+    Returns:
+        A raw financials frame whose period ends are offset from their slots.
+    """
+    values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
+    values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
+    period_ends = [
+        quarter + timedelta(days=FISCAL_OFFSET_DAYS) for quarter in TEST_QUARTER_DATES
+    ]
+    return pd.DataFrame(
+        {
+            "date": TEST_QUARTER_DATES,
+            **values,
+            "shares_outstanding": [EXPECTED_SHARES] * 2,
+            "period_end": period_ends,
+            "financials_filed": period_ends,
+            "financials_provenance": ["native"] * 2,
         },
     )
 
@@ -101,6 +133,9 @@ def fake_fallback_financials(
             "date": TEST_QUARTER_DATES,
             **values,
             "shares_outstanding": [900_000_000.0] * 2,
+            "period_end": TEST_QUARTER_DATES,
+            "financials_filed": [None] * 2,
+            "financials_provenance": ["alpha_vantage"] * 2,
         },
     )
 
@@ -296,3 +331,23 @@ def test_merge_panel_returns_panel_after_all_sources_are_implemented(
     assert panel["fed_funds"].notna().any()
     assert panel["eps"].notna().any()
     assert panel["pe_ratio"].notna().any()
+
+
+def test_merge_panel_records_how_far_a_period_end_sits_from_its_quarter(
+    company_registry: CompanyRegistry,
+) -> None:
+    """A fiscal row must be identifiable from the panel without re-querying SEC."""
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=IngestionSources(
+            fetch_macro_panel=fake_macro_panel,
+            yfinance=FakeMarketSource(),
+            fetch_sec_financials=fake_fiscal_sec_financials,
+            registry=company_registry,
+        ),
+    )
+
+    assert panel["period_end_offset_days"].tolist() == [FISCAL_OFFSET_DAYS] * 2
+    assert panel["financials_provenance"].tolist() == ["native"] * 2

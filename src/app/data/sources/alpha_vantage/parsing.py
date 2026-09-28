@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 JsonObject = dict[str, object]
 
+# Recorded in the panel's financials_provenance column so a vendor-sourced row
+# is distinguishable from one the filer's own XBRL produced.
+PROVENANCE_LABEL = "alpha_vantage"
+
 
 def merge_income(
     values_by_date: dict[date, FinancialQuarterValues],
@@ -97,6 +101,7 @@ def _quarterly_reports(
     for report in reports(payload, key):
         quarter_date = report_date(report)
         values = values_by_date.setdefault(quarter_date, FinancialQuarterValues())
+        values.period_end = reported_period_end(report)
         yield report, values
 
 
@@ -144,6 +149,27 @@ def report_date(report: JsonObject) -> date:
             be placed in time is unusable, and treating it as merely missing
             would hide an API format change behind gaps in the panel.
     """
+    parsed_date = reported_period_end(report)
+    try:
+        return nearest_quarter_end(parsed_date, QUARTER_END_TOLERANCE_DAYS)
+    except ValueError as error:
+        msg = (
+            f"Alpha Vantage fiscalDateEnding {parsed_date.isoformat()!r} cannot "
+            "be placed on a calendar quarter"
+        )
+        raise MalformedPayloadError(msg) from error
+
+
+def reported_period_end(report: JsonObject) -> date:
+    """Read ``fiscalDateEnding`` as the filer stated it, before any snapping.
+
+    Returns:
+        The period end the report itself claims.
+
+    Raises:
+        MalformedPayloadError: If ``fiscalDateEnding`` is absent or is not an
+            ISO date.
+    """
     raw_date = report.get("fiscalDateEnding")
     if not isinstance(raw_date, str):
         msg = (
@@ -152,18 +178,9 @@ def report_date(report: JsonObject) -> date:
         )
         raise MalformedPayloadError(msg)
     try:
-        parsed_date = date.fromisoformat(raw_date)
+        return date.fromisoformat(raw_date)
     except ValueError as error:
         msg = f"Alpha Vantage fiscalDateEnding is not an ISO date: {raw_date!r}"
-        raise MalformedPayloadError(msg) from error
-
-    try:
-        return nearest_quarter_end(parsed_date, QUARTER_END_TOLERANCE_DAYS)
-    except ValueError as error:
-        msg = (
-            f"Alpha Vantage fiscalDateEnding {raw_date!r} cannot be placed "
-            "on a calendar quarter"
-        )
         raise MalformedPayloadError(msg) from error
 
 
@@ -229,6 +246,12 @@ def row_for_date(
         net_margin=_margin(net_income, revenue),
         eps=values.eps,
         shares_outstanding=values.shares_outstanding,
+        period_end=values.period_end,
+        # The vendor publishes no filing date, only the period it covers.
+        financials_filed=None,
+        financials_provenance=(
+            PROVENANCE_LABEL if values.period_end is not None else None
+        ),
     )
 
 

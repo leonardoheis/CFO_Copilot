@@ -5,6 +5,10 @@ from pydantic import BaseModel, ConfigDict
 
 from app.data.companies import CompanyPanelMetadata
 
+# These models carry a field named `date`, which shadows the type for every
+# annotation after it in the class body. Later date fields use this alias.
+CalendarDate = date
+
 CompanyMetadata = CompanyPanelMetadata
 MILLIONS_DIVISOR: Final = 1_000_000
 
@@ -65,13 +69,15 @@ class FinancialQuarterValues(BaseModel):
     free_cash_flow_usd_m: float | None = None
     eps: float | None = None
     shares_outstanding: float | None = None
+    period_end: CalendarDate | None = None
 
 
 class FinancialsRow(BaseModel):
     """One row of the financial panel, before macro and market columns are merged.
 
-    Field order matches ``["date", *FINANCIAL_COLUMNS, "shares_outstanding"]`` so
-    ``model_dump()`` can be handed straight to ``pandas.DataFrame``.
+    Field order matches
+    ``["date", *FINANCIAL_COLUMNS, "shares_outstanding", *PROVENANCE_COLUMNS]``
+    so ``model_dump()`` can be handed straight to ``pandas.DataFrame``.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -89,7 +95,18 @@ class FinancialsRow(BaseModel):
     net_margin: float | None = None
     eps: float | None = None
     shares_outstanding: float | None = None
+    period_end: CalendarDate | None = None
+    financials_filed: CalendarDate | None = None
+    financials_provenance: str | None = None
 
+
+# Where a row's financials came from. Anchored on revenue: it is the figure
+# whose filing decides which period the row actually describes.
+PROVENANCE_COLUMNS: Final[tuple[str, ...]] = (
+    "period_end",
+    "financials_filed",
+    "financials_provenance",
+)
 
 MARKET_COLUMNS: Final[tuple[str, ...]] = (
     "stock_price_usd",
@@ -106,6 +123,8 @@ PANEL_COLUMNS: Final[tuple[str, ...]] = (
     *MARKET_COLUMNS,
     *DERIVED_COLUMNS,
     *MACRO_COLUMNS,
+    *PROVENANCE_COLUMNS,
+    "period_end_offset_days",
 )
 
 
@@ -142,3 +161,7 @@ class PanelRow(BaseModel):
     yield_spread_10y2y: float | None = None
     mfg_confidence: float | None = None
     sp500_return_lag1: float | None = None
+    period_end: CalendarDate | None = None
+    financials_filed: CalendarDate | None = None
+    financials_provenance: str | None = None
+    period_end_offset_days: int | None = None
