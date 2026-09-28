@@ -1,11 +1,20 @@
+from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 
+import pytest
+from click.testing import CliRunner
+
+from app.data import batch
 from app.data.batch import (
     IngestOutcome,
     load_completed,
     pending_tickers,
     record_completed,
+    reingest_batch,
 )
+
+type ScriptedRun = Callable[[list[IngestOutcome]], tuple[list[str], Path]]
 
 
 def test_pending_skips_tickers_already_in_the_ledger() -> None:
@@ -43,6 +52,51 @@ def test_malformed_ledger_reads_as_nothing_completed(tmp_path: Path) -> None:
     assert load_completed(path) == {}
 
 
-def test_quota_exhaustion_is_distinct_from_failure() -> None:
-    """The batch stops on a spent quota but continues past a broken company."""
-    assert IngestOutcome.QUOTA_EXHAUSTED is not IngestOutcome.FAILED
+@pytest.fixture
+def scripted_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> ScriptedRun:
+    ledger = tmp_path / "reingest_ledger.json"
+    monkeypatch.setattr(batch, "ledger_path", lambda: ledger)
+
+    def run(outcomes: list[IngestOutcome]) -> tuple[list[str], Path]:
+        attempted: list[str] = []
+        remaining = iter(outcomes)
+
+        def fake_ingest_one(
+            ticker: str, _start: date, _end: date, *, quiet: bool
+        ) -> IngestOutcome:
+            assert quiet
+            attempted.append(ticker)
+            return next(remaining)
+
+        monkeypatch.setattr(batch, "_ingest_one", fake_ingest_one)
+        result = CliRunner().invoke(
+            reingest_batch, ["--limit", str(len(outcomes)), "--quiet"]
+        )
+        assert result.exit_code == 0, result.output
+        return attempted, ledger
+
+    return run
+
+
+def test_batch_continues_past_a_broken_company(scripted_run: ScriptedRun) -> None:
+    script = [IngestOutcome.FAILED, IngestOutcome.WRITTEN]
+
+    attempted, ledger = scripted_run(script)
+
+    assert len(attempted) == len(script)
+    assert set(load_completed(ledger)) == {attempted[1]}
+
+
+def test_batch_stops_on_a_spent_quota_keeping_what_it_wrote(
+    scripted_run: ScriptedRun,
+) -> None:
+    script = [
+        IngestOutcome.WRITTEN,
+        IngestOutcome.QUOTA_EXHAUSTED,
+        IngestOutcome.WRITTEN,
+    ]
+
+    attempted, ledger = scripted_run(script)
+
+    assert len(attempted) == script.index(IngestOutcome.QUOTA_EXHAUSTED) + 1
+    assert set(load_completed(ledger)) == {attempted[0]}

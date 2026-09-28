@@ -48,7 +48,7 @@ def load_completed(path: Path) -> dict[str, str]:
     """
     if not path.exists():
         return {}
-    content = json.loads(path.read_text())
+    content = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(content, dict):
         logger.warning("Ignoring malformed ledger at %s", path)
         return {}
@@ -57,10 +57,14 @@ def load_completed(path: Path) -> dict[str, str]:
 
 def record_completed(path: Path, completed: dict[str, str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(completed, indent=2, sort_keys=True) + "\n")
+    path.write_text(
+        json.dumps(completed, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
-def pending_tickers(all_tickers: tuple[str, ...], completed: dict[str, str]) -> list[str]:
+def pending_tickers(
+    all_tickers: tuple[str, ...], completed: dict[str, str]
+) -> list[str]:
     """List the companies still awaiting a re-ingest, in registry order.
 
     Returns:
@@ -98,6 +102,13 @@ def _ingest_one(ticker: str, start: date, end: date, *, quiet: bool) -> IngestOu
     return IngestOutcome.WRITTEN
 
 
+def _panel_tickers() -> tuple[str, ...]:
+    # A company's first ticker is the one its panel is written under; the rest
+    # are historical symbols the market sources fall back to.
+    registry = configure_container().company_registry()
+    return tuple(company.tickers[0] for company in registry.companies)
+
+
 @click.command()
 @click.option(
     "--limit",
@@ -132,12 +143,7 @@ def reingest_batch(
     quiet: bool,
 ) -> None:
     """Re-ingest up to `--limit` companies that have not been done yet."""
-    container = configure_container()
-    # A company's first ticker is the one its panel is written under; the rest
-    # are historical symbols the market sources fall back to.
-    all_tickers = tuple(
-        company.tickers[0] for company in container.company_registry().companies
-    )
+    all_tickers = _panel_tickers()
     path = ledger_path()
     completed = load_completed(path)
     pending = pending_tickers(all_tickers, completed)
@@ -172,7 +178,9 @@ def reingest_batch(
         completed[ticker] = datetime.now(tz=UTC).isoformat()
         record_completed(path, completed)
 
-    _report(written, failed, remaining=len(pending) - len(written), stopped=stopped_early)
+    _report(
+        written, failed, remaining=len(pending) - len(written), stopped=stopped_early
+    )
 
 
 def _report(
@@ -182,9 +190,11 @@ def _report(
     remaining: int,
     stopped: bool,
 ) -> None:
-    click.echo(f"Wrote {len(written)}: {', '.join(written) if written else 'none'}")
+    written_list = ", ".join(written) or "none"
+    click.echo(f"Wrote {len(written)}: {written_list}")
     if failed:
-        click.echo(f"Failed {len(failed)}: {', '.join(failed)}")
+        failed_list = ", ".join(failed)
+        click.echo(f"Failed {len(failed)}: {failed_list}")
     if stopped:
         click.echo("Stopped early: Alpha Vantage quota is spent. Resume tomorrow.")
     click.echo(f"{remaining} companies still pending.")

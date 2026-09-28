@@ -37,7 +37,6 @@ class QuarterlyFact(TypedDict):
     filed: str
 
 
-
 def fact_period(fact: XbrlFact) -> tuple[date, date]:
     try:
         return (
@@ -150,5 +149,3 @@ def fact_value(fact: XbrlFact | InstantXbrlFact) -> float:
         raise MalformedPayloadError(
             msg,
         ) from error
-
-
