@@ -3,10 +3,16 @@
 Pure functions: no HTTP and no knowledge of how the raw frame was fetched.
 """
 
+import logging
+from typing import Final
+
 import pandas as pd
 
 from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
 from app.data.splits import cumulative_split_factors
+
+MIN_SHARE_COUNT_FRACTION_OF_MEDIAN: Final = 0.01
+logger = logging.getLogger(__name__)
 
 
 def merge_raw_financial_frames(
@@ -42,6 +48,27 @@ def implied_shares_from_earnings(
     """
     safe_eps = eps.where(eps != 0)
     return net_income / safe_eps
+
+
+def without_implausible_counts(values: pd.Series, cik: str) -> pd.Series:
+    """Drop share counts that are non-positive or far below the company's median.
+
+    Returns:
+        The series with implausible counts replaced by NaN.
+    """
+    # Filers occasionally tag a count in thousands or millions (TXN 2009-Q3:
+    # 1,268 for 1,268 million) and the API does not rescale it.
+    positive_median = values[values > 0].median()
+    implausible = values.notna() & (
+        (values <= 0) | (values < MIN_SHARE_COUNT_FRACTION_OF_MEDIAN * positive_median)
+    )
+    if implausible.any():
+        logger.warning(
+            "Discarding %d non-positive or mis-scaled share counts for CIK %s",
+            int(implausible.sum()),
+            cik,
+        )
+    return values.where(~implausible)
 
 
 def split_factors_for_filing_dates(

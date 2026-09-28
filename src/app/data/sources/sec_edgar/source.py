@@ -1,6 +1,5 @@
 """SEC EDGAR HTTP client: CIK resolution and us-gaap concept retrieval."""
 
-import logging
 import math
 from datetime import date
 from typing import Final, cast
@@ -38,6 +37,7 @@ from .parsing import (
     implied_shares_from_earnings,
     merge_raw_financial_frames,
     split_factors_for_filing_dates,
+    without_implausible_counts,
 )
 
 type JsonObject = dict[str, object]
@@ -50,7 +50,6 @@ NOT_FOUND_STATUS: Final = 404
 MISSING_USER_AGENT_MESSAGE: Final = (
     "SEC_USER_AGENT is not set. Add it to your .env file (see .env.example)."
 )
-logger = logging.getLogger(__name__)
 
 
 def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
@@ -112,22 +111,6 @@ def _none_where_missing(provenance: pd.Series) -> list[str | None]:
     return [
         None if value is FactProvenance.MISSING else str(value) for value in provenance
     ]
-
-
-def _without_impossible_counts(values: pd.Series, cik: str) -> pd.Series:
-    """Drop share counts that no company can have.
-
-    Returns:
-        The series with non-positive counts replaced by NaN.
-    """
-    impossible = values.notna() & (values <= 0)
-    if impossible.any():
-        logger.warning(
-            "Discarding %d non-positive share counts for CIK %s",
-            int(impossible.sum()),
-            cik,
-        )
-    return values.where(~impossible)
 
 
 class SecEdgarSource:
@@ -231,7 +214,7 @@ class SecEdgarSource:
             # (see _fill_missing_financials), and the quotient of the two is then
             # a negative share count.
             shares = shares.combine_first(
-                _without_impossible_counts(implied, cik),
+                without_implausible_counts(implied, cik),
             )
         series_by_name["shares_outstanding"] = shares
         return pd.DataFrame(
@@ -322,7 +305,7 @@ class SecEdgarSource:
                     splits,
                 )
                 combined = combined.combine_first(
-                    _without_impossible_counts(values, cik),
+                    without_implausible_counts(values, cik),
                 )
 
         if combined.notna().all():
@@ -354,7 +337,7 @@ class SecEdgarSource:
                     splits,
                 )
                 combined = combined.combine_first(
-                    _without_impossible_counts(values, cik),
+                    without_implausible_counts(values, cik),
                 )
         return combined
 

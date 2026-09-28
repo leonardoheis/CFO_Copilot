@@ -50,10 +50,12 @@ NaN is what lets Step 3's fallback run.
 
 - `_fetch_diluted_shares_fallback` passes `PeriodMeasure.PERIOD_AVERAGE`, since
   `WeightedAverageNumberOfDilutedSharesOutstanding` is an average.
-- A share count of zero or less is not data. Add a module-level
-  `_without_impossible_counts` that maps non-positive values to NaN with a
-  warning, and apply it to both the primary chain and the fallback before they
-  are combined.
+- A share count of zero or less is not data, and neither is one under 1% of
+  the series' positive median — the audit after the re-ingest found 52 such
+  quarters, all filer scale errors (TXN 2009-Q3 tagged 1,268 for 1,268 m).
+  Add a module-level `_without_implausible_counts` that maps both to NaN with a
+  warning, and apply it to the primary chain, the fallback and the
+  earnings-implied counts before they are combined.
 
 The early return in `_fetch_shares_chain` (`if combined.notna().all()`) needs no
 change once Step 2 makes the stale series honestly incomplete — the guard then
@@ -76,6 +78,7 @@ share count propagates and satisfies requirement 4 on its own.
 
 - a weighted-average fallback reaching the Q4 path is not differenced raw
 - a non-positive share count does not reach the panel
+- a count tagged at the wrong scale does not reach the panel
 
 ## Step 5 — verify against the real panel
 
