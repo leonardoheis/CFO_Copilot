@@ -57,6 +57,7 @@ dev = [
     "pandas-stubs>=2.3.0.250703",
     "types-requests>=2.32.4",
     "types-pyyaml>=6.0.12.20250516",
+    "scipy-stubs>=1.18.1.1",
 ]
 research = [
     "ipykernel>=7.3.0",
@@ -184,6 +185,7 @@ module = [
     "fredapi",
     "fredapi.*",
     "sklearn.*",
+    "statsmodels.*",
 ]
 ignore_missing_imports = true
 

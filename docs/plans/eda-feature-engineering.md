@@ -89,6 +89,9 @@ Settings is outside the coverage gate, so it has no test of its own; the noteboo
 
 ### Task 2: Target transforms (R5)
 
+> **Superseded** by [`feature-diagnostics-services.md`](feature-diagnostics-services.md): this task's functions were reshaped into injected service classes. The code below is the pre-reshape version.
+
+
 **Files:**
 - Create: `src/app/services/features/{__init__,exceptions,transforms}.py`, `tests/services/features/{__init__,test_transforms}.py`
 
@@ -102,7 +105,7 @@ Settings is outside the coverage gate, so it has no test of its own; the noteboo
   - `reconstruct_level(values: pd.Series, prediction: pd.Series, arm: TargetArm, horizon: int, *, shrinkage: float = 1.0) -> pd.Series`, indexed by origin row
   - `NonPositiveValueError`, `InvalidHorizonError`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 import numpy as np
@@ -110,6 +113,7 @@ import pandas as pd
 import pytest
 
 from app.services.features import (
+    SEASONAL_LAG,
     InvalidHorizonError,
     NonPositiveValueError,
     TargetArm,
@@ -120,20 +124,31 @@ from app.services.features import (
 )
 
 
+QUARTERS = 30
+BASE_REVENUE = 100.0
+QUARTERLY_GROWTH = 0.02
+SEASONAL_AMPLITUDE = 0.1
+
+
 @pytest.fixture
-def revenue() -> pd.Series:
-    steps = np.arange(30)
-    return pd.Series(100 * np.exp(0.02 * steps + 0.1 * np.sin(steps * np.pi / 2)))
+def seasonal_revenue() -> pd.Series:
+    quarter = np.arange(QUARTERS)
+    season = np.sin(2 * np.pi * quarter / SEASONAL_LAG)
+    return pd.Series(
+        BASE_REVENUE * np.exp(QUARTERLY_GROWTH * quarter + SEASONAL_AMPLITUDE * season)
+    )
 
 
 @pytest.mark.parametrize("arm", list(TargetArm))
 @pytest.mark.parametrize("horizon", [1, 2, 3, 4])
-def test_round_trip_recovers_the_actual_level(revenue, arm, horizon) -> None:
-    target = make_target(revenue, arm, horizon)
+def test_round_trip_recovers_the_actual_level(
+    seasonal_revenue: pd.Series, arm: TargetArm, horizon: int
+) -> None:
+    target = make_target(seasonal_revenue, arm, horizon)
 
-    rebuilt = reconstruct_level(revenue, target, arm, horizon)
+    rebuilt = reconstruct_level(seasonal_revenue, target, arm, horizon)
 
-    actual = revenue.shift(-horizon)
+    actual = seasonal_revenue.shift(-horizon)
     known = rebuilt.notna() & actual.notna()
     assert known.sum() > 0
     np.testing.assert_allclose(rebuilt[known], actual[known], rtol=1e-9)
@@ -141,68 +156,88 @@ def test_round_trip_recovers_the_actual_level(revenue, arm, horizon) -> None:
 
 @pytest.mark.parametrize("horizon", [1, 2, 3, 4])
 def test_zero_prediction_on_residual_arm_is_seasonal_naive_growth(
-    revenue, horizon
+    seasonal_revenue: pd.Series, horizon: int
 ) -> None:
-    zero = pd.Series(0.0, index=revenue.index)
+    zero = pd.Series(0.0, index=seasonal_revenue.index)
 
-    rebuilt = reconstruct_level(revenue, zero, TargetArm.SEASNAIVE_RESIDUAL, horizon)
+    rebuilt = reconstruct_level(
+        seasonal_revenue, zero, TargetArm.SEASNAIVE_RESIDUAL, horizon
+    )
 
-    log_values = np.log(revenue)
-    expected = np.exp(log_values.shift(4 - horizon) + log_values.diff(4))
+    log_values = pd.Series(np.log(seasonal_revenue), index=seasonal_revenue.index)
+    expected = pd.Series(
+        np.exp(log_values.shift(SEASONAL_LAG - horizon) + log_values.diff(SEASONAL_LAG))
+    )
     pd.testing.assert_series_equal(rebuilt, expected, check_names=False)
 
 
-def test_shrinkage_scales_only_the_residual_arm(revenue) -> None:
-    ones = pd.Series(1.0, index=revenue.index)
+def test_shrinkage_scales_only_the_residual_arm(seasonal_revenue: pd.Series) -> None:
+    ones = pd.Series(1.0, index=seasonal_revenue.index)
     full = reconstruct_level(
-        revenue, ones, TargetArm.SEASNAIVE_RESIDUAL, 1, shrinkage=1.0
+        seasonal_revenue, ones, TargetArm.SEASNAIVE_RESIDUAL, 1, shrinkage=1.0
     )
     half = reconstruct_level(
-        revenue, ones, TargetArm.SEASNAIVE_RESIDUAL, 1, shrinkage=0.5
+        seasonal_revenue, ones, TargetArm.SEASNAIVE_RESIDUAL, 1, shrinkage=0.5
     )
-    plain_full = reconstruct_level(revenue, ones, TargetArm.LOG_DIFF4, 1, shrinkage=1.0)
-    plain_half = reconstruct_level(revenue, ones, TargetArm.LOG_DIFF4, 1, shrinkage=0.5)
+    plain_full = reconstruct_level(
+        seasonal_revenue, ones, TargetArm.LOG_DIFF4, 1, shrinkage=1.0
+    )
+    plain_half = reconstruct_level(
+        seasonal_revenue, ones, TargetArm.LOG_DIFF4, 1, shrinkage=0.5
+    )
 
     assert not np.allclose(full.dropna(), half.dropna())
     pd.testing.assert_series_equal(plain_full, plain_half)
 
 
-def test_missing_values_stay_missing(revenue) -> None:
-    revenue.iloc[10] = np.nan
+def test_missing_values_stay_missing(seasonal_revenue: pd.Series) -> None:
+    seasonal_revenue.iloc[10] = np.nan
 
-    target = make_target(revenue, TargetArm.LOG_DIFF1, 1)
+    target = make_target(seasonal_revenue, TargetArm.LOG_DIFF1, 1)
 
-    assert np.isnan(target.iloc[10]) and np.isnan(target.iloc[9])
-    assert target.iloc[8] == pytest.approx(np.log(revenue.iloc[9] / revenue.iloc[8]))
+    assert np.isnan(target.iloc[10])
+    assert np.isnan(target.iloc[9])
+    assert target.iloc[8] == pytest.approx(
+        np.log(seasonal_revenue.iloc[9] / seasonal_revenue.iloc[8])
+    )
 
 
 @pytest.mark.parametrize("bad_value", [0.0, -5.0])
-def test_non_positive_values_are_refused_with_a_count(revenue, bad_value) -> None:
-    revenue.iloc[[3, 7]] = bad_value
+def test_non_positive_values_are_refused_with_a_count(
+    seasonal_revenue: pd.Series, bad_value: float
+) -> None:
+    seasonal_revenue.iloc[[3, 7]] = bad_value
 
     with pytest.raises(NonPositiveValueError, match="2"):
-        log_level(revenue)
+        log_level(seasonal_revenue)
 
 
 @pytest.mark.parametrize("horizon", [0, 5])
-def test_horizon_outside_one_to_four_is_refused(revenue, horizon) -> None:
+def test_horizon_outside_one_to_four_is_refused(
+    seasonal_revenue: pd.Series, horizon: int
+) -> None:
     with pytest.raises(InvalidHorizonError):
-        make_target(revenue, TargetArm.LOG_DIFF4, horizon)
+        make_target(seasonal_revenue, TargetArm.LOG_DIFF4, horizon)
 
 
-def test_yoy_growth_is_the_four_quarter_log_difference(revenue) -> None:
-    growth = yoy_log_growth(revenue)
+def test_yoy_growth_is_the_four_quarter_log_difference(
+    seasonal_revenue: pd.Series,
+) -> None:
+    growth = yoy_log_growth(seasonal_revenue)
 
-    assert growth.iloc[:4].isna().all()
-    assert growth.iloc[4] == pytest.approx(np.log(revenue.iloc[4] / revenue.iloc[0]))
+    first_year_over_year = np.log(
+        seasonal_revenue.iloc[SEASONAL_LAG] / seasonal_revenue.iloc[0]
+    )
+    assert growth.iloc[:SEASONAL_LAG].isna().all()
+    assert growth.iloc[SEASONAL_LAG] == pytest.approx(first_year_over_year)
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `uv run pytest tests/services/features/test_transforms.py -v`
 Expected: FAIL, import error.
 
-- [ ] **Step 3: Implement.** `exceptions.py`:
+- [x] **Step 3: Implement.** `exceptions.py`:
 
 ```python
 class FeatureError(Exception):
@@ -259,6 +294,9 @@ def log_level(values: pd.Series) -> pd.Series:
 
     Returns:
         The log series, NaN where the input is NaN.
+
+    Raises:
+        NonPositiveValueError: Any value is zero or negative.
     """
     non_positive = int((values <= 0).sum())
     if non_positive:
@@ -319,12 +357,12 @@ def reconstruct_level(
         predicted_log = (
             year_earlier + log_values.diff(SEASONAL_LAG) + shrinkage * prediction
         )
-    return np.exp(predicted_log)
+    return pd.Series(np.exp(predicted_log), index=values.index)
 ```
 
 `__init__.py` re-exports every name in the Interfaces list plus the other exceptions from `exceptions.py`.
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `uv run pytest tests/services/features/test_transforms.py -v`
 Expected: all pass. If `assert_series_equal` complains about dtype or name only, fix the code path, not the assertion tolerance.
@@ -332,6 +370,9 @@ Expected: all pass. If `assert_series_equal` complains about dtype or name only,
 ---
 
 ### Task 3: Series diagnostics (R2, R3)
+
+> **Superseded** by [`feature-diagnostics-services.md`](feature-diagnostics-services.md): this task's functions were reshaped into injected service classes. The code below is the pre-reshape version.
+
 
 **Files:**
 - Create: `src/app/services/diagnostics/{__init__,models,series}.py`, `tests/services/diagnostics/{__init__,test_series}.py`
@@ -347,7 +388,7 @@ Expected: all pass. If `assert_series_equal` complains about dtype or name only,
   - `diagnose_panel(panels: Mapping[str, pd.DataFrame], variables: Sequence[str]) -> pd.DataFrame`
   - `MIN_OBSERVATIONS = 16`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 import numpy as np
@@ -432,6 +473,7 @@ def test_non_positive_values_switch_off_log_fields_only() -> None:
 
 def test_positive_series_fills_every_field() -> None:
     steps = np.arange(80)
+    # Same synthetic series as test_transforms.py: name its constants the same way.
     values = pd.Series(100 * np.exp(0.02 * steps + 0.1 * np.sin(steps * np.pi / 2)))
 
     result = diagnose_series("AAA", "revenue_usd_m", values)
@@ -459,12 +501,12 @@ def test_panel_diagnostics_yield_one_row_per_company_and_variable(make_panel) ->
     assert set(table.columns) == set(SeriesDiagnostics.model_fields)
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `uv run pytest tests/services/diagnostics/test_series.py -v`
 Expected: FAIL, import error.
 
-- [ ] **Step 3: Implement.** `models.py`:
+- [x] **Step 3: Implement.** `models.py`:
 
 ```python
 from typing import Literal
@@ -502,10 +544,12 @@ import numpy as np
 import pandas as pd
 from scipy.stats import boxcox_normmax
 from statsmodels.stats.diagnostic import acorr_ljungbox
+from statsmodels.tools.sm_exceptions import InterpolationWarning
 from statsmodels.tsa.seasonal import STL
-from statsmodels.tsa.stattools import InterpolationWarning, adfuller, kpss
+from statsmodels.tsa.stattools import adfuller, kpss
 
 from app.services.diagnostics.models import SeriesDiagnostics
+from app.services.features.transforms import log_level
 
 MIN_OBSERVATIONS: Final = 16
 _MAX_DIFFERENCING_ORDER: Final = 2
@@ -530,12 +574,13 @@ def _looks_stationary(series: pd.Series) -> bool:
     # decision is still valid, so the warning carries no information here.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", InterpolationWarning)
-        kpss_p = kpss(series, regression="c", nlags="auto")[1]
-    return bool(adfuller(series)[1] < _SIGNIFICANCE and kpss_p > _SIGNIFICANCE)
+        kpss_p = kpss(series, regression="c", nlags="auto", result_object=False)[1]
+    adf_p = adfuller(series, result_object=False)[1]
+    return bool(adf_p < _SIGNIFICANCE and kpss_p > _SIGNIFICANCE)
 
 
 def differencing_order(series: pd.Series) -> int:
-    """Find the smallest d where ADF rejects a unit root and KPSS does not reject stationarity.
+    """Find the smallest d where ADF rejects a unit root and KPSS keeps stationarity.
 
     Returns:
         The order, capped at 2.
@@ -598,7 +643,7 @@ def diagnose_series(ticker: str, variable: str, series: pd.Series) -> SeriesDiag
         status="ok",
         log_defined=log_defined,
         d_levels=d_levels,
-        d_log=differencing_order(np.log(observed)) if log_defined else None,
+        d_log=differencing_order(log_level(observed)) if log_defined else None,
         seasonal_strength=seasonal_strength,
         trend_strength=trend_strength,
         ljung_box_p=_ljung_box_p(observed, d_levels),
@@ -625,9 +670,9 @@ def diagnose_panel(
     return pd.DataFrame(records)
 ```
 
-`np.log(observed)` returns a Series for a Series input, which is what `differencing_order` takes. `__init__.py` re-exports `MIN_OBSERVATIONS`, `SeriesDiagnostics`, `diagnose_panel`, `diagnose_series`, `differencing_order`, `observed_since_last_gap`, `seasonal_and_trend_strength` (Task 4 adds two more).
+`log_level` (from `features.transforms`) keeps the Series type that `differencing_order` takes; `np.log` would be typed as an ndarray by pandas-stubs. `__init__.py` re-exports `MIN_OBSERVATIONS`, `SeriesDiagnostics`, `diagnose_panel`, `diagnose_series`, `differencing_order`, `observed_since_last_gap`, `seasonal_and_trend_strength` (Task 4 adds two more). `scipy-stubs` joins the dev group; `statsmodels.*` joins the `ignore_missing_imports` override beside `sklearn.*`, and `series.py` turns off pyright's `reportUnknown*` rules at file level, because statsmodels ships no stubs. `result_object=False` keeps the tuple returns pyright can type.
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `uv run pytest tests/services/diagnostics/test_series.py -v`
 Expected: all pass. The stationarity tests use 300 draws so the seed does not decide the result. If one still fails, print the ADF and KPSS p-values before touching a threshold.
@@ -635,6 +680,9 @@ Expected: all pass. The stationarity tests use 300 draws so the seed does not de
 ---
 
 ### Task 4: Panel-level EDA outputs (R4)
+
+> **Superseded** by [`feature-diagnostics-services.md`](feature-diagnostics-services.md): this task's functions were reshaped into injected service classes. The code below is the pre-reshape version.
+
 
 **Files:**
 - Create: `src/app/services/diagnostics/panel.py`, `tests/services/diagnostics/test_panel.py`
@@ -646,7 +694,7 @@ Expected: all pass. The stationarity tests use 300 draws so the seed does not de
   - `seasonality_regimes(diagnostics: pd.DataFrame, *, variable: str, n_regimes: int = 3, seed: int = 42) -> pd.Series` (index ticker, name `seasonality_regime`, regime 0 least seasonal)
   - `growth_macro_correlations(panels: Mapping[str, pd.DataFrame], *, variable: str) -> pd.DataFrame` (index ticker, macro columns plus `sector`)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 import numpy as np
@@ -697,7 +745,7 @@ def test_companies_without_a_full_diagnosis_get_no_regime() -> None:
 def test_growth_that_tracks_a_macro_series_correlates_perfectly(make_panel) -> None:
     panel = make_panel(ticker="AAA", quarters=40)
     panel["revenue_usd_m"] = 100 * np.exp(np.cumsum(np.sin(np.arange(40) / 3)) * 0.05)
-    panel["vix"] = np.log(panel["revenue_usd_m"]).diff(4)
+    panel["vix"] = pd.Series(np.log(panel["revenue_usd_m"])).diff(4)
 
     table = growth_macro_correlations({"AAA": panel}, variable="revenue_usd_m")
 
@@ -708,23 +756,32 @@ def test_growth_that_tracks_a_macro_series_correlates_perfectly(make_panel) -> N
 
 The last test builds the macro column from the growth itself, so the expected correlation is exactly 1 without a random draw.
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `uv run pytest tests/services/diagnostics/test_panel.py -v`
 Expected: FAIL, import error.
 
-- [ ] **Step 3: Implement** `panel.py`:
+- [x] **Step 3: Implement** `panel.py`:
 
 ```python
 from collections.abc import Mapping
+from typing import Final, Protocol, cast
 
+import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from sklearn.cluster import KMeans
 
 from app.data.schema import MACRO_COLUMNS
 from app.services.features.transforms import yoy_log_growth
 
-_CLUSTERING_COLUMNS = ["seasonal_strength", "trend_strength"]
+_CLUSTERING_COLUMNS: Final = ["seasonal_strength", "trend_strength"]
+
+
+class _Clusterer(Protocol):
+    """The slice of sklearn's untyped KMeans API this module relies on."""
+
+    def fit_predict(self, X: pd.DataFrame) -> npt.NDArray[np.int32]: ...
 
 
 def seasonality_regimes(
@@ -735,13 +792,18 @@ def seasonality_regimes(
     Returns:
         Regime id per ticker; 0 is the least seasonal cluster.
     """
-    fully_diagnosed = diagnostics.query(
-        "variable == @variable and status == 'ok'"
-    ).set_index("ticker")
-    labels = KMeans(n_clusters=n_regimes, random_state=seed, n_init=10).fit_predict(
-        fully_diagnosed[_CLUSTERING_COLUMNS]
+    fully_diagnosed = diagnostics.loc[
+        (diagnostics["variable"] == variable) & (diagnostics["status"] == "ok")
+    ].set_index("ticker")
+    clusterer = cast(
+        "_Clusterer",
+        # pyright infers n_init: str from sklearn's "auto" default; it takes an int.
+        KMeans(n_clusters=n_regimes, random_state=seed, n_init=10),  # pyright: ignore[reportArgumentType]
     )
-    raw = pd.Series(labels, index=fully_diagnosed.index)
+    raw = pd.Series(
+        clusterer.fit_predict(fully_diagnosed[_CLUSTERING_COLUMNS]),
+        index=fully_diagnosed.index,
+    )
     rank_by_seasonality = (
         fully_diagnosed["seasonal_strength"]
         .groupby(raw)
@@ -774,9 +836,9 @@ def growth_macro_correlations(
     return pd.DataFrame.from_dict(rows, orient="index")
 ```
 
-Re-export both from `diagnostics/__init__.py`. Diagnostics imports `features.transforms`; features never imports diagnostics, so the dependency stays one-way. The sector table is `table.groupby("sector").mean(numeric_only=True)` in the notebook, one line, so it gets no helper.
+Re-export both from `diagnostics/__init__.py`. KMeans goes behind a `_Clusterer` Protocol and `cast`, the same way `ScaledLinearRegression` wraps its sklearn pipeline. Diagnostics imports `features.transforms`; features never imports diagnostics, so the dependency stays one-way. The sector table is `table.groupby("sector").mean(numeric_only=True)` in the notebook, one line, so it gets no helper.
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `uv run pytest tests/services/diagnostics -v`
 Expected: all pass.
@@ -784,6 +846,9 @@ Expected: all pass.
 ---
 
 ### Task 5: Feature builder (R6)
+
+> **Superseded** by [`feature-diagnostics-services.md`](feature-diagnostics-services.md): this task's functions were reshaped into injected service classes. The code below is the pre-reshape version.
+
 
 **Files:**
 - Create: `src/app/services/features/builder.py`, `tests/services/features/test_builder.py`
@@ -798,7 +863,7 @@ Expected: all pass.
 
 Column names: L `growth_yoy_lag{1,2,3,4,5,8}`; R `growth_yoy_mean_{4,8}q`, `growth_yoy_std_{4,8}q`, `growth_yoy_momentum`; M `gross_margin`, `operating_margin`, `net_margin`; X the ten `MACRO_COLUMNS`; XD `real_rate`; C `target_quarter`; S `sector`, `seasonality_regime`; F `covid`, `structural_break`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 import numpy as np
@@ -955,12 +1020,12 @@ def test_a_panel_of_two_companies_is_refused(make_panel) -> None:
         build_features(mixed, _spec(FeatureGroup.L), horizon=1)
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `uv run pytest tests/services/features/test_builder.py -v`
 Expected: FAIL, `cannot import name 'build_features'`.
 
-- [ ] **Step 3: Implement** `builder.py`:
+- [x] **Step 3: Implement** `builder.py`:
 
 ```python
 from enum import StrEnum
@@ -1048,8 +1113,12 @@ def build_features(
 
     Returns:
         One row per origin quarter, indexed like ``panel``.
+
+    Raises:
+        MixedTickerPanelError: The panel holds more than one company.
     """
-    if panel["ticker"].nunique() != 1:
+    tickers = panel["ticker"].to_numpy()
+    if tickers.size == 0 or (tickers != tickers[0]).any():
         message = "build_features takes one company's panel at a time"
         raise MixedTickerPanelError(message)
     growth = yoy_log_growth(panel[spec.target_variable])
@@ -1083,14 +1152,19 @@ def build_features(
 
 Re-export `FeatureGroup`, `FeatureSpec`, `build_features` from `features/__init__.py`. `outlier_flag` is deliberately not a group: NB00 fits it on each company's whole history, so it would leak later quarters.
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `uv run pytest tests/services/features/test_builder.py -v && uv run poe lint`
 Expected: all pass. If ruff flags branch count (`PLR0912`) or complexity (`C901`) on `build_features`, split by moving the guard and the key frame into private helpers. Do not suppress.
 
+Neither fired. Ruff's `PD101` rejects `nunique() != 1` as a constant check, so the guard compares every ticker to the first; an empty panel is still refused.
+
 ---
 
 ### Task 6: Leakage check (R7)
+
+> **Superseded** by [`feature-diagnostics-services.md`](feature-diagnostics-services.md): this task's functions were reshaped into injected service classes. The code below is the pre-reshape version.
+
 
 **Files:**
 - Create: `src/app/services/features/leakage.py`, `tests/services/features/test_leakage.py`
@@ -1100,7 +1174,7 @@ Expected: all pass. If ruff flags branch count (`PLR0912`) or complexity (`C901`
 - Consumes: `build_features`, `FeatureSpec`, `FeatureGroup`, `LeakageError`.
 - Produces: `assert_no_lookahead(build: Callable[[pd.DataFrame], pd.DataFrame], panel: pd.DataFrame, *, origins: Sequence[int]) -> None`. Passing a builder callable lets the test pass a deliberately leaky one.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 import pandas as pd
@@ -1140,22 +1214,23 @@ def test_a_builder_that_peeks_one_quarter_ahead_is_caught(make_panel) -> None:
         assert_no_lookahead(leaky, make_panel(), origins=[8])
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `uv run pytest tests/services/features/test_leakage.py -v`
 Expected: FAIL, import error.
 
-- [ ] **Step 3: Implement** `leakage.py`:
+- [x] **Step 3: Implement** `leakage.py`:
 
 ```python
 from collections.abc import Callable, Sequence
+from typing import Final
 
 import pandas as pd
 
 from app.services.features.exceptions import LeakageError
 
-_SCRAMBLE_SCALE = 3.0
-_SCRAMBLE_SHIFT = 1.0
+_SCRAMBLE_SCALE: Final = 3.0
+_SCRAMBLE_SHIFT: Final = 1.0
 
 
 def _with_later_quarters_scrambled(panel: pd.DataFrame, origin: int) -> pd.DataFrame:
@@ -1194,7 +1269,7 @@ def assert_no_lookahead(
 
 Re-export from `features/__init__.py`.
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `uv run pytest tests/services/features/test_leakage.py -v`
 Expected: 5 passed. If a real-builder case fails, the builder has a genuine look-ahead: fix `builder.py`, not the check.
@@ -1202,6 +1277,9 @@ Expected: 5 passed. If a real-builder case fails, the builder has a genuine look
 ---
 
 ### Task 7: Dataset assembly and export (R8)
+
+> **Superseded** by [`feature-diagnostics-services.md`](feature-diagnostics-services.md): this task's functions were reshaped into injected service classes. The code below is the pre-reshape version.
+
 
 **Files:**
 - Create: `src/app/services/features/dataset.py`, `tests/services/features/test_dataset.py`
@@ -1211,7 +1289,7 @@ Expected: 5 passed. If a real-builder case fails, the builder has a genuine look
 - Consumes: `build_features`, `make_target`, `FeatureSpec`, `TargetArm`; `app.data.write_panel`; `Settings.features_output_path`.
 - Produces: `assemble_dataset(panels: Mapping[str, pd.DataFrame], spec: FeatureSpec, *, horizon: int, arm: TargetArm, regimes: pd.Series | None = None) -> pd.DataFrame`. Every origin row of every company; keys `ticker`, `origin_date`, `target_date`, the group columns, then `target_level_usd_m` (actual value at origin + h) and `y` (the arm's target). `sector` is a category dtype when group S is present. Export reuses `write_panel(dataset, Settings.features_output_path(h))`; the name is panel-specific but the function is a plain parquet writer.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 import numpy as np
@@ -1285,12 +1363,12 @@ def test_without_group_s_no_sector_column_appears(panels) -> None:
     assert "sector" not in dataset.columns
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `uv run pytest tests/services/features/test_dataset.py -v`
 Expected: FAIL, import error.
 
-- [ ] **Step 3: Implement** `dataset.py`:
+- [x] **Step 3: Implement** `dataset.py`:
 
 ```python
 from collections.abc import Mapping
@@ -1343,7 +1421,7 @@ def assemble_dataset(
 
 Re-export `assemble_dataset`.
 
-- [ ] **Step 4: Run to verify pass, then the whole suite**
+- [x] **Step 4: Run to verify pass, then the whole suite**
 
 Run: `uv run pytest tests/services/features tests/services/diagnostics tests/services/tracking tests/data/test_panel_store.py -v`
 Expected: all pass.
@@ -1351,6 +1429,8 @@ Expected: all pass.
 ---
 
 ### Task 8: Notebook orchestration and acceptance run
+
+> Cells rewritten by [`feature-diagnostics-services.md`](feature-diagnostics-services.md) Task 12: every service comes from the container.
 
 **Files:**
 - Modify: `src/app/playground/01_eda_feature_engineering.ipynb` (edit with `NotebookEdit`; keep the four existing section headings)
@@ -1361,27 +1441,16 @@ No unit tests for the notebook. The helpers it calls are already tested, and its
 
 ```python
 from app.injections import configure_container
-from app.data.schema import MACRO_COLUMNS
-from app.services.diagnostics import (
-    diagnose_panel,
-    growth_macro_correlations,
-    seasonality_regimes,
-)
-from app.services.features import (
-    FeatureGroup,
-    FeatureSpec,
-    TargetArm,
-    assemble_dataset,
-    assert_no_lookahead,
-    build_features,
-)
+from app.services.features import FeatureGroup, TargetArm, TargetTransformer
 from app.services.tracking import RunConfig, run_name
 from app.settings import Settings
-from app.data import write_panel
 from app.data.panel_store import load_consolidated
 
 container = configure_container()
 tracker = container.experiment_tracker()
+diagnostics_service = container.diagnostics_service()
+feature_service = container.feature_service()
+feature_store = container.feature_store()
 panels = load_consolidated(
     panel_long_path=Settings.PANEL_LONG_PATH, macro_q_path=Settings.MACRO_Q_PATH
 )
@@ -1400,7 +1469,7 @@ TARGETS = [
 - [ ] **Step 2: Cell 2, "2. Diagnostics"**
 
 ```python
-diagnostics = diagnose_panel(panels, TARGETS)
+diagnostics = diagnostics_service.diagnose_panel(panels, TARGETS)
 assert len(diagnostics) == 240  # A2
 revenue_obs = diagnostics.query("variable == 'revenue_usd_m'").set_index("ticker")[
     "n_obs"
@@ -1408,9 +1477,10 @@ revenue_obs = diagnostics.query("variable == 'revenue_usd_m'").set_index("ticker
 assert revenue_obs[["TSLA", "BBY", "ADBE", "ORCL"]].tolist() == [72, 78, 80, 80]
 assert revenue_obs.drop(["TSLA", "BBY", "ADBE", "ORCL"]).eq(81).all()
 
-regimes = seasonality_regimes(diagnostics, variable="revenue_usd_m")
+regimes = diagnostics_service.seasonality_regimes(diagnostics, variable="revenue_usd_m")
 sector_sensitivity = (
-    growth_macro_correlations(panels, variable="revenue_usd_m")
+    diagnostics_service
+    .growth_macro_correlations(panels, variable="revenue_usd_m")
     .groupby("sector")
     .mean(numeric_only=True)
 )
@@ -1435,17 +1505,14 @@ Add cells that plot the seasonal-strength histogram, the `d_levels` versus `d_lo
 - [ ] **Step 3: Cell 3, "3. Feature engineering"**
 
 ```python
-spec = FeatureSpec(groups=frozenset(FeatureGroup))
 for horizon in (1, 2, 3, 4):
     for panel in panels.values():
-        assert_no_lookahead(
-            lambda p: build_features(p, spec, horizon=horizon, regimes=regimes),
-            panel,
-            origins=[8, 20, 40, 60],
+        feature_service.check_lookahead(
+            panel, horizon=horizon, origins=[8, 20, 40, 60], regimes=regimes
         )  # A4
 ```
 
-Add a cell for A5: for each arm and horizon, `reconstruct_level(revenue, make_target(revenue, arm, h), arm, h)` against `revenue.shift(-h)` with `np.testing.assert_allclose(..., rtol=1e-9)` on one company.
+Add a cell for A5: for each arm and horizon, `transformer = TargetTransformer(arm=arm, horizon=h)`, then `transformer.reconstruct(revenue, transformer.make(revenue))` against `revenue.shift(-h)` with `np.testing.assert_allclose(..., rtol=1e-9)` on one company. Group ablations take a spec per call: `container.feature_service(builder__spec=FeatureSpec(groups=...))`.
 
 - [ ] **Step 4: Cell 4, "4. Export features"**
 
@@ -1455,7 +1522,7 @@ config = RunConfig(
     n_rows=n_rows,
     target_variable="revenue_usd_m",
     target_transform=TargetArm.SEASNAIVE_RESIDUAL.value,
-    feature_groups=tuple(sorted(group.value for group in spec.groups)),
+    feature_groups=tuple(sorted(group.value for group in FeatureGroup)),
 )
 with tracker.start_run(
     run_name(notebook="nb02", model="features", variable="revenue_usd_m"),
@@ -1463,9 +1530,8 @@ with tracker.start_run(
     job_type="features",
 ) as run:
     for horizon in (1, 2, 3, 4):
-        dataset = assemble_dataset(
+        dataset = feature_service.assemble(
             panels,
-            spec,
             horizon=horizon,
             arm=TargetArm.SEASNAIVE_RESIDUAL,
             regimes=regimes,
@@ -1474,11 +1540,11 @@ with tracker.start_run(
             len(dataset) == n_rows
             and dataset["y"].notna().sum() <= n_rows - 60 * horizon
         )  # A6
-        path = write_panel(dataset, Settings.features_output_path(horizon))
+        path = feature_store.write(dataset, horizon)
         run.log_dataset(f"features_h{horizon}", path)
 ```
 
-The run logs `n_features` in a follow-up `run.log_metrics({"n_features": dataset.shape[1] - 5})` (the five non-feature columns are `ticker`, `origin_date`, `target_date`, `target_level_usd_m`, `y`). `RunConfig.n_features` is frozen at construction, so compute it from a `build_features(...)` call on one panel *before* building `config`.
+The run logs `n_features` in a follow-up `run.log_metrics({"n_features": dataset.shape[1] - 5})` (the five non-feature columns are `ticker`, `origin_date`, `target_date`, `target_level_usd_m`, `y`). `RunConfig.n_features` is frozen at construction, so compute it *before* building `config` from one company: `feature_service.assemble({ticker: panel}, horizon=1, arm=TargetArm.SEASNAIVE_RESIDUAL, regimes=regimes).shape[1] - 5`.
 
 - [ ] **Step 5: Static checks on the notebook (A9, A8)**
 
@@ -1489,7 +1555,7 @@ uv run python -c "import json,sys; nb=json.load(open('src/app/playground/01_eda_
 uv run poe check
 ```
 
-Expected: exit 0 for the first (no `def`/`class` at the start of a line in any code cell), then lint, typecheck and tests green with coverage ≥ 80%.
+Expected: exit 0 for the first (no `def`/`class` at the start of a line in any code cell), then lint, typecheck and tests green with coverage ≥ 80%. Also run the services spec's A9: `grep -En "write_panel|features_output_path|build_features|assemble_dataset" src/app/playground/01_eda_feature_engineering.ipynb` finds nothing.
 
 - [ ] **Step 6: Hand over.** Summarize the files added and modified, the `poe check` result, and which acceptance criteria are verified by tests (A5 shape, A8, A9) versus by the notebook run the user has not yet done (A1–A4, A6, A7). Stage nothing. Propose a commit message and wait for explicit approval.
 

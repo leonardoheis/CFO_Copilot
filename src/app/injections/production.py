@@ -1,7 +1,9 @@
 from dependency_injector import containers, providers
 
 from app.data.companies import CompanyRegistry
+from app.data.feature_store import FeatureStore
 from app.data.panel_store import PanelStore
+from app.data.schema import MACRO_COLUMNS
 from app.data.sources import (
     AlphaVantageSource,
     FredSource,
@@ -11,6 +13,21 @@ from app.data.sources import (
 from app.data.sources_bundle import IngestionSources
 from app.data.structural_breaks import load_structural_breaks
 from app.services import PredictionService, TrainingService
+from app.services.diagnostics import (
+    DiagnosticsService,
+    DiagnosticsSettings,
+    MacroCorrelator,
+    RegimeSettings,
+    SeasonalityRegimeClusterer,
+    SeriesDiagnostician,
+)
+from app.services.features import (
+    FeatureBuilder,
+    FeatureService,
+    FeatureSpec,
+    LeakageSettings,
+    LookaheadGuard,
+)
 from app.services.tracking import WandbSettings, WandbTracker
 from app.settings import Settings
 
@@ -61,4 +78,23 @@ class Container(containers.DeclarativeContainer):
     )
     structural_breaks = providers.Singleton(
         load_structural_breaks, Settings.STRUCTURAL_BREAKS_PATH
+    )
+
+    diagnostics_service = providers.Factory(
+        DiagnosticsService,
+        diagnostician=providers.Factory(
+            SeriesDiagnostician, settings=DiagnosticsSettings()
+        ),
+        clusterer=providers.Factory(
+            SeasonalityRegimeClusterer, settings=RegimeSettings()
+        ),
+        correlator=providers.Factory(MacroCorrelator, macro_columns=MACRO_COLUMNS),
+    )
+    feature_service = providers.Factory(
+        FeatureService,
+        builder=providers.Factory(FeatureBuilder, spec=FeatureSpec()),
+        guard=providers.Factory(LookaheadGuard, settings=LeakageSettings()),
+    )
+    feature_store = providers.Factory(
+        FeatureStore, directory=Settings.DATA_DIRECTORY / "features"
     )
