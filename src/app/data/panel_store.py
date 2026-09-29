@@ -8,6 +8,8 @@ from app.data.schema import FINANCIAL_COLUMNS, MACRO_COLUMNS, METADATA_COLUMNS
 
 REQUIRED_COLUMNS: Final = (*METADATA_COLUMNS, *FINANCIAL_COLUMNS, *MACRO_COLUMNS)
 _PANEL_SUFFIX: Final = "_panel.parquet"
+_PANEL_LONG_FILE: Final = "panel_long.parquet"
+_MACRO_Q_FILE: Final = "macro_q.parquet"
 
 
 def _require_columns(ticker: str, panel: pd.DataFrame) -> None:
@@ -22,6 +24,35 @@ def _require_consecutive_quarter_ends(ticker: str, dates: pd.Series) -> None:
     expected = pd.date_range(dates.iloc[0], periods=len(dates), freq="QE")
     if not (dates.reset_index(drop=True) == pd.Series(expected)).all():
         message = f"Panel for {ticker} does not hold consecutive calendar quarter-ends"
+        raise MalformedPanelError(message)
+
+
+def _iso_dates(dates: pd.Series) -> str:
+    unique_dates = sorted(pd.to_datetime(dates).drop_duplicates())
+    return ", ".join(date.date().isoformat() for date in unique_dates)
+
+
+def _require_macro_row_for_every_panel_date(
+    panel_long: pd.DataFrame, macro_q: pd.DataFrame
+) -> None:
+    covered = pd.to_datetime(panel_long["date"]).isin(pd.to_datetime(macro_q["date"]))
+    if not covered.all():
+        uncovered = panel_long.loc[~covered, "date"]
+        message = f"macro_q has no row for panel dates: {_iso_dates(uncovered)}"
+        raise MalformedPanelError(message)
+
+
+def _require_complete_macro_values(merged: pd.DataFrame) -> None:
+    missing = merged[list(MACRO_COLUMNS)].isna()
+    dates = merged["date"]
+    gaps = [
+        f"{column} on {_iso_dates(dates[missing[column]])}"
+        for column in MACRO_COLUMNS
+        if missing[column].any()
+    ]
+    if gaps:
+        gap_list = "; ".join(gaps)
+        message = f"macro_q has missing values: {gap_list}"
         raise MalformedPanelError(message)
 
 
@@ -65,37 +96,41 @@ class PanelStore:
         """
         return {ticker: self.load(ticker) for ticker in self.tickers()}
 
+    @property
+    def panel_long_path(self) -> Path:
+        return self._directory / _PANEL_LONG_FILE
 
-def load_consolidated(
-    *, panel_long_path: Path, macro_q_path: Path
-) -> dict[str, pd.DataFrame]:
-    """Load the NB00 outputs as one panel per ticker, macro joined on.
+    @property
+    def macro_q_path(self) -> Path:
+        return self._directory / _MACRO_Q_FILE
 
-    Returns:
-        Per-ticker frames with macro columns and flags; projected rows are dropped.
+    def load_consolidated(self) -> dict[str, pd.DataFrame]:
+        """Load NB00's outputs per ticker, refusing macro gaps in dates or values.
 
-    Raises:
-        PanelNotFoundError: An NB00 output file is absent.
-        MalformedPanelError: The macro table does not cover every panel date.
-    """
-    absent = [
-        str(path) for path in (panel_long_path, macro_q_path) if not path.exists()
-    ]
-    if absent:
-        absent_list = ", ".join(absent)
-        message = f"NB00 outputs missing: {absent_list}"
-        raise PanelNotFoundError(message)
-    merged = pd.read_parquet(panel_long_path).merge(
-        pd.read_parquet(macro_q_path),
-        on="date",
-        how="left",
-        validate="many_to_one",
-    )
-    if merged[list(MACRO_COLUMNS)].isna().any().any():
-        message = "macro_q does not cover every panel date"
-        raise MalformedPanelError(message)
-    reported = merged.loc[~merged["is_projected"]]
-    return {
-        str(ticker): frame.reset_index(drop=True)
-        for ticker, frame in reported.groupby("ticker", sort=True)
-    }
+        Returns:
+            Per-ticker frames with macro columns and flags; projected rows dropped.
+
+        Raises:
+            PanelNotFoundError: An NB00 output file is absent.
+        """
+        absent = [
+            str(path)
+            for path in (self.panel_long_path, self.macro_q_path)
+            if not path.exists()
+        ]
+        if absent:
+            absent_list = ", ".join(absent)
+            message = f"NB00 outputs missing: {absent_list}"
+            raise PanelNotFoundError(message)
+        panel_long = pd.read_parquet(self.panel_long_path)
+        macro_q = pd.read_parquet(self.macro_q_path)
+        _require_macro_row_for_every_panel_date(panel_long, macro_q)
+        merged = panel_long.merge(
+            macro_q, on="date", how="left", validate="many_to_one"
+        )
+        _require_complete_macro_values(merged)
+        reported = merged.loc[~merged["is_projected"]]
+        return {
+            str(ticker): frame.reset_index(drop=True)
+            for ticker, frame in reported.groupby("ticker", sort=True)
+        }

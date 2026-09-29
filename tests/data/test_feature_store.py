@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -9,7 +10,7 @@ def _dataset() -> pd.DataFrame:
     return pd.DataFrame({
         "ticker": ["AAA", "BBB"],
         "sector": pd.Categorical(["Technology", "Energy"]),
-        "y": [0.1, float("nan")],
+        "y": [0.1, math.nan],
     })
 
 

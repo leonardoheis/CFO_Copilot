@@ -1,9 +1,8 @@
-# statsmodels ships no type stubs, so every call into it reads as Unknown.
-# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 import warnings
-from typing import Literal
+from typing import Literal, Protocol, cast
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from scipy.stats import boxcox_normmax
 from statsmodels.stats.diagnostic import acorr_ljungbox
@@ -13,6 +12,92 @@ from statsmodels.tsa.stattools import adfuller, kpss
 
 from app.services.diagnostics.models import DiagnosticsSettings, SeriesDiagnostics
 from app.services.features.transforms import log_level
+
+type _FloatArray = npt.NDArray[np.float64]
+
+
+class _KpssResult(Protocol):
+    """statsmodels ``KPSSResult``; H0 is stationarity."""
+
+    @property
+    def statistic(self) -> float: ...
+    @property
+    def pvalue(self) -> float: ...
+    @property
+    def lags(self) -> int: ...
+    @property
+    def critical_values(self) -> dict[str, float]: ...
+
+
+class _KpssTest(Protocol):
+    """statsmodels ``kpss`` returning its named result."""
+
+    def __call__(
+        self,
+        x: pd.Series,
+        *,
+        regression: Literal["c", "ct"],
+        nlags: Literal["auto", "legacy"],
+        result_object: Literal[True],
+    ) -> _KpssResult: ...
+
+
+class _AdfResult(Protocol):
+    """statsmodels ``ADFullerResult``; H0 is a unit root."""
+
+    @property
+    def statistic(self) -> float: ...
+    @property
+    def pvalue(self) -> float: ...
+    @property
+    def lags(self) -> int: ...
+    @property
+    def nobs(self) -> int: ...
+    @property
+    def critical_values(self) -> dict[str, float]: ...
+
+
+class _AdfTest(Protocol):
+    """statsmodels ``adfuller`` returning its named result."""
+
+    def __call__(self, x: pd.Series, *, result_object: Literal[True]) -> _AdfResult: ...
+
+
+class _StlFit(Protocol):
+    """The decomposition components an STL fit exposes."""
+
+    @property
+    def seasonal(self) -> _FloatArray: ...
+    @property
+    def trend(self) -> _FloatArray: ...
+    @property
+    def resid(self) -> _FloatArray: ...
+
+
+class _Stl(Protocol):
+    def fit(self) -> _StlFit: ...
+
+
+class _StlFactory(Protocol):
+    """statsmodels ``STL`` constructor arguments this module passes."""
+
+    def __call__(self, endog: _FloatArray, *, period: int, robust: bool) -> _Stl: ...
+
+
+class _LjungBoxTest(Protocol):
+    """statsmodels ``acorr_ljungbox``: a frame with an ``lb_pvalue`` column."""
+
+    def __call__(
+        self, x: pd.Series, *, lags: list[int], return_df: Literal[True]
+    ) -> pd.DataFrame: ...
+
+
+# statsmodels ships no stubs, so each call is typed once here with the
+# signature and result shape this module relies on.
+_kpss = cast("_KpssTest", kpss)
+_adfuller = cast("_AdfTest", adfuller)
+_stl = cast("_StlFactory", STL)
+_acorr_ljungbox = cast("_LjungBoxTest", acorr_ljungbox)
 
 
 def observed_since_last_gap(series: pd.Series) -> pd.Series:
@@ -31,13 +116,17 @@ def _is_constant(series: pd.Series) -> bool:
     return bool((values == values[0]).all())
 
 
-def _strength(component: np.ndarray, remainder: np.ndarray) -> float:
+def _log_defined(observed: pd.Series) -> bool:
+    return bool(len(observed) and (observed > 0).all())
+
+
+def _strength(component: _FloatArray, remainder: _FloatArray) -> float:
     return float(max(0.0, 1.0 - np.var(remainder) / np.var(component + remainder)))
 
 
 def _ljung_box_p(series: pd.Series, order: int, lag: int) -> float:
     differenced = series.diff(order).dropna() if order else series
-    result = acorr_ljungbox(differenced, lags=[lag], return_df=True)
+    result = _acorr_ljungbox(differenced, lags=[lag], return_df=True)
     return float(result["lb_pvalue"].iloc[0])
 
 
@@ -52,7 +141,7 @@ def _unanalysed(
         variable=variable,
         n_obs=len(observed),
         status=status,
-        log_defined=bool(len(observed) and (observed > 0).all()),
+        log_defined=_log_defined(observed),
     )
 
 
@@ -73,10 +162,10 @@ class SeriesDiagnostician:
         # decision is still valid, so the warning carries no information here.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", InterpolationWarning)
-            kpss_p = kpss(series, regression="c", nlags="auto", result_object=False)[1]
-        adf_p = adfuller(series, result_object=False)[1]
+            kpss = _kpss(series, regression="c", nlags="auto", result_object=True)
+        adf = _adfuller(series, result_object=True)
         significance = self._settings.significance
-        return bool(adf_p < significance and kpss_p > significance)
+        return bool(kpss.pvalue > significance > adf.pvalue)
 
     def differencing_order(self, series: pd.Series) -> int:
         """Find the smallest d at which ADF and KPSS both call the series stationary.
@@ -97,8 +186,10 @@ class SeriesDiagnostician:
         Returns:
             ``(seasonal_strength, trend_strength)``.
         """
-        fit = STL(
-            series.to_numpy(), period=self._settings.seasonal_period, robust=True
+        fit = _stl(
+            series.to_numpy(dtype=np.float64),
+            period=self._settings.seasonal_period,
+            robust=True,
         ).fit()
         return (
             _strength(fit.seasonal, fit.resid),
@@ -119,7 +210,7 @@ class SeriesDiagnostician:
         # ADF and KPSS divide by the variance, which a constant run does not have.
         if _is_constant(observed):
             return _unanalysed(ticker, variable, observed, "constant")
-        log_defined = bool((observed > 0).all())
+        log_defined = _log_defined(observed)
         d_levels = self.differencing_order(observed)
         seasonal_strength, trend_strength = self.seasonal_and_trend_strength(observed)
         return SeriesDiagnostics(

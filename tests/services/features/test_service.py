@@ -13,7 +13,7 @@ from app.services.features import (
 )
 from tests.conftest import PanelFactory
 
-SPEC = FeatureSpec(groups=frozenset({FeatureGroup.L, FeatureGroup.S}))
+SPEC = FeatureSpec(groups=frozenset({FeatureGroup.LAGS, FeatureGroup.STATIC}))
 REGIMES = pd.Series({"AAA": 0, "BBB": 1})
 QUARTERS = 24
 
@@ -59,7 +59,7 @@ def test_target_columns_match_the_transform(panels: dict[str, pd.DataFrame]) -> 
     pd.testing.assert_series_equal(
         company["y"], transformer.make(revenue), check_names=False
     )
-    assert company["target_level_usd_m"].iloc[0] == revenue.iloc[horizon]
+    assert company["target_level"].iloc[0] == revenue.iloc[horizon]
 
 
 def test_the_last_horizon_origins_have_no_target_yet(
@@ -84,10 +84,10 @@ def test_sector_is_categorical_across_companies(
     assert isinstance(dataset["sector"].dtype, pd.CategoricalDtype)
 
 
-def test_without_group_s_no_sector_column_appears(
+def test_without_the_static_group_no_sector_column_appears(
     panels: dict[str, pd.DataFrame],
 ) -> None:
-    service = _service(FeatureSpec(groups=frozenset({FeatureGroup.L})))
+    service = _service(FeatureSpec(groups=frozenset({FeatureGroup.LAGS})))
 
     dataset = service.assemble(panels, horizon=1, arm=TargetArm.LOG_DIFF1)
 

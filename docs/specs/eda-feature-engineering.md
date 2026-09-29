@@ -127,8 +127,8 @@ and credentials from `Settings`.
 
 ## Acceptance criteria
 
-- **A1.** Loading returns 60 frames of 81 rows, each with the four flag columns and all ten macro columns.
-- **A2.** Diagnostics for all four target variables give 240 records. Revenue
+- **A1.** Loading returns 60 frames of 81 rows (59 reach NB01 after Q6), each with the four flag columns and all ten macro columns.
+- **A2.** Diagnostics for all four target variables give one record per company and variable (236 for 59 companies). Revenue
   `n_obs` is 72 for TSLA, 78 for BBY, 80 for ADBE and ORCL, 81 for every other
   company.
 - **A3.** For AAPL, AMZN, GOOGL, MSFT, PEP and PG revenue, the differencing
@@ -137,8 +137,9 @@ and credentials from `Settings`.
   purpose: Appendix C's n=75 comes from dropping NaN across gaps.
 - **A4.** The leakage check passes on the real panels for h = 1…4, all groups.
 - **A5.** The round trip holds to 1e-9 for 3 arms × 4 horizons on real revenue.
-- **A6.** `features_h1…h4.parquet` exist, 4,860 rows each, and labelled rows are
-  at most 4,860 − 60·h.
+- **A6.** `features_h1…h4.parquet` exist, one row per origin quarter of every
+  company (4,779 for 59 companies after Q6), and labelled rows are at most
+  rows − companies·h.
 - **A7.** W&B project `cfo-copilot` shows one EDA run per target variable and
   one features run with a `features_h{1..4}` dataset artifact, each with the
   config keys.
@@ -154,3 +155,4 @@ and credentials from `Settings`.
 | Q3 | Group L uses YoY log growth whatever the target arm | One feature matrix per horizon, as the master artifact list has; Appendix D measured YoY lags at 5.2% MAE against 5.8% for QoQ (7 companies) |
 | Q4 | Group M is the three margins only; growth of signed lines (EBITDA, opex, FCF) waits on Q2 | Same non-positive problem |
 | Q5 | Group F is `covid` and `structural_break`; `outlier_flag` stays out | The outlier flag is fitted on the whole history and would leak later quarters |
+| Q6 | COP is excluded from NB01 until its revenue ingestion is fixed (decided 2026-09-29) | Its Q4 2010 revenue is −81,500 ($M), between 47,208 and 56,530, and Q2 2011's 17,668 is also implausible: most likely a Q4 derived as FY − 9M on a restated year. Log growth cannot take a negative level, so feature building raises `NonPositiveValueError`. Acceptance counts below run on 59 companies; the fix belongs in a separate ingestion spec |

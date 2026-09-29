@@ -19,14 +19,14 @@ FLAG_COLUMNS: Final = ("covid", "structural_break")
 
 
 class FeatureGroup(StrEnum):
-    L = "L"  # Lag features
-    R = "R"  # Rolling features
-    M = "M"  # Margin features
-    X = "X"  # Macro features
-    XD = "XD"  # Cross-sectional features
-    C = "C"  # Categorical features
-    S = "S"  # Static features
-    F = "F"  # Flag features
+    LAGS = "L"
+    ROLLING = "R"
+    MARGINS = "M"
+    MACRO = "X"
+    MACRO_DERIVED = "XD"
+    CALENDAR = "C"
+    STATIC = "S"
+    FLAGS = "F"
 
 
 class FeatureSpec(BaseModel):
@@ -72,7 +72,9 @@ def _flag_features(panel: pd.DataFrame) -> pd.DataFrame:
 def _require_one_company(panel: pd.DataFrame) -> None:
     tickers = panel["ticker"].to_numpy()
     if tickers.size == 0 or (tickers != tickers[0]).any():
-        raise MixedTickerPanelError(tickers=tuple(sorted(map(str, set(tickers)))))
+        raise MixedTickerPanelError(
+            tickers=tuple(sorted({str(ticker) for ticker in tickers}))
+        )
 
 
 class FeatureBuilder:
@@ -88,8 +90,11 @@ class FeatureBuilder:
         self._spec = spec
 
     @property
-    def spec(self) -> FeatureSpec:
-        return self._spec
+    def target_variable(self) -> str:
+        return self._spec.target_variable
+
+    def includes(self, group: FeatureGroup) -> bool:
+        return group in self._spec.groups
 
     def build(
         self, panel: pd.DataFrame, *, horizon: int, regimes: pd.Series | None = None
@@ -110,22 +115,22 @@ class FeatureBuilder:
                 "target_date": target_dates,
             })
         ]
-        if FeatureGroup.L in groups:
+        if FeatureGroup.LAGS in groups:
             parts.append(_lag_features(growth))
-        if FeatureGroup.R in groups:
+        if FeatureGroup.ROLLING in groups:
             parts.append(_rolling_features(growth))
-        if FeatureGroup.M in groups:
+        if FeatureGroup.MARGINS in groups:
             parts.append(panel[list(MARGIN_COLUMNS)])
-        if FeatureGroup.X in groups:
+        if FeatureGroup.MACRO in groups:
             parts.append(panel[list(MACRO_COLUMNS)])
-        if FeatureGroup.XD in groups:
+        if FeatureGroup.MACRO_DERIVED in groups:
             parts.append(
                 pd.DataFrame({"real_rate": panel["fed_funds"] - panel["cpi_yoy"]})
             )
-        if FeatureGroup.C in groups:
+        if FeatureGroup.CALENDAR in groups:
             parts.append(pd.DataFrame({"target_quarter": target_dates.dt.quarter}))
-        if FeatureGroup.S in groups:
+        if FeatureGroup.STATIC in groups:
             parts.append(_static_features(panel, regimes))
-        if FeatureGroup.F in groups:
+        if FeatureGroup.FLAGS in groups:
             parts.append(_flag_features(panel))
         return pd.concat(parts, axis=1)

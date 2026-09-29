@@ -43,7 +43,6 @@ Out:
 - The statistics themselves. Every number the current functions produce stays
   identical; this is a structural change plus the two failure fixes.
 - `FeatureGroup` membership and column names (EDA spec R6).
-- `load_consolidated` (see decision D5).
 
 ## Evidence
 
@@ -99,9 +98,8 @@ diagnostics package's own error naming both counts.
 
 **S7. The notebook receives every collaborator from the container.** It
 obtains the diagnostics service, the feature service and a feature store from
-`configure_container()`, and never calls a persistence function or builds an
-output path itself. The one remaining `Settings` use is the input paths passed
-to `load_consolidated`, which D5 leaves in place. A different feature spec for one call
+`configure_container()`, and never calls a persistence function, builds a
+path, or imports `Settings`. Panels load through the panel store (D5). A different feature spec for one call
 is a container override (`builder__spec=…`), not a new import.
 
 **S8. Feature export is a store.** A feature store, constructed with its
@@ -117,8 +115,11 @@ flag groups, leakage pass and catch, dataset row counts and target columns.
 
 **S10. Project rules hold.** mypy strict; `uv run poe check` green; no
 `# noqa`, `# ruff: ignore`, `# type: ignore`, `@staticmethod`, or exception-driven
-loop control. The existing pyright directives for untyped statsmodels and
-sklearn stay as they are.
+loop control. No `# pyright:` suppression either: untyped statsmodels and
+sklearn calls are typed once each through a Protocol stating the signature
+and result shape, and `cast` at module level. Pyright still reports the four
+statsmodels import names as partially unknown; accepted (decided 2026-09-29),
+since stub files would be the only fix and CI runs mypy.
 
 ## Acceptance criteria
 
@@ -132,7 +133,7 @@ sklearn stay as they are.
 | A6 | Horizon 5, significance 1.5, regime count 1 each raise at construction | parametrized test |
 | A7 | All S9 cases pass with unchanged expected values | test suite |
 | A8 | Feature store writes `features_h{h}.parquet` and reads it back equal | `tmp_path` test |
-| A9 | `grep -En "write_panel|features_output_path|build_features|assemble_dataset" src/app/playground/01_*.ipynb` finds nothing | shell |
+| A9 | `grep -En "Settings|write_panel|features_output_path|build_features|assemble_dataset|load_consolidated\(" src/app/playground/01_*.ipynb` finds nothing | shell |
 | A10 | `uv run poe check` passes | shell |
 
 ## Decisions taken by default — confirm or override
@@ -143,6 +144,6 @@ sklearn stay as they are.
 | D2 | Collaborators are typed as concrete classes, not Protocols | Each has one implementation; the only substitution a test needs (a leaky builder for the guard) is a `Callable` argument already. Add a Protocol when a second implementation exists |
 | D3 | `log_level`, `yoy_log_growth` and `observed_since_last_gap` stay module functions | They read no configuration; as methods they would fail `PLR6301` |
 | D4 | The dataset assembly moves into `FeatureService.assemble`; `dataset.py` is deleted | Assembly is the package's main use case, which is what `service.py` holds in the template |
-| D5 | `load_consolidated` stays a function in `panel_store.py`; NB01 keeps calling it with `Settings` paths | It is data-layer work outside these packages. Moving it to `PanelStore.load_consolidated()` would complete S7 and is a small follow-up |
+| D5 | `load_consolidated` moves onto `PanelStore` as a method (decided 2026-09-29, first shipped as a function) | Both NB00 outputs live in the directory the container already gives `PanelStore`, so NB01 loads through `container.panel_store()` and imports no `Settings` |
 | D6 | `Settings.features_output_path` is removed, replaced by the store's injected directory | Its only intended caller is replaced by S8; keeping it leaves two ways to find the same path |
 | D7 | The target arm and horizon are per-call arguments, not service state | NB01 loops over four horizons and three arms with one service; making them state would mean twelve container resolutions |

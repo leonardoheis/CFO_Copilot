@@ -2,8 +2,10 @@ import pytest
 from pydantic import ValidationError
 
 from app.services.diagnostics import (
+    CompanyMacroSensitivity,
     DiagnosticsError,
     DiagnosticsSettings,
+    MacroCorrelation,
     RegimeSettings,
     SeriesDiagnostics,
     TooFewCompaniesError,
@@ -20,7 +22,11 @@ def test_defaults_are_todays_values() -> None:
         "ljung_box_lag": 8,
         "max_differencing_order": 2,
     }
-    assert RegimeSettings().model_dump() == {"n_regimes": 3, "seed": 42}
+    assert RegimeSettings().model_dump() == {
+        "n_regimes": 3,
+        "seed": 42,
+        "n_init": 10,
+    }
 
 
 @pytest.mark.parametrize("significance", [0.0, 1.0, 1.5])
@@ -41,6 +47,11 @@ def test_one_regime_is_refused() -> None:
         RegimeSettings(n_regimes=1)
 
 
+def test_zero_clustering_restarts_are_refused() -> None:
+    with pytest.raises(ValidationError, match="n_init"):
+        RegimeSettings(n_init=0)
+
+
 def test_constant_is_a_valid_status() -> None:
     record = SeriesDiagnostics(
         ticker="AAA",
@@ -58,3 +69,20 @@ def test_too_few_companies_names_both_counts() -> None:
 
     assert isinstance(error, DiagnosticsError)
     assert str(error) == "2 fully diagnosed companies cannot fill 3 regimes"
+
+
+def test_sensitivity_row_has_one_column_per_macro_series_then_sector() -> None:
+    sensitivity = CompanyMacroSensitivity(
+        ticker="XOM",
+        sector="Energy",
+        correlations=(
+            MacroCorrelation(macro_column="wti_oil", correlation=0.8),
+            MacroCorrelation(macro_column="vix", correlation=-0.3),
+        ),
+    )
+
+    assert sensitivity.as_table_row() == {
+        "wti_oil": 0.8,
+        "vix": -0.3,
+        "sector": "Energy",
+    }

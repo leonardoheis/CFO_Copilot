@@ -78,6 +78,8 @@ repos:
         -   "httpx>=0.28.1"
         -   "pyyaml>=6.0.2"
         -   "matplotlib>=3.11.2"
+        -   "statsmodels>=0.15.0"
+        -   "scipy>=1.16.1"
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v2.3.1"
@@ -136,6 +138,7 @@ repos:
         -   "requests>=2.32.4"
         -   "streamlit>=1.48.0"
         -   "pylint-pydantic>=0.3.5"
+        -   "matplotlib>=3.11.2"
 
     -   id: nbqa-mypy
         additional_dependencies:

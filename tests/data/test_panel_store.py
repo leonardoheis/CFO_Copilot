@@ -1,3 +1,4 @@
+import math
 from datetime import date
 from pathlib import Path
 from typing import NamedTuple
@@ -8,7 +9,7 @@ import pytest
 from app.data.consolidation import consolidate_panels
 from app.data.exceptions import MalformedPanelError, PanelNotFoundError
 from app.data.flags import add_flags
-from app.data.panel_store import PanelStore, load_consolidated
+from app.data.panel_store import PanelStore
 from app.data.schema import MACRO_COLUMNS
 from app.settings import Settings
 from tests.conftest import PanelFactory
@@ -84,16 +85,20 @@ def test_file_naming_matches_the_ingestion_writer() -> None:
     assert store.path_for("aapl") == Settings.panel_output_path("AAPL")
 
 
+def test_nb00_output_naming_matches_the_consolidation_writer() -> None:
+    store = PanelStore(Settings.PANEL_LONG_PATH.parent)
+
+    assert store.panel_long_path == Settings.PANEL_LONG_PATH
+    assert store.macro_q_path == Settings.MACRO_Q_PATH
+
+
 class Nb00Outputs(NamedTuple):
-    panel_long_path: Path
-    macro_q_path: Path
+    store: PanelStore
     panel_long: pd.DataFrame
     macro_q: pd.DataFrame
 
     def load(self) -> dict[str, pd.DataFrame]:
-        return load_consolidated(
-            panel_long_path=self.panel_long_path, macro_q_path=self.macro_q_path
-        )
+        return self.store.load_consolidated()
 
 
 @pytest.fixture
@@ -105,15 +110,10 @@ def nb00_outputs(tmp_path: Path, make_panel: PanelFactory) -> Nb00Outputs:
     panel_long = add_flags(
         consolidated.panel_long, {}, last_reported_quarter=date(2100, 1, 1)
     )
-    outputs = Nb00Outputs(
-        panel_long_path=tmp_path / "panel_long.parquet",
-        macro_q_path=tmp_path / "macro_q.parquet",
-        panel_long=panel_long,
-        macro_q=consolidated.macro_q,
-    )
-    panel_long.to_parquet(outputs.panel_long_path, index=False)
-    consolidated.macro_q.to_parquet(outputs.macro_q_path, index=False)
-    return outputs
+    store = PanelStore(tmp_path)
+    panel_long.to_parquet(store.panel_long_path, index=False)
+    consolidated.macro_q.to_parquet(store.macro_q_path, index=False)
+    return Nb00Outputs(store=store, panel_long=panel_long, macro_q=consolidated.macro_q)
 
 
 def test_load_consolidated_returns_one_frame_per_ticker(
@@ -132,21 +132,31 @@ def test_load_consolidated_returns_one_frame_per_ticker(
 def test_projected_rows_are_left_out(nb00_outputs: Nb00Outputs) -> None:
     panel_long = nb00_outputs.panel_long
     panel_long.loc[panel_long.index[-1], "is_projected"] = True
-    panel_long.to_parquet(nb00_outputs.panel_long_path, index=False)
+    panel_long.to_parquet(nb00_outputs.store.panel_long_path, index=False)
 
     assert len(nb00_outputs.load()["BBB"]) == QUARTERS - 1
 
 
 def test_missing_nb00_output_is_named(tmp_path: Path) -> None:
     with pytest.raises(PanelNotFoundError, match="panel_long"):
-        load_consolidated(
-            panel_long_path=tmp_path / "panel_long.parquet",
-            macro_q_path=tmp_path / "macro_q.parquet",
-        )
+        PanelStore(tmp_path).load_consolidated()
 
 
-def test_macro_table_must_cover_every_panel_date(nb00_outputs: Nb00Outputs) -> None:
-    nb00_outputs.macro_q.iloc[:-1].to_parquet(nb00_outputs.macro_q_path, index=False)
+def test_a_panel_date_absent_from_macro_q_is_named(nb00_outputs: Nb00Outputs) -> None:
+    nb00_outputs.macro_q.iloc[:-1].to_parquet(
+        nb00_outputs.store.macro_q_path, index=False
+    )
 
-    with pytest.raises(MalformedPanelError, match="macro"):
+    with pytest.raises(MalformedPanelError, match=r"no row for .*2020-12-31"):
+        nb00_outputs.load()
+
+
+def test_a_missing_macro_value_names_its_column_and_date(
+    nb00_outputs: Nb00Outputs,
+) -> None:
+    macro_q = nb00_outputs.macro_q.copy()
+    macro_q.loc[3, "vix"] = math.nan
+    macro_q.to_parquet(nb00_outputs.store.macro_q_path, index=False)
+
+    with pytest.raises(MalformedPanelError, match=r"missing values.*vix.*2015-12-31"):
         nb00_outputs.load()

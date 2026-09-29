@@ -13,7 +13,7 @@ from app.settings import Settings
 from tests.conftest import PanelFactory
 
 KEYS = ["ticker", "origin_date", "target_date"]
-TARGET_COLUMNS = ["target_level_usd_m", "y"]
+TARGET_COLUMNS = ["target_level", "y"]
 
 
 def test_services_resolve_to_their_types() -> None:
@@ -36,7 +36,7 @@ def test_feature_store_lives_under_the_data_directory() -> None:
 def test_a_spec_override_builds_only_the_requested_groups(
     make_panel: PanelFactory,
 ) -> None:
-    lags_only = FeatureSpec(groups=frozenset({FeatureGroup.L}))
+    lags_only = FeatureSpec(groups=frozenset({FeatureGroup.LAGS}))
     service = Container().feature_service(builder__spec=lags_only)
 
     dataset = service.assemble(

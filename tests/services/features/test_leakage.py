@@ -36,7 +36,7 @@ def test_real_builder_passes_at_every_horizon(
 def test_a_builder_that_peeks_one_quarter_ahead_is_caught(
     make_panel: PanelFactory, guard: LookaheadGuard
 ) -> None:
-    builder = FeatureBuilder(spec=FeatureSpec(groups=frozenset({FeatureGroup.L})))
+    builder = FeatureBuilder(spec=FeatureSpec(groups=frozenset({FeatureGroup.LAGS})))
 
     def leaky(panel: pd.DataFrame) -> pd.DataFrame:
         features = builder.build(panel, horizon=1)

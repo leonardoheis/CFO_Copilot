@@ -27,12 +27,12 @@ class FeatureService:
         transformer: TargetTransformer,
         regimes: pd.Series | None,
     ) -> pd.DataFrame:
-        target = panel[self._builder.spec.target_variable]
+        target = panel[self._builder.target_variable]
         features = self._builder.build(
             panel, horizon=transformer.horizon, regimes=regimes
         )
         return features.assign(
-            target_level_usd_m=target.shift(-transformer.horizon),
+            target_level=target.shift(-transformer.horizon),
             y=transformer.make(target),
         )
 
@@ -57,7 +57,7 @@ class FeatureService:
             ],
             ignore_index=True,
         )
-        if FeatureGroup.S in self._builder.spec.groups:
+        if self._builder.includes(FeatureGroup.STATIC):
             dataset["sector"] = dataset["sector"].astype("category")
         return dataset
 

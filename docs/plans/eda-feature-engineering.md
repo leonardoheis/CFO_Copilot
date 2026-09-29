@@ -1430,6 +1430,8 @@ Expected: all pass.
 
 ### Task 8: Notebook orchestration and acceptance run
 
+> As built (2026-09-29): COP is excluded (spec Q6), so counts derive from `len(panels)`; A3's comparison and its one disagreement (AAPL `d_log`) are in the notebook; figures are the seasonal-strength histogram and the sector heatmap, and the `d_levels`×`d_log` cross-tab is printed and logged as a table.
+>
 > Cells rewritten by [`feature-diagnostics-services.md`](feature-diagnostics-services.md) Task 12: every service comes from the container.
 
 **Files:**
@@ -1437,23 +1439,19 @@ Expected: all pass.
 
 No unit tests for the notebook. The helpers it calls are already tested, and its cells hold no logic. The acceptance criteria A1–A9 are checked by cells and by two shell checks. **Do not execute the notebook yourself**: it reads real panels and, once `WANDB_MODE=online`, publishes runs. Hand it over and let the user run it (memory: ask-before-acting).
 
-- [ ] **Step 1: Cell 1, "1. Load panels"** (code cell under the heading)
+- [x] **Step 1: Cell 1, "1. Load panels"** (code cell under the heading)
 
 ```python
 from app.injections import configure_container
 from app.services.features import FeatureGroup, TargetArm, TargetTransformer
 from app.services.tracking import RunConfig, run_name
-from app.settings import Settings
-from app.data.panel_store import load_consolidated
 
 container = configure_container()
 tracker = container.experiment_tracker()
 diagnostics_service = container.diagnostics_service()
 feature_service = container.feature_service()
 feature_store = container.feature_store()
-panels = load_consolidated(
-    panel_long_path=Settings.PANEL_LONG_PATH, macro_q_path=Settings.MACRO_Q_PATH
-)
+panels = container.panel_store().load_consolidated()
 
 n_rows = sum(len(panel) for panel in panels.values())
 assert len(panels) == 60 and all(len(p) == 81 for p in panels.values())  # A1
@@ -1466,7 +1464,7 @@ TARGETS = [
 ]
 ```
 
-- [ ] **Step 2: Cell 2, "2. Diagnostics"**
+- [x] **Step 2: Cell 2, "2. Diagnostics"**
 
 ```python
 diagnostics = diagnostics_service.diagnose_panel(panels, TARGETS)
@@ -1502,7 +1500,7 @@ for variable in TARGETS:
 
 Add cells that plot the seasonal-strength histogram, the `d_levels` versus `d_log` cross-tab, and `sector_sensitivity` as a heatmap with matplotlib, and call `run.log_figure(...)` inside the same `with` block. Compare the six Appendix C companies to the `diagnostics` rows (A3) in a markdown cell that states any disagreement and its cause.
 
-- [ ] **Step 3: Cell 3, "3. Feature engineering"**
+- [x] **Step 3: Cell 3, "3. Feature engineering"**
 
 ```python
 for horizon in (1, 2, 3, 4):
@@ -1514,7 +1512,7 @@ for horizon in (1, 2, 3, 4):
 
 Add a cell for A5: for each arm and horizon, `transformer = TargetTransformer(arm=arm, horizon=h)`, then `transformer.reconstruct(revenue, transformer.make(revenue))` against `revenue.shift(-h)` with `np.testing.assert_allclose(..., rtol=1e-9)` on one company. Group ablations take a spec per call: `container.feature_service(builder__spec=FeatureSpec(groups=...))`.
 
-- [ ] **Step 4: Cell 4, "4. Export features"**
+- [x] **Step 4: Cell 4, "4. Export features"**
 
 ```python
 config = RunConfig(
@@ -1544,9 +1542,9 @@ with tracker.start_run(
         run.log_dataset(f"features_h{horizon}", path)
 ```
 
-The run logs `n_features` in a follow-up `run.log_metrics({"n_features": dataset.shape[1] - 5})` (the five non-feature columns are `ticker`, `origin_date`, `target_date`, `target_level_usd_m`, `y`). `RunConfig.n_features` is frozen at construction, so compute it *before* building `config` from one company: `feature_service.assemble({ticker: panel}, horizon=1, arm=TargetArm.SEASNAIVE_RESIDUAL, regimes=regimes).shape[1] - 5`.
+The run logs `n_features` in a follow-up `run.log_metrics({"n_features": dataset.shape[1] - 5})` (the five non-feature columns are `ticker`, `origin_date`, `target_date`, `target_level`, `y`). `RunConfig.n_features` is frozen at construction, so compute it *before* building `config` from one company: `feature_service.assemble({ticker: panel}, horizon=1, arm=TargetArm.SEASNAIVE_RESIDUAL, regimes=regimes).shape[1] - 5`.
 
-- [ ] **Step 5: Static checks on the notebook (A9, A8)**
+- [x] **Step 5: Static checks on the notebook (A9, A8)**
 
 Run:
 
@@ -1555,7 +1553,7 @@ uv run python -c "import json,sys; nb=json.load(open('src/app/playground/01_eda_
 uv run poe check
 ```
 
-Expected: exit 0 for the first (no `def`/`class` at the start of a line in any code cell), then lint, typecheck and tests green with coverage ≥ 80%. Also run the services spec's A9: `grep -En "write_panel|features_output_path|build_features|assemble_dataset" src/app/playground/01_eda_feature_engineering.ipynb` finds nothing.
+Expected: exit 0 for the first (no `def`/`class` at the start of a line in any code cell), then lint, typecheck and tests green with coverage ≥ 80%. Also run the services spec's A9: `grep -En "Settings|write_panel|features_output_path|build_features|assemble_dataset|load_consolidated\(" src/app/playground/01_eda_feature_engineering.ipynb` finds nothing except `.load_consolidated()` on the store.
 
 - [ ] **Step 6: Hand over.** Summarize the files added and modified, the `poe check` result, and which acceptance criteria are verified by tests (A5 shape, A8, A9) versus by the notebook run the user has not yet done (A1–A4, A6, A7). Stage nothing. Propose a commit message and wait for explicit approval.
 

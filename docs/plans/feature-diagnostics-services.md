@@ -159,7 +159,7 @@ class FeatureBuilder:
     ) -> pd.DataFrame: ...
 ```
 
-The `if FeatureGroup.X in groups` chain stays as it is (decided 2026-09-28);
+The `if FeatureGroup.MACRO in groups` chain stays as it is (decided 2026-09-28);
 `_lag_features`, `_rolling_features`, `_static_features`, `_flag_features`
 stay module functions. `FeatureSpec` gets a default of all eight groups so
 the container can build a builder with no arguments.
@@ -440,11 +440,25 @@ overrides the nested factory's argument for that call only.
   exists).
 - [x] Summarize files changed, A1–A10 status, and propose a commit. Stage nothing.
 
+### Task 14: `PanelStore.load_consolidated` (D5 follow-up)
+
+**Files:** `data/panel_store.py`, `tests/data/test_panel_store.py`, `docs/plans/eda-feature-engineering.md` (Task 8 cell 1)
+
+The module function becomes a method reading `panel_long.parquet` and
+`macro_q.parquet` from the store's own directory; behaviour and errors are
+unchanged. A test pins both names to `Settings.PANEL_LONG_PATH` and
+`Settings.MACRO_Q_PATH`, the paths NB00 writes, as
+`test_file_naming_matches_the_ingestion_writer` already does for per-ticker files.
+
+- [x] Port the four `load_consolidated` cases to `PanelStore(tmp_path).load_consolidated()`; add the naming case. Fail, implement, pass.
+- [x] EDA Task 8 cell 1: `panels = container.panel_store().load_consolidated()`; drop the `Settings` and `load_consolidated` imports.
+- [x] `uv run poe check`.
+
 ## Self-review
 
 **Spec coverage.** S1 → Tasks 5, 10. S2 → Tasks 2, 4, 7, 9. S3 → Tasks 2, 4, 7.
 S4 → Tasks 1, 7. S5 → Task 8. S6 → Task 9. S7 → Tasks 11, 12. S8 → Task 6.
-S9 → every porting step, counted in Task 13. S10 → every task's `poe check`.
+S9 → every porting step, counted in Task 13. D5 → Task 14. S10 → every task's `poe check`.
 
 **Risks.**
 - `FeatureSpec()` with a default of all groups changes nothing for existing

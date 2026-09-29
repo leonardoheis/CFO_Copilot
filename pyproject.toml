@@ -314,6 +314,9 @@ max-parents = 7
 max-public-methods = 20
 max-returns = 6
 max-statements = 50
+# One-method classes are the single-responsibility services and Protocols
+# this codebase is built from; data-only classes are caught by Pydantic and ruff.
+min-public-methods = 1
 
 [tool.pylint.exceptions]
 overgeneral-exceptions = ["'builtins.Exception'"]
