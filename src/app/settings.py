@@ -97,6 +97,10 @@ class _Settings(BaseSettings):
         return self.ROOT_PATH / "config" / "structural_breaks.yaml"
 
     @property
+    def INGESTION_DEFECTS_PATH(self) -> Path:
+        return self.ROOT_PATH / "config" / "ingestion_defects.yaml"
+
+    @property
     def PANEL_LONG_PATH(self) -> Path:
         return self.DATA_DIRECTORY / "processed" / "panel_long.parquet"
 

@@ -1,12 +1,19 @@
-from .builder import FeatureBuilder, FeatureGroup, FeatureSpec
+from .builder import (
+    FeatureBuilder,
+    FeatureGroup,
+    FeatureSpec,
+    feature_groups_by_column,
+)
 from .exceptions import (
     FeatureError,
     InvalidHorizonError,
     LeakageError,
     MissingFlagsError,
     MissingRegimeError,
+    MissingRevenueError,
     MixedTickerPanelError,
     NonPositiveValueError,
+    UnsupportedArmError,
 )
 from .leakage import LeakageSettings, LookaheadGuard
 from .service import FeatureService
@@ -14,7 +21,12 @@ from .transforms import (
     SEASONAL_LAG,
     TargetArm,
     TargetTransformer,
+    TargetVariable,
+    arms_for,
+    default_arm,
     log_level,
+    revenue_scaled_yoy_change,
+    target_growth,
     yoy_log_growth,
 )
 
@@ -31,10 +43,18 @@ __all__ = [
     "LookaheadGuard",
     "MissingFlagsError",
     "MissingRegimeError",
+    "MissingRevenueError",
     "MixedTickerPanelError",
     "NonPositiveValueError",
     "TargetArm",
     "TargetTransformer",
+    "TargetVariable",
+    "UnsupportedArmError",
+    "arms_for",
+    "default_arm",
+    "feature_groups_by_column",
     "log_level",
+    "revenue_scaled_yoy_change",
+    "target_growth",
     "yoy_log_growth",
 ]

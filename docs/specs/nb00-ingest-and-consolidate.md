@@ -107,6 +107,9 @@ and `macro_q`.
 - Run names follow the master plan (`{nb}-{model}-{variable}-{protocol}[-H{n}]`,
   variable without its `_usd_m` suffix); the config keys of master §2.3 are
   logged on every run.
+  That name is the run's W&B **group**; the display name appends the UTC start
+  time (`-YYYYMMDDTHHMMSSZ`) so reruns are told apart yet grouped (added
+  2026-09-30).
 - Tables, figures and datasets can be logged; the run always finishes, even
   when the body raises.
 - Mode is `online`, `offline` or `disabled`, from settings. `online` without an

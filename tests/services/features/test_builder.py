@@ -11,6 +11,9 @@ from app.services.features import (
     MissingFlagsError,
     MissingRegimeError,
     MixedTickerPanelError,
+    TargetVariable,
+    feature_groups_by_column,
+    revenue_scaled_yoy_change,
 )
 from tests.conftest import PanelFactory
 
@@ -188,9 +191,9 @@ def test_group_values_stay_the_letters_logged_to_wandb() -> None:
 
 
 def test_builder_reports_its_target_variable() -> None:
-    builder = FeatureBuilder(spec=FeatureSpec(target_variable="ebitda_usd_m"))
+    builder = FeatureBuilder(spec=FeatureSpec(target_variable=TargetVariable.EBITDA))
 
-    assert builder.target_variable == "ebitda_usd_m"
+    assert builder.target_variable is TargetVariable.EBITDA
 
 
 def test_builder_reports_which_groups_it_includes() -> None:
@@ -198,3 +201,33 @@ def test_builder_reports_which_groups_it_includes() -> None:
 
     assert FeatureBuilder(spec=FeatureSpec()).includes(FeatureGroup.STATIC)
     assert not lags_only.includes(FeatureGroup.STATIC)
+
+
+def test_growth_features_follow_the_target_variables_transform(
+    make_panel: PanelFactory,
+) -> None:
+    panel = make_panel()
+    spec = FeatureSpec(
+        target_variable=TargetVariable.EBITDA,
+        groups=frozenset({FeatureGroup.LAGS}),
+    )
+
+    features = FeatureBuilder(spec=spec).build(panel, horizon=1)
+
+    expected = revenue_scaled_yoy_change(panel["ebitda_usd_m"], panel["revenue_usd_m"])
+    pd.testing.assert_series_equal(
+        features["growth_yoy_lag1"], expected, check_names=False
+    )
+
+
+def test_every_built_column_has_a_feature_group(make_panel: PanelFactory) -> None:
+    panel = make_panel(ticker="AAA").assign(covid=False, structural_break=False)
+    features = FeatureBuilder(spec=FeatureSpec()).build(
+        panel, horizon=1, regimes=pd.Series({"AAA": 0})
+    )
+
+    groups = feature_groups_by_column()
+
+    assert set(features.columns) - set(KEYS) == set(groups)
+    assert groups["real_rate"] is FeatureGroup.MACRO_DERIVED
+    assert groups["growth_yoy_lag1"] is FeatureGroup.LAGS

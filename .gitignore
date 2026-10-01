@@ -216,5 +216,8 @@ MEMORY.md
 scripts/
 .claude/skills/AUDIT.md
 data/raw/*
+# Generated feature exports; the copies of record live in W&B. The EDA reports
+# under data/reports/ are committed so the auto-EDA can be shown without a run.
+data/features/
 docs/references.bib
 wandb/

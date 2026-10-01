@@ -10,12 +10,19 @@ from app.services.features.exceptions import (
     MissingRegimeError,
     MixedTickerPanelError,
 )
-from app.services.features.transforms import yoy_log_growth
+from app.services.features.transforms import TargetVariable, target_growth
 
 GROWTH_LAGS: Final = (1, 2, 3, 4, 5, 8)
 ROLLING_WINDOWS: Final = (4, 8)
 MARGIN_COLUMNS: Final = ("gross_margin", "operating_margin", "net_margin")
 FLAG_COLUMNS: Final = ("covid", "structural_break")
+LAG_COLUMNS: Final = tuple(f"growth_yoy_lag{k}" for k in GROWTH_LAGS)
+ROLLING_COLUMNS: Final = (
+    *(f"growth_yoy_mean_{w}q" for w in ROLLING_WINDOWS),
+    *(f"growth_yoy_std_{w}q" for w in ROLLING_WINDOWS),
+    "growth_yoy_momentum",
+)
+STATIC_COLUMNS: Final = ("sector", "seasonality_regime")
 
 
 class FeatureGroup(StrEnum):
@@ -32,13 +39,37 @@ class FeatureGroup(StrEnum):
 class FeatureSpec(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    target_variable: str = "revenue_usd_m"
+    target_variable: TargetVariable = TargetVariable.REVENUE
     groups: frozenset[FeatureGroup] = frozenset(FeatureGroup)
+
+
+def feature_groups_by_column() -> dict[str, FeatureGroup]:
+    """Map every column the builder can emit to its feature group.
+
+    Returns:
+        Feature column name to group, for every group.
+    """
+    columns_by_group: dict[FeatureGroup, tuple[str, ...]] = {
+        FeatureGroup.LAGS: LAG_COLUMNS,
+        FeatureGroup.ROLLING: ROLLING_COLUMNS,
+        FeatureGroup.MARGINS: MARGIN_COLUMNS,
+        FeatureGroup.MACRO: MACRO_COLUMNS,
+        FeatureGroup.MACRO_DERIVED: ("real_rate",),
+        FeatureGroup.CALENDAR: ("target_quarter",),
+        FeatureGroup.STATIC: STATIC_COLUMNS,
+        FeatureGroup.FLAGS: FLAG_COLUMNS,
+    }
+    return {
+        column: group
+        for group, columns in columns_by_group.items()
+        for column in columns
+    }
 
 
 def _lag_features(growth: pd.Series) -> pd.DataFrame:
     return pd.DataFrame({
-        f"growth_yoy_lag{k}": growth.shift(k - 1) for k in GROWTH_LAGS
+        column: growth.shift(k - 1)
+        for column, k in zip(LAG_COLUMNS, GROWTH_LAGS, strict=True)
     })
 
 
@@ -90,7 +121,7 @@ class FeatureBuilder:
         self._spec = spec
 
     @property
-    def target_variable(self) -> str:
+    def target_variable(self) -> TargetVariable:
         return self._spec.target_variable
 
     def includes(self, group: FeatureGroup) -> bool:
@@ -105,7 +136,11 @@ class FeatureBuilder:
             One row per origin quarter, indexed like ``panel``.
         """
         _require_one_company(panel)
-        growth = yoy_log_growth(panel[self._spec.target_variable])
+        growth = target_growth(
+            self._spec.target_variable,
+            panel[self._spec.target_variable],
+            panel[TargetVariable.REVENUE],
+        )
         target_dates = panel["date"] + pd.offsets.QuarterEnd(horizon)
         groups = self._spec.groups
         parts = [

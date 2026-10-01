@@ -1,0 +1,11 @@
+# Data held back from NB01 until its ingestion fix lands.
+# Each entry names the spec of the fix; delete the entry when the fix passes
+# that spec's acceptance criteria, and the exclusion lifts with no code change.
+
+# Tickers left out of every analysis.
+excluded_companies:
+  COP: docs/specs/ingestion-defects-cop-ge.md  # Q4 2010 revenue is -81,500
+
+# Panel columns that cannot be chosen as the forecast target.
+blocked_targets:
+  opex_usd_m: docs/specs/ingestion-defects-cop-ge.md  # GE opex is wrong

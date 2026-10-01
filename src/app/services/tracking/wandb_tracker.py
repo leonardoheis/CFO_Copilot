@@ -1,13 +1,14 @@
 import importlib
-from collections.abc import Generator, Mapping
+from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Protocol
 
 import pandas as pd
 from matplotlib.figure import Figure
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.services.tracking.config import RunConfig, WandbSettings
 from app.services.tracking.exceptions import (
@@ -47,15 +48,28 @@ class WandbRun:
         self._run.log(dict(metrics))
 
     def log_table(self, name: str, table: pd.DataFrame) -> None:
-        self._run.log({name: self._wandb.Table(dataframe=table)})
+        # wandb.Table accepts only str or int column labels; a cross-tab or pivot
+        # over a float or numpy column produces other types.
+        self._run.log({name: self._wandb.Table(dataframe=table.rename(columns=str))})
 
     def log_figure(self, name: str, figure: Figure) -> None:
         self._run.log({name: self._wandb.Image(figure)})
+
+    def log_html(self, name: str, path: Path) -> None:
+        self._run.log({name: self._wandb.Html(path.read_text(encoding="utf-8"))})
 
     def log_dataset(self, name: str, path: Path) -> None:
         artifact = self._wandb.Artifact(name, type="dataset")
         artifact.add_file(str(path))
         self._run.log_artifact(artifact)
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _timestamped(name: str, clock: Callable[[], datetime]) -> str:
+    return f"{name}-{clock():%Y%m%dT%H%M%SZ}"
 
 
 class WandbTracker(BaseModel):
@@ -64,6 +78,7 @@ class WandbTracker(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     settings: WandbSettings
+    clock: Callable[[], datetime] = Field(default=_utc_now, exclude=True)
 
     @contextmanager
     def start_run(
@@ -71,8 +86,11 @@ class WandbTracker(BaseModel):
     ) -> Generator[WandbRun]:
         """Open a run and finish it however the body exits.
 
+        ``name`` becomes the W&B group; the display name adds the UTC start time
+        so reruns stay grouped yet distinguishable.
+
         Yields:
-            A handle for logging metrics, tables, figures and datasets.
+            A handle for logging metrics, tables, figures, HTML and datasets.
         """
         wandb = import_wandb()
         self._login_when_online(wandb)
@@ -81,7 +99,8 @@ class WandbTracker(BaseModel):
             dir=str(self.settings.run_directory),
             project=self.settings.project,
             entity=self.settings.entity,
-            name=name,
+            name=_timestamped(name, self.clock),
+            group=name,
             job_type=job_type,
             config=config.model_dump(mode="json"),
             mode=self.settings.mode,

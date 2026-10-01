@@ -3,8 +3,14 @@ from collections.abc import Mapping, Sequence
 import pandas as pd
 
 from app.services.features.builder import FeatureBuilder, FeatureGroup
+from app.services.features.exceptions import UnsupportedArmError
 from app.services.features.leakage import LookaheadGuard
-from app.services.features.transforms import TargetArm, TargetTransformer
+from app.services.features.transforms import (
+    TargetArm,
+    TargetTransformer,
+    TargetVariable,
+    arms_for,
+)
 
 
 class FeatureService:
@@ -33,7 +39,7 @@ class FeatureService:
         )
         return features.assign(
             target_level=target.shift(-transformer.horizon),
-            y=transformer.make(target),
+            y=transformer.make(target, revenue=panel[TargetVariable.REVENUE]),
         )
 
     def assemble(
@@ -48,7 +54,17 @@ class FeatureService:
 
         Returns:
             All origin rows; ``y`` is NaN where the target is not yet known.
+
+        Raises:
+            UnsupportedArmError: The arm is not one of the target variable's.
         """
+        supported = arms_for(self._builder.target_variable)
+        if arm not in supported:
+            raise UnsupportedArmError(
+                variable=self._builder.target_variable.value,
+                arm=arm.value,
+                supported=tuple(member.value for member in supported),
+            )
         transformer = TargetTransformer(arm=arm, horizon=horizon)
         dataset = pd.concat(
             [
@@ -60,6 +76,34 @@ class FeatureService:
         if self._builder.includes(FeatureGroup.STATIC):
             dataset["sector"] = dataset["sector"].astype("category")
         return dataset
+
+    def target_frame(
+        self, panels: Mapping[str, pd.DataFrame], *, horizons: Sequence[int]
+    ) -> pd.DataFrame:
+        """Build the target of every arm the variable uses, at every horizon.
+
+        Returns:
+            One row per company-quarter, arm and horizon: ``ticker, date, arm,
+            horizon, y``; ``y`` is NaN where it is not yet known.
+        """
+        variable = self._builder.target_variable
+        return pd.concat(
+            [
+                pd.DataFrame({
+                    "ticker": ticker,
+                    "date": panel["date"],
+                    "arm": arm.value,
+                    "horizon": horizon,
+                    "y": TargetTransformer(arm=arm, horizon=horizon).make(
+                        panel[variable], revenue=panel[TargetVariable.REVENUE]
+                    ),
+                })
+                for ticker, panel in panels.items()
+                for arm in arms_for(variable)
+                for horizon in horizons
+            ],
+            ignore_index=True,
+        )
 
     def check_lookahead(
         self,

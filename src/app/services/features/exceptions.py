@@ -71,3 +71,28 @@ class LeakageError(FeatureError):
             f"features at origin row {self.origin} changed with later quarters: "
             f"{', '.join(self.columns)}"
         )
+
+
+@dataclass
+class MissingRevenueError(FeatureError):
+    """Raised when a revenue-scaled arm is used without the revenue series."""
+
+    arm: str
+
+    def __str__(self) -> str:
+        return f"the {self.arm} arm divides by trailing revenue; pass revenue="
+
+
+@dataclass
+class UnsupportedArmError(FeatureError):
+    """Raised when a target arm is used on a variable it does not belong to."""
+
+    variable: str
+    arm: str
+    supported: tuple[str, ...]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.variable} cannot use the {self.arm} arm; "
+            f"use one of: {', '.join(self.supported)}"
+        )

@@ -124,6 +124,10 @@ Project `cfo-copilot`. One run per `(notebook, model, variable, protocol)`:
 e.g.  nb04-lgbm_resid-revenue-A   /   nb04-lgbm_resid-revenue-B-H12
 ```
 
+This name is the W&B **group**. Each run's display name appends its UTC start
+time, e.g. `nb04-lgbm_resid-revenue-A-20260930T141203Z`, so reruns stay
+grouped but distinguishable.
+
 **Config logged on every run** — this is what makes results comparable:
 
 ```yaml

@@ -10,6 +10,9 @@ from app.services.features import (
     LookaheadGuard,
     TargetArm,
     TargetTransformer,
+    TargetVariable,
+    UnsupportedArmError,
+    arms_for,
 )
 from tests.conftest import PanelFactory
 
@@ -104,3 +107,70 @@ def test_own_builder_passes_the_lookahead_check(
     service.check_lookahead(
         panel, horizon=horizon, origins=[3, 8, 15, 20], regimes=REGIMES
     )
+
+
+def test_a_signed_target_gets_the_revenue_scaled_target(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    spec = FeatureSpec(
+        target_variable=TargetVariable.EBITDA,
+        groups=frozenset({FeatureGroup.LAGS}),
+    )
+    horizon = 2
+
+    dataset = _service(spec).assemble(
+        panels, horizon=horizon, arm=TargetArm.REVENUE_SCALED_YOY
+    )
+
+    company = dataset[dataset["ticker"] == "AAA"].reset_index(drop=True)
+    panel = panels["AAA"]
+    expected = TargetTransformer(
+        arm=TargetArm.REVENUE_SCALED_YOY, horizon=horizon
+    ).make(panel["ebitda_usd_m"], revenue=panel["revenue_usd_m"])
+    pd.testing.assert_series_equal(company["y"], expected, check_names=False)
+
+
+def test_an_arm_foreign_to_the_target_is_refused(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    spec = FeatureSpec(target_variable=TargetVariable.EBITDA)
+
+    with pytest.raises(UnsupportedArmError, match="ebitda_usd_m") as caught:
+        _service(spec).assemble(panels, horizon=1, arm=TargetArm.LOG_DIFF4)
+
+    assert caught.value.arm == TargetArm.LOG_DIFF4
+
+
+def test_target_frame_has_one_row_per_quarter_arm_and_horizon(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    horizons = (1, 2)
+
+    frame = _service(FeatureSpec()).target_frame(panels, horizons=horizons)
+
+    assert list(frame.columns) == ["ticker", "date", "arm", "horizon", "y"]
+    assert len(frame) == len(panels) * QUARTERS * len(horizons) * 3
+    assert set(frame["arm"]) == {arm.value for arm in arms_for(TargetVariable.REVENUE)}
+
+
+def test_target_frame_values_are_the_transformers(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    frame = _service(FeatureSpec()).target_frame(panels, horizons=(2,))
+
+    sample = frame[
+        (frame["ticker"] == "AAA") & (frame["arm"] == TargetArm.LOG_DIFF4.value)
+    ].reset_index(drop=True)
+    revenue = panels["AAA"]["revenue_usd_m"]
+    expected = TargetTransformer(arm=TargetArm.LOG_DIFF4, horizon=2).make(revenue)
+    pd.testing.assert_series_equal(sample["y"], expected, check_names=False)
+
+
+def test_a_signed_target_frame_uses_only_the_scaled_arm(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    spec = FeatureSpec(target_variable=TargetVariable.EBITDA)
+
+    frame = _service(spec).target_frame(panels, horizons=(1,))
+
+    assert set(frame["arm"]) == {TargetArm.REVENUE_SCALED_YOY.value}

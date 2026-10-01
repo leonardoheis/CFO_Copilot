@@ -101,8 +101,10 @@ def test_positive_series_fills_every_field(
 ) -> None:
     steps = np.arange(QUARTERS)
     season = np.sin(steps * np.pi / 2)
+    noise = 0.01 * RNG.normal(size=QUARTERS)
     values = pd.Series(
-        BASE_REVENUE * np.exp(QUARTERLY_GROWTH * steps + SEASONAL_AMPLITUDE * season)
+        BASE_REVENUE
+        * np.exp(QUARTERLY_GROWTH * steps + SEASONAL_AMPLITUDE * season + noise)
     )
 
     result = diagnostician.diagnose("AAA", "revenue_usd_m", values)
@@ -114,9 +116,10 @@ def test_positive_series_fills_every_field(
 def test_gapped_series_counts_only_the_run_after_the_gap(
     diagnostician: SeriesDiagnostician,
 ) -> None:
-    values = pd.Series(np.linspace(10, 100, 40))
-    last_gap = 8
-    values.iloc[[0, 1, last_gap]] = np.nan
+    values = pd.Series(np.linspace(10, 100, 40) + RNG.normal(size=40))
+    last_gap = 9
+    # A two-quarter gap is too long to fill, so it cuts the analysed run.
+    values.iloc[[0, 1, 8, last_gap]] = np.nan
 
     result = diagnostician.diagnose("TSLA", "revenue_usd_m", values)
 
@@ -138,3 +141,52 @@ def test_constant_series_is_reported_not_raised(
     assert result.log_defined is (level > 0)
     assert result.d_levels is None
     assert result.seasonal_strength is None
+
+
+SERIES_LENGTH = 40
+
+
+def _gapped(gap_positions: list[int]) -> pd.Series:
+    values = pd.Series(
+        np.linspace(10, 100, SERIES_LENGTH) + RNG.normal(size=SERIES_LENGTH)
+    )
+    values.iloc[gap_positions] = np.nan
+    return values
+
+
+def test_a_single_interior_gap_is_filled_for_diagnosis(
+    diagnostician: SeriesDiagnostician,
+) -> None:
+    result = diagnostician.diagnose("ADBE", "revenue_usd_m", _gapped([20]))
+
+    assert result.n_obs == SERIES_LENGTH
+    assert result.interpolated == 1
+
+
+def test_a_two_quarter_gap_still_cuts_the_history(
+    diagnostician: SeriesDiagnostician,
+) -> None:
+    last_gap = 21
+    result = diagnostician.diagnose("TSLA", "revenue_usd_m", _gapped([20, last_gap]))
+
+    assert result.n_obs == SERIES_LENGTH - last_gap - 1
+    assert result.interpolated == 0
+
+
+def test_a_leading_gap_is_not_filled(diagnostician: SeriesDiagnostician) -> None:
+    result = diagnostician.diagnose("TSLA", "revenue_usd_m", _gapped([0]))
+
+    assert result.n_obs == SERIES_LENGTH - 1
+    assert result.interpolated == 0
+
+
+def test_interpolation_can_be_switched_off() -> None:
+    diagnostician = SeriesDiagnostician(
+        settings=DiagnosticsSettings(max_interpolated_gap=0)
+    )
+    gap = 20
+
+    result = diagnostician.diagnose("ADBE", "revenue_usd_m", _gapped([gap]))
+
+    assert result.n_obs == SERIES_LENGTH - gap - 1
+    assert result.interpolated == 0

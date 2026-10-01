@@ -51,7 +51,10 @@ problem when the macro table does not cover every panel date.
 **R2. Diagnostics never splice a series and never raise for a bad series.**
 Each (company, variable) yields one record. The analysed history is the run of
 observed values after the last gap; leading and interior NaN are never
-imputed or dropped-and-joined. A record states its observation count and a
+imputed or dropped-and-joined. (Amended 2026-09-30: a gap of a single interior quarter
+is linearly interpolated for the diagnostics only, and the record counts it;
+features and targets are never filled — see
+[`eda-actionable-framework.md`](eda-actionable-framework.md) D10.) A record states its observation count and a
 status. Fewer than 16 observations yields an `insufficient_data` record, not an
 exception. Log-based fields exist only where every analysed value is positive,
 and the record says whether that held.
@@ -125,12 +128,20 @@ obtains the loader and tracker from the DI container.
 for result and config types; no exception used to drive a loop iteration; paths
 and credentials from `Settings`.
 
+**R12. An automated profile comes first** (added 2026-09-30; superseded by
+[`eda-actionable-framework.md`](eda-actionable-framework.md) F4, three reports). Before the
+targeted diagnostics, NB01 profiles the pooled panel (every company, every
+column but `date`) with one ydata-profiling report: distributions, missing values,
+per-column statistics and pairwise associations. The report is shown in the
+notebook, kept as HTML under the data directory's `reports/`, and logged to
+W&B as an HTML panel in its own run, `nb01-autoeda-panel`.
+
 ## Acceptance criteria
 
 - **A1.** Loading returns 60 frames of 81 rows (59 reach NB01 after Q6), each with the four flag columns and all ten macro columns.
 - **A2.** Diagnostics for all four target variables give one record per company and variable (236 for 59 companies). Revenue
-  `n_obs` is 72 for TSLA, 78 for BBY, 80 for ADBE and ORCL, 81 for every other
-  company.
+  `n_obs` is 75 for TSLA and 80 for ADBE and ORCL, 81 for every other company
+  (after D10's one-quarter fill; before it, TSLA 72 and BBY 78).
 - **A3.** For AAPL, AMZN, GOOGL, MSFT, PEP and PG revenue, the differencing
   orders equal master Appendix C and seasonal strength is within 0.05. Any
   disagreement is recorded with its cause, not tuned away. TSLA is excluded on
@@ -156,3 +167,4 @@ and credentials from `Settings`.
 | Q4 | Group M is the three margins only; growth of signed lines (EBITDA, opex, FCF) waits on Q2 | Same non-positive problem |
 | Q5 | Group F is `covid` and `structural_break`; `outlier_flag` stays out | The outlier flag is fitted on the whole history and would leak later quarters |
 | Q6 | COP is excluded from NB01 until its revenue ingestion is fixed (decided 2026-09-29) | Its Q4 2010 revenue is −81,500 ($M), between 47,208 and 56,530, and Q2 2011's 17,668 is also implausible: most likely a Q4 derived as FY − 9M on a restated year. Log growth cannot take a negative level, so feature building raises `NonPositiveValueError`. Acceptance counts below run on 59 companies; the fix belongs in a separate ingestion spec |
+| Q7 | Auto-EDA library: see [`eda-actionable-framework.md`](eda-actionable-framework.md) D1 (ydata-profiling) | Decided in the 2026-09-30 grilling |

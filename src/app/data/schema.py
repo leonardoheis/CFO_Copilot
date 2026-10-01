@@ -117,6 +117,29 @@ MARKET_COLUMNS: Final[tuple[str, ...]] = (
 # per-source panels are merged.
 DERIVED_COLUMNS: Final[tuple[str, ...]] = ("market_cap_usd_m", "pe_ratio")
 
+# Columns that cannot be zero or negative; a change is judged in percent or log.
+POSITIVE_COLUMNS: Final[tuple[str, ...]] = (
+    "revenue_usd_m",
+    "stock_price_usd",
+    "market_cap_usd_m",
+)
+# Ratios and per-share figures: a change is their plain difference.
+RATIO_COLUMNS: Final[tuple[str, ...]] = (
+    "gross_margin",
+    "operating_margin",
+    "net_margin",
+    "dividend_yield",
+    "pe_ratio",
+    "eps",
+)
+
+# Values that differ by company; macro columns are the same for every company.
+COMPANY_VALUE_COLUMNS: Final[tuple[str, ...]] = (
+    *FINANCIAL_COLUMNS,
+    *MARKET_COLUMNS,
+    *DERIVED_COLUMNS,
+)
+
 PANEL_COLUMNS: Final[tuple[str, ...]] = (
     *METADATA_COLUMNS,
     *FINANCIAL_COLUMNS,

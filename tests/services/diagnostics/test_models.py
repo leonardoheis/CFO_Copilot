@@ -21,6 +21,7 @@ def test_defaults_are_todays_values() -> None:
         "seasonal_period": 4,
         "ljung_box_lag": 8,
         "max_differencing_order": 2,
+        "max_interpolated_gap": 1,
     }
     assert RegimeSettings().model_dump() == {
         "n_regimes": 3,

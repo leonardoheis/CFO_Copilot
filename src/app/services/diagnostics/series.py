@@ -135,6 +135,7 @@ def _unanalysed(
     variable: str,
     observed: pd.Series,
     status: Literal["insufficient_data", "constant"],
+    interpolated: int,
 ) -> SeriesDiagnostics:
     return SeriesDiagnostics(
         ticker=ticker,
@@ -142,7 +143,28 @@ def _unanalysed(
         n_obs=len(observed),
         status=status,
         log_defined=_log_defined(observed),
+        interpolated=interpolated,
     )
+
+
+def with_short_interior_gaps_filled(
+    series: pd.Series, max_gap: int
+) -> tuple[pd.Series, pd.Series]:
+    """Fill interior runs of at most ``max_gap`` missing quarters linearly.
+
+    Leading, trailing and longer gaps stay missing, so no history is invented.
+
+    Returns:
+        The filled series and a mask of the positions that were filled.
+    """
+    missing = series.isna()
+    run_id = (missing != missing.shift()).cumsum()
+    run_length = missing.groupby(run_id).transform("sum")
+    observed_before = series.ffill().notna()
+    observed_after = series.bfill().notna()
+    filled = missing & (run_length <= max_gap) & observed_before & observed_after
+    interpolated = series.interpolate(limit_area="inside")
+    return series.where(~filled, interpolated), filled
 
 
 class SeriesDiagnostician:
@@ -204,12 +226,18 @@ class SeriesDiagnostician:
         Returns:
             The record for this company and variable.
         """
-        observed = observed_since_last_gap(series)
+        filled, was_filled = with_short_interior_gaps_filled(
+            series, self._settings.max_interpolated_gap
+        )
+        observed = observed_since_last_gap(filled)
+        interpolated = int(was_filled[observed.index].sum())
         if len(observed) < self._settings.min_observations:
-            return _unanalysed(ticker, variable, observed, "insufficient_data")
+            return _unanalysed(
+                ticker, variable, observed, "insufficient_data", interpolated
+            )
         # ADF and KPSS divide by the variance, which a constant run does not have.
         if _is_constant(observed):
-            return _unanalysed(ticker, variable, observed, "constant")
+            return _unanalysed(ticker, variable, observed, "constant", interpolated)
         log_defined = _log_defined(observed)
         d_levels = self.differencing_order(observed)
         seasonal_strength, trend_strength = self.seasonal_and_trend_strength(observed)
@@ -218,6 +246,7 @@ class SeriesDiagnostician:
             variable=variable,
             n_obs=len(observed),
             status="ok",
+            interpolated=interpolated,
             log_defined=log_defined,
             d_levels=d_levels,
             d_log=self.differencing_order(log_level(observed)) if log_defined else None,

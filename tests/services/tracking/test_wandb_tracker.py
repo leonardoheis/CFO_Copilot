@@ -1,5 +1,6 @@
 import sys
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Literal
@@ -17,6 +18,7 @@ from app.services.tracking import (
 )
 
 CONFIG = RunConfig(panel_size=2, n_rows=48, target_variable="revenue_usd_m")
+STARTED = datetime(2026, 9, 30, 14, 12, 3, tzinfo=UTC)
 Mode = Literal["online", "offline", "disabled"]
 
 
@@ -56,7 +58,13 @@ class _FakeWandb(ModuleType):
         self.run = _FakeRun()
         self.seen: dict[str, object] = {}
         self.Artifact = _FakeArtifact
-        self.Table = lambda dataframe: ("table", len(dataframe))
+        self.tables: list[pd.DataFrame] = []
+        self.Table = self._record_table
+        self.Html = lambda html: ("html", html)
+
+    def _record_table(self, dataframe: pd.DataFrame) -> tuple[str, int]:
+        self.tables.append(dataframe)
+        return ("table", len(dataframe))
 
     def init(self, **kwargs: object) -> _FakeRun:
         self.seen["init"] = kwargs
@@ -83,7 +91,7 @@ def _tracker(
         api_key=api_key,
         run_directory=run_directory,
     )
-    return WandbTracker(settings=settings)
+    return WandbTracker(settings=settings, clock=lambda: STARTED)
 
 
 def test_run_receives_name_config_and_mode(wandb: _FakeWandb, tmp_path: Path) -> None:
@@ -94,7 +102,8 @@ def test_run_receives_name_config_and_mode(wandb: _FakeWandb, tmp_path: Path) ->
         "dir": str(tmp_path),
         "project": "cfo-copilot",
         "entity": None,
-        "name": "nb01-eda-revenue",
+        "name": "nb01-eda-revenue-20260930T141203Z",
+        "group": "nb01-eda-revenue",
         "job_type": "eda",
         "config": CONFIG.model_dump(mode="json"),
         "mode": "offline",
@@ -117,6 +126,28 @@ def test_table_and_metrics_are_logged(wandb: _FakeWandb, tmp_path: Path) -> None
         tracked.log_metrics({"n_ok": 3.0})
 
     assert wandb.run.logged == [{"diagnostics": ("table", 2)}, {"n_ok": 3.0}]
+
+
+def test_table_column_labels_reach_wandb_as_strings(
+    wandb: _FakeWandb, tmp_path: Path
+) -> None:
+    # A cross-tab over a float column has float labels, which wandb.Table rejects.
+    crosstab = pd.DataFrame([[3, 1]], columns=[0.0, 1.0]).rename_axis(columns="d_log")
+
+    with _tracker(tmp_path).start_run("r", CONFIG, job_type="eda") as tracked:
+        tracked.log_table("differencing_orders", crosstab.reset_index())
+
+    assert [type(label) for label in wandb.tables[0].columns] == [str, str, str]
+
+
+def test_html_report_is_logged_as_a_panel(wandb: _FakeWandb, tmp_path: Path) -> None:
+    report = tmp_path / "auto_eda.html"
+    report.write_text("<h1>profile</h1>", encoding="utf-8")
+
+    with _tracker(tmp_path).start_run("r", CONFIG, job_type="eda") as tracked:
+        tracked.log_html("auto_eda", report)
+
+    assert wandb.run.logged == [{"auto_eda": ("html", "<h1>profile</h1>")}]
 
 
 def test_dataset_is_logged_as_an_artifact(wandb: _FakeWandb, tmp_path: Path) -> None:

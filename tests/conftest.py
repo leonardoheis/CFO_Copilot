@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,6 +13,8 @@ PanelFactory = Callable[..., pd.DataFrame]
 
 
 def pytest_configure() -> None:
+    # Figures are built in tests; CI has no display for an interactive backend.
+    mpl.use("Agg")
     container = configure_container()
     container.override(TestContainer)
     container.wire(packages=["tests"])  # pylint: disable=no-member

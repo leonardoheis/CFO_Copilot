@@ -15,6 +15,7 @@ class ExamplerMixIn:
 
         class Factory(ModelFactory[cls]):  # type: ignore[valid-type]
             __random_seed__ = random_seed
+            __check_model__ = False
 
         return Factory.build(**kwargs)
 

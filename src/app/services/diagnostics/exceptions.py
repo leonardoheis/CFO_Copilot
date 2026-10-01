@@ -17,3 +17,7 @@ class TooFewCompaniesError(DiagnosticsError):
             f"{self.companies} fully diagnosed companies cannot fill "
             f"{self.regimes} regimes"
         )
+
+
+class ProfilingUnavailableError(DiagnosticsError):
+    """Raised when ydata-profiling is not installed in this environment."""

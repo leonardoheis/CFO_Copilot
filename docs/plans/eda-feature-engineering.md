@@ -1557,6 +1557,34 @@ Expected: exit 0 for the first (no `def`/`class` at the start of a line in any c
 
 - [ ] **Step 6: Hand over.** Summarize the files added and modified, the `poe check` result, and which acceptance criteria are verified by tests (A5 shape, A8, A9) versus by the notebook run the user has not yet done (A1–A4, A6, A7). Stage nothing. Propose a commit message and wait for explicit approval.
 
+### Task 9: Auto EDA with sweetviz (R12, Q7)
+
+> **Superseded** by [`eda-actionable-framework.md`](eda-actionable-framework.md) Task 1 (ydata-profiling, three reports). Only `log_html` below was built.
+
+**Files:** `pyproject.toml` (research group, mypy override), `.pre-commit-config.yaml`
+(nbqa-pylint deps), `.gitignore`, `src/app/data/report_store.py`,
+`src/app/services/tracking/wandb_tracker.py`, `src/app/injections/production.py`,
+the notebook, and tests for each.
+
+- [ ] `uv add --group research sweetviz`; `sweetviz.*` joins the mypy
+  `ignore_missing_imports` override (it ships no types); nbqa-pylint gets it.
+- [ ] `ReportStore(directory).path_for(name)`: path under the directory, which it
+  creates; container provider `report_store` at `DATA_DIRECTORY / "reports"`;
+  `data/reports/` is git-ignored (generated, and kept in W&B).
+- [x] `WandbRun.log_html(name, path)`: logs the file as a `wandb.Html` panel.
+- [ ] Notebook section "1b. Auto EDA" after loading: pool the panels, drop
+  `date`, `sweetviz.analyze(..., pairwise_analysis="on")`, write through the
+  store, log in run `nb01-autoeda-panel`, show inline.
+
+### Task 10: Timestamped run names grouped by the plan name (NB00 R10, master §2.3)
+
+**Files:** `src/app/services/tracking/wandb_tracker.py`, its tests.
+
+- [x] `WandbTracker` gains an injectable `clock` (default: UTC now).
+- [x] `start_run(name, ...)` passes `group=name` and
+  `name=f"{name}-{started:%Y%m%dT%H%M%SZ}"` to `wandb.init`.
+- [x] Tests: a fixed clock yields the exact name and group.
+
 ---
 
 ## Self-review

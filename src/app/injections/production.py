@@ -2,7 +2,9 @@ from dependency_injector import containers, providers
 
 from app.data.companies import CompanyRegistry
 from app.data.feature_store import FeatureStore
+from app.data.ingestion_defects import load_ingestion_defects
 from app.data.panel_store import PanelStore
+from app.data.report_store import ReportStore
 from app.data.schema import MACRO_COLUMNS
 from app.data.sources import (
     AlphaVantageSource,
@@ -14,11 +16,26 @@ from app.data.sources_bundle import IngestionSources
 from app.data.structural_breaks import load_structural_breaks
 from app.services import PredictionService, TrainingService
 from app.services.diagnostics import (
+    AuditSettings,
+    AutoProfiler,
+    CorrelationAnalyzer,
+    CorrelationSettings,
+    DataDictionary,
+    DecisionSettings,
+    DecisionTableBuilder,
     DiagnosticsService,
     DiagnosticsSettings,
+    EdaFigures,
+    FeatureAuditor,
+    FigureSettings,
     MacroCorrelator,
+    OutlierRegister,
+    OutlierSettings,
+    ProfileSettings,
     RegimeSettings,
     SeasonalityRegimeClusterer,
+    SegmentProfiler,
+    SegmentSettings,
     SeriesDiagnostician,
 )
 from app.services.features import (
@@ -79,6 +96,9 @@ class Container(containers.DeclarativeContainer):
     structural_breaks = providers.Singleton(
         load_structural_breaks, Settings.STRUCTURAL_BREAKS_PATH
     )
+    ingestion_defects = providers.Singleton(
+        load_ingestion_defects, Settings.INGESTION_DEFECTS_PATH
+    )
 
     diagnostics_service = providers.Factory(
         DiagnosticsService,
@@ -89,6 +109,8 @@ class Container(containers.DeclarativeContainer):
             SeasonalityRegimeClusterer, settings=RegimeSettings()
         ),
         correlator=providers.Factory(MacroCorrelator, macro_columns=MACRO_COLUMNS),
+        outlier_register=providers.Factory(OutlierRegister, settings=OutlierSettings()),
+        data_dictionary=providers.Factory(DataDictionary, settings=OutlierSettings()),
     )
     feature_service = providers.Factory(
         FeatureService,
@@ -97,4 +119,25 @@ class Container(containers.DeclarativeContainer):
     )
     feature_store = providers.Factory(
         FeatureStore, directory=Settings.DATA_DIRECTORY / "features"
+    )
+    correlation_analyzer = providers.Factory(
+        CorrelationAnalyzer, settings=CorrelationSettings()
+    )
+    eda_figures = providers.Factory(
+        EdaFigures,
+        settings=FigureSettings(),
+        outlier_register=providers.Factory(OutlierRegister, settings=OutlierSettings()),
+    )
+    segment_profiler = providers.Factory(SegmentProfiler, settings=SegmentSettings())
+    decision_table_builder = providers.Factory(
+        DecisionTableBuilder, settings=DecisionSettings()
+    )
+    feature_auditor = providers.Factory(
+        FeatureAuditor, settings=AuditSettings(), correlations=correlation_analyzer
+    )
+    report_store = providers.Factory(
+        ReportStore, directory=Settings.DATA_DIRECTORY / "reports"
+    )
+    auto_profiler = providers.Factory(
+        AutoProfiler, store=report_store, settings=ProfileSettings()
     )

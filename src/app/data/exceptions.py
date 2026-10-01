@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 class DataSourceError(Exception):
     """Base error for data ingestion failures."""
 
@@ -46,3 +49,17 @@ class ConsolidationError(Exception):
 
 class MacroMismatchError(ConsolidationError):
     """Raised when companies disagree on the shared macro block."""
+
+
+@dataclass
+class BlockedTargetError(Exception):
+    """Raised when a target variable is chosen while an ingestion defect blocks it."""
+
+    variable: str
+    spec: str
+
+    def __str__(self) -> str:
+        return (
+            f"{self.variable} cannot be forecast until the ingestion fix in "
+            f"{self.spec} lands"
+        )
