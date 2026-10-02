@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "ab82c35e-3ea6-4917-bfe4-dc8c20b9a08b",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\leona\\source\\repos\\CFO_Copilot\\data\\reports\\architecture\\candidate.json",
+  "output": "C:\\Users\\leona\\source\\repos\\CFO_Copilot\\data\\reports\\architecture\\cfo-copilot-architecture.html",
+  "specification": {
+    "sha256": "0ba52222dae6902ced3569d17c2fba851a2c88e651e71c130ec1d3e9b6f35011",
+    "bytes": 8121
+  },
+  "artifact": {
+    "sha256": "90cd50e487fc8fd61143c2448d405d515d80a6a18d4348307da1da4f0e26bafe",
+    "bytes": 786669
+  }
+}
