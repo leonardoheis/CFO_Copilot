@@ -25,6 +25,7 @@ from app.settings import Settings
 
 from .parsing import (
     JsonObject,
+    fill_eps_from_net_income,
     merge_balance_sheet,
     merge_cash_flow,
     merge_earnings,
@@ -77,6 +78,7 @@ class AlphaVantageSource:
         merge_cash_flow(values_by_date, cash_flow)
         merge_balance_sheet(values_by_date, balance)
         merge_earnings(values_by_date, earnings)
+        fill_eps_from_net_income(values_by_date)
         quarter_dates = quarter_end_dates(start, end)
 
         rows = [

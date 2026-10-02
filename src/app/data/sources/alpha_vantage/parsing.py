@@ -7,9 +7,12 @@ rest of the data layer.
 """
 
 import logging
+import statistics
 from collections.abc import Iterator
 from datetime import date
-from typing import cast
+from typing import Final, cast
+
+from pydantic import TypeAdapter, ValidationError
 
 from app.data.dates import (
     QUARTER_END_TOLERANCE_DAYS,
@@ -21,10 +24,14 @@ from app.data.schema import MILLIONS_DIVISOR, FinancialQuarterValues, Financials
 logger = logging.getLogger(__name__)
 
 JsonObject = dict[str, object]
+_REPORT_LIST: Final = TypeAdapter(list[JsonObject])
 
 # Recorded in the panel's financials_provenance column so a vendor-sourced row
 # is distinguishable from one the filer's own XBRL produced.
 PROVENANCE_LABEL = "alpha_vantage"
+EPS_DERIVATION_TOLERANCE: Final = 0.02
+# Below a nickel a rounding cent is a 20%+ relative error, which says nothing.
+MIN_EPS_FOR_RELATIVE_ERROR: Final = 0.05
 
 
 def merge_income(
@@ -86,6 +93,55 @@ def merge_earnings(
         values.eps = earnings_per_share
 
 
+def fill_eps_from_net_income(
+    values_by_date: dict[date, FinancialQuarterValues],
+) -> None:
+    """Derive missing EPS as net income / shares, if this filer's own EPS agrees.
+
+    The vendor's ``reportedEPS`` is the adjusted figure for many filers (MRK runs
+    ~35% off net income / shares), so the quotient is only trusted where it has
+    matched the filer's reported EPS (COST: 0.23%).
+    """
+    derivable = sorted(
+        (quarter_date, values)
+        for quarter_date, values in values_by_date.items()
+        if values.eps is None and _has_earnings_and_shares(values)
+    )
+    errors = [
+        abs(_earnings_per_share(values) - eps) / abs(eps)
+        for values in values_by_date.values()
+        if (eps := values.eps) is not None
+        and abs(eps) > MIN_EPS_FOR_RELATIVE_ERROR
+        and _has_earnings_and_shares(values)
+    ]
+    if not derivable or not errors:
+        return
+    median_error = statistics.median(errors)
+    if median_error > EPS_DERIVATION_TOLERANCE:
+        logger.warning(
+            "Leaving %d EPS gaps: net income / shares is %.1f%% off reported EPS",
+            len(derivable),
+            median_error * 100,
+        )
+        return
+    for quarter_date, values in derivable:
+        values.eps = _earnings_per_share(values)
+        logger.warning(
+            "Alpha Vantage EPS for %s derived as net income / shares: %.4f",
+            quarter_date.isoformat(),
+            values.eps,
+        )
+
+
+def _has_earnings_and_shares(values: FinancialQuarterValues) -> bool:
+    return values.net_income_usd_m is not None and bool(values.shares_outstanding)
+
+
+def _earnings_per_share(values: FinancialQuarterValues) -> float:
+    net_income = cast("float", values.net_income_usd_m) * MILLIONS_DIVISOR
+    return net_income / cast("float", values.shares_outstanding)
+
+
 def _is_placeholder_zero(
     earnings_per_share: float, net_income_usd_m: float | None
 ) -> bool:
@@ -109,28 +165,17 @@ def reports(payload: JsonObject, key: str) -> list[JsonObject]:
     """Extract the report list stored under ``key``.
 
     Returns:
-        Every dictionary entry under the key, or an empty list if absent.
+        Every report under the key, or an empty list if absent.
 
     Raises:
-        MalformedPayloadError: If the report container is not a list.
+        MalformedPayloadError: If the container is not a list or any entry is
+            not an object; one malformed report makes the whole payload suspect.
     """
-    raw_reports = payload.get(key, [])
-    if not isinstance(raw_reports, list):
-        msg = f"Alpha Vantage {key} must be a list, got {type(raw_reports).__name__}"
-        raise MalformedPayloadError(
-            msg,
-        )
-    parsed_reports: list[JsonObject] = []
-    for report in raw_reports:
-        if not isinstance(report, dict):
-            logger.warning(
-                "Skipping non-object Alpha Vantage report in %s: %r",
-                key,
-                report,
-            )
-        else:
-            parsed_reports.append(cast("JsonObject", report))
-    return parsed_reports
+    try:
+        return _REPORT_LIST.validate_python(payload.get(key, []))
+    except ValidationError as error:
+        msg = f"Alpha Vantage {key} must be a list of report objects: {error}"
+        raise MalformedPayloadError(msg) from error
 
 
 def report_date(report: JsonObject) -> date:

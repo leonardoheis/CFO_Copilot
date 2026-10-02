@@ -78,7 +78,9 @@ def test_concept_facts_is_empty_for_a_company_without_us_gaap_facts() -> None:
 def test_concept_facts_rejects_a_unit_that_is_not_a_list() -> None:
     # The shape SEC's per-concept endpoint returned for ABT and KO: it must
     # never read as "the company does not file this tag".
-    payload = {"facts": {"us-gaap": {"Revenues": {"units": {"USD": {}}}}}}
+    payload: dict[str, object] = {
+        "facts": {"us-gaap": {"Revenues": {"units": {"USD": {}}}}}
+    }
 
     with pytest.raises(MalformedPayloadError, match="Revenues"):
         concept_facts(payload, "Revenues", "USD")
@@ -95,7 +97,9 @@ def test_one_company_facts_request_serves_every_tag(
 
     assert revenue == [REVENUE_FACT]
     assert net_income == [REVENUE_FACT]
-    assert requested == ["https://data.sec.gov/api/xbrl/companyfacts/CIK0000001800.json"]
+    assert requested == [
+        "https://data.sec.gov/api/xbrl/companyfacts/CIK0000001800.json"
+    ]
 
 
 def test_a_cik_without_xbrl_filings_has_no_facts(

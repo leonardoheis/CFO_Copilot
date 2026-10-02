@@ -332,3 +332,58 @@ def test_tag_chain_keeps_the_total_when_goods_net_is_a_component(
     panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
 
     assert panel.loc[0, "revenue_usd_m"] == pytest.approx(total / MILLIONS_DIVISOR)
+
+
+def test_tag_chain_reads_regulated_operating_revenue_for_a_utility(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """NextEra reports total revenue only as RegulatedAndUnregulatedOperatingRevenue."""
+    total = 4_717_000_000.0
+    quarter = date(2015, 3, 31)
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        if tag != "RegulatedAndUnregulatedOperatingRevenue":
+            return []
+        return [_duration_fact("2015-01-01", "2015-03-31", total, filed="2015-05-05")]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(total / MILLIONS_DIVISOR)
+
+
+def test_regulated_operating_revenue_wins_over_contract_revenue_it_contains(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Duke 2018 Q1: contract revenue 5,928 is a component of the 6,135 total."""
+    contract_revenue = 5_928_000_000.0
+    total = 6_135_000_000.0
+    quarter = date(2018, 3, 31)
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        values = {
+            "RevenueFromContractWithCustomerExcludingAssessedTax": contract_revenue,
+            "RegulatedAndUnregulatedOperatingRevenue": total,
+        }
+        if tag not in values:
+            return []
+        return [
+            _duration_fact("2018-01-01", "2018-03-31", values[tag], filed="2018-05-08")
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(total / MILLIONS_DIVISOR)

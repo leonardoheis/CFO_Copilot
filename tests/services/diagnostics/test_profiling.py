@@ -12,6 +12,7 @@ from app.services.diagnostics import (
     AutoProfiler,
     ProfileSettings,
     ProfilingUnavailableError,
+    profile_frame,
 )
 
 MAX_REPORT_BYTES = 5 * 1024 * 1024
@@ -139,3 +140,32 @@ def test_real_report_of_a_small_panel_stays_small(profiler: AutoProfiler) -> Non
     path = profiler.profile(panel, title="Smoke", name="smoke.html")
 
     assert 0 < path.stat().st_size < MAX_REPORT_BYTES
+
+
+def _pooled_panel() -> pd.DataFrame:
+    return pd.DataFrame({
+        "ticker": ["TSLA", "TSLA", "AAPL"],
+        "date": pd.to_datetime(["2010-03-31", "2010-06-30", "2010-03-31"]),
+        "revenue_usd_m": [20.8, 28.4, 13_499.0],
+        "period_end": pd.to_datetime(["2010-03-31", "2010-06-30", "2010-03-27"]),
+        "financials_filed": [None, "2010-08-13", "2010-04-21"],
+        "financials_provenance": ["alpha_vantage", "native", "native"],
+        "period_end_offset_days": [0, 0, -4],
+        "pre_listing": [True, False, False],
+    })
+
+
+def test_profile_frame_drops_pre_listing_rows() -> None:
+    frame = profile_frame(_pooled_panel())
+
+    assert frame["revenue_usd_m"].tolist() == [28.4, 13_499.0]
+
+
+def test_profile_frame_drops_dates_provenance_and_the_spent_flag() -> None:
+    assert list(profile_frame(_pooled_panel()).columns) == ["ticker", "revenue_usd_m"]
+
+
+def test_profile_frame_keeps_every_row_without_a_pre_listing_flag() -> None:
+    pooled = _pooled_panel().drop(columns=["pre_listing"])
+
+    assert len(profile_frame(pooled)) == len(pooled)

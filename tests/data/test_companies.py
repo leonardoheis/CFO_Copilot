@@ -137,6 +137,27 @@ def test_resolve_sec_ciks_for_alphabet_returns_legacy_then_current(
     )
 
 
+@pytest.mark.parametrize(
+    ("ticker", "legacy_cik", "current_cik"),
+    [
+        # WALT DISNEY CO/ filed until the 2019 restructuring under a new parent.
+        ("DIS", "0001001039", "0001744489"),
+        # MEDTRONIC INC filed until the 2015 inversion into Medtronic plc.
+        ("MDT", "0000064670", "0001613103"),
+    ],
+)
+def test_re_registered_filers_read_their_legacy_cik_first(
+    company_registry: CompanyRegistry,
+    ticker: str,
+    legacy_cik: str,
+    current_cik: str,
+) -> None:
+    assert company_registry.sec_ciks(ticker, lambda _ticker: "0000000000") == (
+        legacy_cik,
+        current_cik,
+    )
+
+
 def test_resolve_sec_ciks_for_unknown_ticker_uses_runtime_lookup(
     company_registry: CompanyRegistry,
 ) -> None:

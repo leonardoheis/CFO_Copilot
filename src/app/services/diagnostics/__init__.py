@@ -23,7 +23,7 @@ from .models import (
     SeriesDiagnostics,
 )
 from .panel import MacroCorrelator, SeasonalityRegimeClusterer
-from .profiling import AutoProfiler
+from .profiling import AutoProfiler, profile_frame
 from .segments import (
     SegmentProfiler,
     median_timeline,
@@ -68,6 +68,7 @@ __all__ = [
     "median_timeline",
     "observed_since_last_gap",
     "pooled_yoy_changes",
+    "profile_frame",
     "seasonal_profile",
     "segment_frame",
     "yoy_changes",

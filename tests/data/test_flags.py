@@ -12,12 +12,19 @@ from app.data.flags import (
     covid_flag,
     is_projected,
     outlier_flag,
+    pre_listing_flag,
     structural_break_flag,
 )
 from tests.conftest import PanelFactory
 
 FAR_FUTURE = date(2100, 1, 1)
-FLAG_COLUMNS = ["covid", "structural_break", "outlier_flag", "is_projected"]
+FLAG_COLUMNS = [
+    "covid",
+    "structural_break",
+    "outlier_flag",
+    "is_projected",
+    "pre_listing",
+]
 COVID_QUARTERS_PER_COMPANY = 3
 BREAK_WINDOW = 4
 
@@ -102,7 +109,7 @@ def panel_long(make_panel: PanelFactory) -> pd.DataFrame:
     return consolidate_panels(panels).panel_long
 
 
-def test_add_flags_adds_four_boolean_columns_and_keeps_the_index(
+def test_add_flags_adds_five_boolean_columns_and_keeps_the_index(
     panel_long: pd.DataFrame,
 ) -> None:
     flagged = add_flags(panel_long, {}, last_reported_quarter=FAR_FUTURE)
@@ -132,3 +139,22 @@ def test_a_break_for_an_unknown_company_is_refused(panel_long: pd.DataFrame) -> 
             {"ZZZ": (date(2015, 12, 31),)},
             last_reported_quarter=FAR_FUTURE,
         )
+
+
+def _priced_company(prices: list[float | None]) -> pd.DataFrame:
+    return pd.DataFrame({
+        "date": _dates(len(prices)),
+        "stock_price_usd": [math.nan if price is None else price for price in prices],
+    })
+
+
+def test_quarters_before_the_first_price_are_pre_listing() -> None:
+    company = _priced_company([None, None, 17.0, None, 20.0])
+
+    flagged = pre_listing_flag(company)
+
+    assert flagged.tolist() == [True, True, False, False, False]
+
+
+def test_a_company_without_any_price_has_no_pre_listing_quarters() -> None:
+    assert not pre_listing_flag(_priced_company([None, None, None])).any()

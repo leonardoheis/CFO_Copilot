@@ -201,7 +201,13 @@ pre-listing EPS stays empty, which is correct.
    justified against the filer's reported figure before it is accepted
    (as in `sec-tag-precedence.md`, criterion 2). Expected revenue changes:
    exactly DUK 2018 Q1, NEE 2011 Q4, KO 2017 Q4 and KO 2018 Q2.
-7. No panel column that was non-null becomes null.
+7. No panel column that was non-null becomes null, except `pe_ratio` where
+   the filer's GAAP EPS replaces a vendor EPS of the opposite sign. Observed
+   on re-ingestion: 12 such cells (F 9, ABT 2, KO 1), every one a quarter
+   with a GAAP net loss that the panel had carried with the vendor's
+   positive adjusted EPS — e.g. F 2022 Q1, net income −3,110, EPS +0.38 →
+   −0.78; KO 2017 Q4, net income −2,752, EPS +0.39 → −0.63. P/E is
+   undefined for non-positive earnings by rule, so the null is the fix.
 8. An ingestion of one company makes one `companyfacts` request per CIK.
 
 ## Out of scope

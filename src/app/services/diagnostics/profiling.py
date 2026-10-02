@@ -1,12 +1,31 @@
 import importlib
 from pathlib import Path
-from typing import Protocol, Self, cast
+from typing import Final, Protocol, Self, cast
 
 import pandas as pd
 
 from app.data.report_store import ReportStore
+from app.data.schema import PROVENANCE_COLUMNS
 from app.services.diagnostics.exceptions import ProfilingUnavailableError
 from app.services.diagnostics.models import ProfileSettings
+
+_NOT_PROFILED: Final = (
+    "date",
+    *PROVENANCE_COLUMNS,
+    "period_end_offset_days",
+    "pre_listing",
+)
+
+
+def profile_frame(pooled: pd.DataFrame) -> pd.DataFrame:
+    """Keep the listed quarters and the variables worth profiling.
+
+    Returns:
+        ``pooled`` without pre-listing rows, dates, or provenance metadata.
+    """
+    if "pre_listing" in pooled.columns:
+        pooled = pooled.loc[~pooled["pre_listing"].astype(bool)]
+    return pooled.drop(columns=[c for c in _NOT_PROFILED if c in pooled.columns])
 
 
 class _Report(Protocol):

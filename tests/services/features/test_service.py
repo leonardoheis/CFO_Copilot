@@ -1,3 +1,5 @@
+from typing import cast
+
 import pandas as pd
 import pytest
 
@@ -13,6 +15,7 @@ from app.services.features import (
     TargetVariable,
     UnsupportedArmError,
     arms_for,
+    training_rows,
 )
 from tests.conftest import PanelFactory
 
@@ -174,3 +177,70 @@ def test_a_signed_target_frame_uses_only_the_scaled_arm(
     frame = _service(spec).target_frame(panels, horizons=(1,))
 
     assert set(frame["arm"]) == {TargetArm.REVENUE_SCALED_YOY.value}
+
+
+PRE_LISTING_QUARTERS = 6
+
+
+def _with_pre_listing(panel: pd.DataFrame) -> pd.DataFrame:
+    flags = [quarter < PRE_LISTING_QUARTERS for quarter in range(len(panel))]
+    return panel.assign(pre_listing=flags)
+
+
+def test_pre_listing_quarters_are_not_origin_rows(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    flagged = {**panels, "AAA": _with_pre_listing(panels["AAA"])}
+
+    dataset = _service().assemble(
+        flagged, horizon=1, arm=TargetArm.LOG_DIFF4, regimes=REGIMES
+    )
+
+    assert dataset["ticker"].value_counts().to_dict() == {
+        "AAA": QUARTERS - PRE_LISTING_QUARTERS,
+        "BBB": QUARTERS,
+    }
+
+
+def test_the_first_listed_quarter_keeps_its_pre_listing_lookback(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    flagged = {"AAA": _with_pre_listing(panels["AAA"])}
+    unflagged = {"AAA": panels["AAA"]}
+
+    def first_listed_row(source: dict[str, pd.DataFrame]) -> pd.Series:
+        dataset = _service().assemble(
+            source, horizon=1, arm=TargetArm.LOG_DIFF4, regimes=REGIMES
+        )
+        first_listed = panels["AAA"]["date"].iloc[PRE_LISTING_QUARTERS]
+        return cast(
+            "pd.Series", dataset.loc[dataset["origin_date"] == first_listed].iloc[0]
+        )
+
+    flagged_row = first_listed_row(flagged)
+
+    assert flagged_row["growth_yoy_lag1"] == pytest.approx(
+        first_listed_row(unflagged)["growth_yoy_lag1"]
+    )
+    assert pd.notna(flagged_row["growth_yoy_lag1"])
+
+
+def _dataset() -> pd.DataFrame:
+    return pd.DataFrame({
+        "ticker": ["AAA", "AAA", "AAA", "AAA"],
+        "growth_yoy_lag1": [0.10, None, 0.12, 0.13],
+        "gdp_yoy": [2.0, 2.1, 2.2, 2.3],
+        "target_level": [100.0, 101.0, 102.0, None],
+        "y": [0.05, 0.06, None, 0.07],
+    })
+
+
+def test_training_rows_need_a_target_and_every_feature() -> None:
+    kept = training_rows(_dataset())
+
+    assert kept["growth_yoy_lag1"].tolist() == [0.10, 0.13]
+
+
+def test_training_rows_ignore_gaps_outside_the_features() -> None:
+    # The last row's target_level is unknown, but it is not a feature.
+    assert training_rows(_dataset())["target_level"].isna().sum() == 1

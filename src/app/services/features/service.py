@@ -2,7 +2,11 @@ from collections.abc import Mapping, Sequence
 
 import pandas as pd
 
-from app.services.features.builder import FeatureBuilder, FeatureGroup
+from app.services.features.builder import (
+    FeatureBuilder,
+    FeatureGroup,
+    feature_groups_by_column,
+)
 from app.services.features.exceptions import UnsupportedArmError
 from app.services.features.leakage import LookaheadGuard
 from app.services.features.transforms import (
@@ -11,6 +15,16 @@ from app.services.features.transforms import (
     TargetVariable,
     arms_for,
 )
+
+
+def training_rows(dataset: pd.DataFrame) -> pd.DataFrame:
+    """Keep the rows a model can learn from: a known target and every feature.
+
+    Returns:
+        ``dataset`` without warm-up rows and without rows whose target is unknown.
+    """
+    features = [c for c in feature_groups_by_column() if c in dataset.columns]
+    return dataset.dropna(subset=[*features, "y"])
 
 
 class FeatureService:
@@ -37,10 +51,15 @@ class FeatureService:
         features = self._builder.build(
             panel, horizon=transformer.horizon, regimes=regimes
         )
-        return features.assign(
+        rows = features.assign(
             target_level=target.shift(-transformer.horizon),
             y=transformer.make(target, revenue=panel[TargetVariable.REVENUE]),
         )
+        # Dropped only after the builder ran on the full history, so the first
+        # listed quarter's lags still read the pre-listing financials.
+        if "pre_listing" in panel.columns:
+            rows = rows.loc[~panel["pre_listing"].astype(bool).to_numpy()]
+        return rows
 
     def assemble(
         self,

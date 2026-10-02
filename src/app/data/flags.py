@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import date
-from typing import Final
+from typing import Final, cast
 
 import numpy as np
 import pandas as pd
@@ -23,6 +23,18 @@ def covid_flag(dates: pd.Series) -> pd.Series:
 
 def is_projected(dates: pd.Series, *, last_reported_quarter: date) -> pd.Series:
     return dates > pd.Timestamp(last_reported_quarter)
+
+
+def pre_listing_flag(company: pd.DataFrame) -> pd.Series:
+    """Flag the quarters before the company's first stock price.
+
+    Returns:
+        A boolean series aligned to ``company``; all False if it never has a price.
+    """
+    priced_dates = company.loc[company["stock_price_usd"].notna(), "date"]
+    if priced_dates.empty:
+        return pd.Series(data=False, index=company.index)
+    return cast("pd.Series", company["date"] < priced_dates.min())
 
 
 def structural_break_flag(
@@ -83,6 +95,7 @@ def _flag_company(
         is_projected=is_projected(
             company["date"], last_reported_quarter=last_reported_quarter
         ),
+        pre_listing=pre_listing_flag(company),
     )
 
 
@@ -94,11 +107,11 @@ def add_flags(
     contamination: float = 0.03,
     seed: int = 42,
 ) -> pd.DataFrame:
-    """Add the four NB00 flag columns company by company.
+    """Add the five NB00 flag columns company by company.
 
     Returns:
-        ``panel_long`` with ``covid``, ``structural_break``, ``outlier_flag``
-        and ``is_projected``, in the original row order.
+        ``panel_long`` with ``covid``, ``structural_break``, ``outlier_flag``,
+        ``is_projected`` and ``pre_listing``, in the original row order.
 
     Raises:
         ConsolidationError: A break names a ticker that is not in the panel.

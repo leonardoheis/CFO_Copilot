@@ -345,8 +345,9 @@ companies:
       sector: Communication Services
       is_public: true
     sec:
-      type: known_cik
-      cik: "0001744489"
+      type: dual_cik
+      legacy_cik: "0001001039"
+      current_cik: "0001744489"
     market:
       type: from_ticker
 
@@ -643,7 +644,9 @@ companies:
       sector: Healthcare
       is_public: true
     sec:
-      type: sec_ticker_lookup
+      type: dual_cik
+      legacy_cik: "0000064670"
+      current_cik: "0001613103"
     market:
       type: from_ticker
 

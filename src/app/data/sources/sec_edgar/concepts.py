@@ -52,6 +52,9 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "SalesRevenueNet",
             "SalesRevenueGoodsNet",
             "Revenues",
+            # Utilities' total; never RevenueFromContractWithCustomerIncluding-
+            # AssessedTax, whose restated vintages outgrow Revenues at SO and GE.
+            "RegulatedAndUnregulatedOperatingRevenue",
         ),
         prefer_largest=True,
     ),

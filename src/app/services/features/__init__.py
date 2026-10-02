@@ -16,7 +16,7 @@ from .exceptions import (
     UnsupportedArmError,
 )
 from .leakage import LeakageSettings, LookaheadGuard
-from .service import FeatureService
+from .service import FeatureService, training_rows
 from .transforms import (
     SEASONAL_LAG,
     TargetArm,
@@ -56,5 +56,6 @@ __all__ = [
     "log_level",
     "revenue_scaled_yoy_change",
     "target_growth",
+    "training_rows",
     "yoy_log_growth",
 ]
