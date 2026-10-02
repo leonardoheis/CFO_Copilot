@@ -4,15 +4,39 @@ Pure functions: no HTTP and no knowledge of how the raw frame was fetched.
 """
 
 import logging
-from typing import Final
+from typing import Final, cast
 
 import pandas as pd
 
+from app.data.exceptions import MalformedPayloadError
 from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
 from app.data.splits import cumulative_split_factors
+from app.data.xbrl import XbrlFact
 
 MIN_SHARE_COUNT_FRACTION_OF_MEDIAN: Final = 0.01
 logger = logging.getLogger(__name__)
+
+type JsonObject = dict[str, object]
+
+
+def concept_facts(company_facts: JsonObject, tag: str, unit: str) -> list[XbrlFact]:
+    """Read one us-gaap tag's facts in one unit from a companyfacts payload.
+
+    Returns:
+        The facts, or an empty list when the company never filed the tag or unit.
+
+    Raises:
+        MalformedPayloadError: The unit is present but is not a list of facts.
+    """
+    facts = cast("JsonObject", company_facts.get("facts", {}))
+    us_gaap = cast("JsonObject", facts.get("us-gaap", {}))
+    concept = cast("JsonObject", us_gaap.get(tag, {}))
+    units = cast("JsonObject", concept.get("units", {}))
+    unit_facts = units.get(unit, [])
+    if not isinstance(unit_facts, list):
+        msg = f"SEC companyfacts {tag} [{unit}] is not a list of facts"
+        raise MalformedPayloadError(msg)
+    return cast("list[XbrlFact]", unit_facts)
 
 
 def merge_raw_financial_frames(

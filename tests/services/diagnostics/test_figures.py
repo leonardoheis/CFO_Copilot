@@ -30,18 +30,13 @@ def _panel(ticker: str, jump: float) -> pd.DataFrame:
     })
 
 
-@pytest.fixture(autouse=True)
-def _close_figures() -> Iterator[None]:
-    yield
-    plt.close("all")
-
-
 @pytest.fixture
-def figures() -> EdaFigures:
-    return EdaFigures(
+def figures() -> Iterator[EdaFigures]:
+    yield EdaFigures(
         settings=FigureSettings(),
         outlier_register=OutlierRegister(settings=OutlierSettings()),
     )
+    plt.close("all")
 
 
 @pytest.fixture

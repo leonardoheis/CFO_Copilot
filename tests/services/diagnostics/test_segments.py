@@ -80,15 +80,9 @@ def test_by_segment_has_one_row_per_segment_value(
 
     table = profiler.by_segment(frame, ["sector", "regime", "period"])
 
-    assert list(table.columns) == [
-        "segment",
-        "value",
-        "companies",
-        "observations",
-        "median",
-        "lower_quartile",
-        "upper_quartile",
-    ]
+    assert " ".join(table.columns) == (
+        "segment value companies observations median lower_quartile upper_quartile"
+    )
     assert len(table) == 2 + 2 + 3
     energy = table[(table["segment"] == "sector") & (table["value"] == "Energy")]
     assert energy["median"].iloc[0] == pytest.approx(

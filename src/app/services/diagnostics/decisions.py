@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Literal, NamedTuple
 
 import pandas as pd
@@ -44,12 +44,16 @@ class DecisionInputs(NamedTuple):
     ljung_box_p: pd.Series
 
 
+def _comma_separated(items: Iterable[str]) -> str:
+    return ", ".join(items)
+
+
 def _transform_row(inputs: DecisionInputs) -> DecisionRow:
     arms = arms_for(inputs.variable)
     exported = f"export {default_arm(inputs.variable).value}"
     return DecisionRow(
         decision="target_transform",
-        finding=f"arms available: {', '.join(arm.value for arm in arms)}",
+        finding=f"arms available: {_comma_separated(arm.value for arm in arms)}",
         evidence="F3: log arms only for a variable that is never non-positive",
         action=f"{exported}; compare the arms in NB02" if len(arms) > 1 else exported,
         applies_to=inputs.variable.value,
@@ -65,13 +69,16 @@ def _exclusions_row(inputs: DecisionInputs) -> DecisionRow:
     sign_tickers = sorted(set(non_positive["ticker"].astype(str)))
     excluded = sorted(inputs.excluded_companies)
     tickers = excluded + [ticker for ticker in sign_tickers if ticker not in excluded]
+    defects = _comma_separated(excluded) or "none"
     return DecisionRow(
         decision="exclusions",
         finding=f"{len(excluded)} excluded by an ingestion spec, "
         f"{len(sign_tickers)} with a non-positive target",
-        evidence=f"ingestion defects: {', '.join(excluded) or 'none'}; "
+        evidence=f"ingestion defects: {defects}; "
         f"sign rule: {len(non_positive)} register entries",
-        action=f"exclude {', '.join(tickers)}" if tickers else "exclude no company",
+        action=f"exclude {_comma_separated(tickers)}"
+        if tickers
+        else "exclude no company",
         applies_to=inputs.variable.value,
     )
 

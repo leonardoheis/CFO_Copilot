@@ -32,15 +32,13 @@ class _FakeReport:
         return _FakeReport(self.df, f"{self.title} vs {other.title}", self.config)
 
 
-class _FakeYdata(ModuleType):
-    """Stands in for ``ydata_profiling``; nothing needs installing."""
+class _ReportRecorder:
+    """Records every report the fake ``ydata_profiling`` is asked to build."""
 
     def __init__(self) -> None:
-        super().__init__("ydata_profiling")
         self.reports: list[_FakeReport] = []
-        self.ProfileReport = self._record_report
 
-    def _record_report(
+    def profile_report(
         self, df: pd.DataFrame, *, title: str, **config: object
     ) -> _FakeReport:
         report = _FakeReport(df, title, config)
@@ -49,10 +47,14 @@ class _FakeYdata(ModuleType):
 
 
 @pytest.fixture
-def ydata(monkeypatch: pytest.MonkeyPatch) -> _FakeYdata:
-    fake = _FakeYdata()
-    monkeypatch.setitem(sys.modules, "ydata_profiling", fake)
-    return fake
+def ydata(monkeypatch: pytest.MonkeyPatch) -> _ReportRecorder:
+    recorder = _ReportRecorder()
+    fake_module = ModuleType("ydata_profiling")
+    monkeypatch.setattr(
+        fake_module, "ProfileReport", recorder.profile_report, raising=False
+    )
+    monkeypatch.setitem(sys.modules, "ydata_profiling", fake_module)
+    return recorder
 
 
 @pytest.fixture
@@ -67,7 +69,7 @@ def _frame() -> pd.DataFrame:
 
 
 def test_profile_writes_one_report_through_the_store(
-    ydata: _FakeYdata, profiler: AutoProfiler, tmp_path: Path
+    ydata: _ReportRecorder, profiler: AutoProfiler, tmp_path: Path
 ) -> None:
     path = profiler.profile(_frame(), title="Panel", name="panel.html")
 
@@ -78,7 +80,7 @@ def test_profile_writes_one_report_through_the_store(
 
 
 def test_pairwise_interactions_are_off_by_default(
-    ydata: _FakeYdata, profiler: AutoProfiler
+    ydata: _ReportRecorder, profiler: AutoProfiler
 ) -> None:
     profiler.profile(_frame(), title="Panel", name="panel.html")
 
@@ -87,7 +89,7 @@ def test_pairwise_interactions_are_off_by_default(
 
 
 def test_compare_writes_one_report_of_both_frames(
-    ydata: _FakeYdata, profiler: AutoProfiler
+    ydata: _ReportRecorder, profiler: AutoProfiler
 ) -> None:
     path = profiler.compare(
         _frame(),

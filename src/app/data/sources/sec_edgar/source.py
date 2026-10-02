@@ -1,4 +1,4 @@
-"""SEC EDGAR HTTP client: CIK resolution and us-gaap concept retrieval."""
+"""SEC EDGAR HTTP client: CIK resolution and us-gaap fact retrieval."""
 
 import math
 from datetime import date
@@ -33,6 +33,8 @@ from .concepts import (
     ConceptSpec,
 )
 from .parsing import (
+    JsonObject,
+    concept_facts,
     financial_panel_from_raw,
     implied_shares_from_earnings,
     merge_raw_financial_frames,
@@ -40,11 +42,11 @@ from .parsing import (
     without_implausible_counts,
 )
 
-type JsonObject = dict[str, object]
-
 SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
-SEC_CONCEPT_URL: Final = (
-    "https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/us-gaap/{tag}.json"
+# Not the per-concept endpoint: for some filers (ABT, F, KO) it answers 200 with
+# an empty unit while companyfacts holds the full history for the same tag.
+SEC_COMPANY_FACTS_URL: Final = (
+    "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 )
 NOT_FOUND_STATUS: Final = 404
 MISSING_USER_AGENT_MESSAGE: Final = (
@@ -118,6 +120,7 @@ class SecEdgarSource:
         self._user_agent = user_agent
         self._registry = registry
         self._ticker_ciks: dict[str, str] | None = None
+        self._company_facts_by_cik: dict[str, JsonObject] = {}
 
     def resolve_cik(self, ticker: str) -> str:
         return self._registry.primary_sec_cik(ticker, self._lookup_ticker_cik)
@@ -142,23 +145,23 @@ class SecEdgarSource:
         tag: str,
         unit: str = USD_UNIT,
     ) -> list[XbrlFact]:
-        url = SEC_CONCEPT_URL.format(cik=cik.zfill(10), tag=tag)
-        try:
-            response = self._get_json(url)
-        except requests.HTTPError as error:
-            if (
-                error.response is not None
-                and error.response.status_code == NOT_FOUND_STATUS
-            ):
-                return []
-            msg = f"Failed to fetch SEC concept {tag}: {error}"
-            raise DataSourceUnavailableError(
-                msg,
-            ) from error
+        return concept_facts(self._company_facts(cik), tag, unit)
 
-        payload = cast("JsonObject", response)
-        units = cast("JsonObject", payload.get("units", {}))
-        return cast("list[XbrlFact]", units.get(unit, []))
+    def _company_facts(self, cik: str) -> JsonObject:
+        padded_cik = cik.zfill(10)
+        cached = self._company_facts_by_cik.get(padded_cik)
+        if cached is not None:
+            return cached
+        url = SEC_COMPANY_FACTS_URL.format(cik=padded_cik)
+        try:
+            company_facts = cast("JsonObject", self._get_json(url))
+        except requests.HTTPError as error:
+            if error.response is None or error.response.status_code != NOT_FOUND_STATUS:
+                msg = f"Failed to fetch SEC companyfacts CIK{padded_cik}: {error}"
+                raise DataSourceUnavailableError(msg) from error
+            company_facts = {}
+        self._company_facts_by_cik[padded_cik] = company_facts
+        return company_facts
 
     def fetch_quarterly_financials(
         self,

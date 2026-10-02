@@ -80,6 +80,7 @@ repos:
         -   "matplotlib>=3.11.2"
         -   "statsmodels>=0.15.0"
         -   "scipy>=1.16.1"
+        -   "seaborn>=0.13"
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v2.3.1"

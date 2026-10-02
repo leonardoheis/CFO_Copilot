@@ -10,16 +10,7 @@ from app.services.diagnostics import DataDictionary, OutlierRegister, OutlierSet
 QUARTERS = 32
 NEGATIVE_REVENUE = -50.0
 FOURTH_QUARTER = 3
-REGISTER_COLUMNS = [
-    "ticker",
-    "date",
-    "column",
-    "value",
-    "change",
-    "robust_z",
-    "hampel_z",
-    "direction",
-]
+REGISTER_COLUMNS = "ticker date column value change robust_z hampel_z direction"
 
 
 def _panel(ticker: str, revenue: list[float]) -> pd.DataFrame:
@@ -49,7 +40,7 @@ def test_a_growing_series_registers_nothing(register: OutlierRegister) -> None:
     )
 
     assert table.empty
-    assert list(table.columns) == REGISTER_COLUMNS
+    assert " ".join(table.columns) == REGISTER_COLUMNS
 
 
 def test_regular_seasonality_is_not_an_outlier(register: OutlierRegister) -> None:
@@ -215,15 +206,7 @@ def test_an_extreme_target_value_is_registered(register: OutlierRegister) -> Non
 
     extremes = register.register_target(_target_frame(values))
 
-    assert list(extremes.columns) == [
-        "ticker",
-        "date",
-        "arm",
-        "horizon",
-        "y",
-        "robust_z",
-        "direction",
-    ]
+    assert " ".join(extremes.columns) == "ticker date arm horizon y robust_z direction"
     assert extremes["date"].tolist() == [pd.Timestamp("2017-09-30")]
     assert extremes["direction"].iloc[0] == "up"
 
