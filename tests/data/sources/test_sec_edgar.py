@@ -245,6 +245,102 @@ def test_tag_chain_prefers_largest_when_a_superseded_tag_reports_a_subtotal(
     assert panel.loc[0, "revenue_usd_m"] == pytest.approx(total / MILLIONS_DIVISOR)
 
 
+def _gross_profit_from_cost_tags(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+    cost_tags: dict[str, float],
+) -> pd.Series:
+    quarter = date(2016, 6, 30)
+    millions_by_tag = {"Revenues": 7_164.0, **cost_tags}
+    in_usd = {
+        tag: millions * MILLIONS_DIVISOR for tag, millions in millions_by_tag.items()
+    }
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        if tag not in in_usd:
+            return []
+        return [
+            _duration_fact("2016-04-01", "2016-06-30", in_usd[tag], filed="2016-07-27")
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+    return panel["gross_profit_usd_m"]
+
+
+def test_cost_of_revenue_sums_products_and_services_without_a_total(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """SLB 2016-Q2 filed the two parts and no combined cost of revenue."""
+    gross_profit = _gross_profit_from_cost_tags(
+        sec_source,
+        monkeypatch,
+        {"CostOfGoodsSold": 2_133.0, "CostOfServices": 4_332.0},
+    )
+
+    assert gross_profit.iloc[0] == pytest.approx(7_164.0 - 2_133.0 - 4_332.0)
+
+
+def test_cost_of_revenue_keeps_a_filed_total_over_its_parts(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LMT's parts exceed its filed total, which carries unallocated adjustments."""
+    gross_profit = _gross_profit_from_cost_tags(
+        sec_source,
+        monkeypatch,
+        {
+            "CostOfGoodsAndServicesSold": 5_800.0,
+            "CostOfGoodsSold": 5_000.0,
+            "CostOfServices": 900.0,
+        },
+    )
+
+    assert gross_profit.iloc[0] == pytest.approx(7_164.0 - 5_800.0)
+
+
+def test_a_negative_cost_of_revenue_is_read_as_a_sign_error(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CAT's 2009 10-Q/A filed 2008-Q2 cost of goods sold as -10,036."""
+    gross_profit = _gross_profit_from_cost_tags(
+        sec_source, monkeypatch, {"CostOfGoodsSold": -2_133.0}
+    )
+
+    assert gross_profit.iloc[0] == pytest.approx(7_164.0 - 2_133.0)
+
+
+def test_a_sign_error_competes_for_largest_by_its_magnitude(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """BA 2009-Q4: CostOfRevenue -14,508 is the total; products alone are 12,207."""
+    gross_profit = _gross_profit_from_cost_tags(
+        sec_source,
+        monkeypatch,
+        {"CostOfRevenue": -6_465.0, "CostOfGoodsSold": 2_133.0},
+    )
+
+    assert gross_profit.iloc[0] == pytest.approx(7_164.0 - 6_465.0)
+
+
+def test_cost_of_revenue_is_products_alone_without_services(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    gross_profit = _gross_profit_from_cost_tags(
+        sec_source, monkeypatch, {"CostOfGoodsSold": 2_133.0}
+    )
+
+    assert gross_profit.iloc[0] == pytest.approx(7_164.0 - 2_133.0)
+
+
 def test_tag_chain_keeps_first_tag_when_concept_is_not_a_total(
     sec_source: SecEdgarSource,
     monkeypatch: pytest.MonkeyPatch,

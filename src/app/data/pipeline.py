@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -7,6 +8,7 @@ import pandas as pd
 from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.schema import (
+    COST_OF_REVENUE_COLUMNS,
     FINANCIAL_COLUMNS,
     METADATA_COLUMNS,
     PANEL_COLUMNS,
@@ -95,6 +97,14 @@ def merge_panel(
         end,
         sources,
     )
+    # After the fallback, or Alpha Vantage would refill what is blanked here.
+    metadata = sources.registry.company_metadata(ticker)
+    if not metadata.has_cost_of_revenue:
+        financials = financials.assign(
+            **dict.fromkeys(COST_OF_REVENUE_COLUMNS, math.nan)
+        )
+    if not metadata.has_reliable_opex:
+        financials = financials.assign(opex_usd_m=math.nan)
     market = sources.yfinance.fetch_market_panel(ticker, start, end)
     macro = sources.fetch_macro_panel(start, end)
     index_returns = sources.yfinance.fetch_index_return_panel(start, end)

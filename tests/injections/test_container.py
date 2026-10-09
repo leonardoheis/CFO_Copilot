@@ -79,4 +79,3 @@ def test_ingestion_defects_load_from_the_project_registry() -> None:
     defects = Container().ingestion_defects()
 
     assert isinstance(defects, IngestionDefects)
-    assert "COP" in defects.excluded_companies

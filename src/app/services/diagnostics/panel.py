@@ -6,13 +6,13 @@ import numpy.typing as npt
 import pandas as pd
 from sklearn.cluster import KMeans
 
+from app.services.diagnostics.correlation import yoy_changes
 from app.services.diagnostics.exceptions import TooFewCompaniesError
 from app.services.diagnostics.models import (
     CompanyMacroSensitivity,
     MacroCorrelation,
     RegimeSettings,
 )
-from app.services.features.transforms import yoy_log_growth
 
 _CLUSTERING_COLUMNS: Final = ["seasonal_strength", "trend_strength"]
 
@@ -84,7 +84,7 @@ class SeasonalityRegimeClusterer:
 
 
 class MacroCorrelator:
-    """Correlate each company's YoY growth with a fixed set of macro columns.
+    """Correlate each company's YoY change with a fixed set of macro columns.
 
     Usage::
 
@@ -98,12 +98,14 @@ class MacroCorrelator:
     def _sensitivity(
         self, ticker: str, panel: pd.DataFrame, variable: str
     ) -> CompanyMacroSensitivity:
-        """Correlate one company's YoY log growth with each macro column.
+        """Correlate one company's YoY change with each macro column.
 
         Returns:
             The company's sector and one correlation per macro column.
         """
-        growth = yoy_log_growth(panel[variable])
+        # Log change for revenue, change over trailing revenue for a variable
+        # that crosses zero (operating income, free cash flow): spec F3.
+        growth = yoy_changes(panel, [variable])[variable]
         return CompanyMacroSensitivity(
             ticker=ticker,
             sector=str(panel["sector"].iloc[0]),
@@ -119,7 +121,7 @@ class MacroCorrelator:
     def correlate(
         self, panels: Mapping[str, pd.DataFrame], *, variable: str
     ) -> pd.DataFrame:
-        """Correlate each company's YoY log growth with every macro column.
+        """Correlate each company's YoY change with every macro column.
 
         Returns:
             One row per ticker: a correlation per macro column plus ``sector``.

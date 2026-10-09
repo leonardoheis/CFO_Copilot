@@ -15,6 +15,7 @@ from app.data.pipeline import (
     resolve_date_range,
 )
 from app.data.schema import (
+    COST_OF_REVENUE_COLUMNS,
     FINANCIAL_COLUMNS,
     FRED_MACRO_COLUMNS,
     MARKET_COLUMNS,
@@ -247,6 +248,82 @@ def test_merge_panel_fills_only_missing_sec_values_from_fallback(
     assert panel.loc[0, "ebitda_usd_m"] == pytest.approx(EXPECTED_FALLBACK_EBITDA)
     assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
     assert panel.loc[1, "eps"] == pytest.approx(2.0)
+
+
+def fake_fallback_with_gross_profit(
+    ticker: str,
+    start: date,
+    end: date,
+) -> pd.DataFrame:
+    return fake_fallback_financials(ticker, start, end).assign(
+        gross_profit_usd_m=[880.0, 930.0],
+        gross_margin=[0.98, 0.98],
+        opex_usd_m=[800.0, 850.0],
+        operating_income_usd_m=[80.0, 80.0],
+    )
+
+
+def test_merge_panel_leaves_cost_of_revenue_columns_empty_when_declared(
+    company_registry: CompanyRegistry,
+) -> None:
+    """UNH files no cost of revenue; Alpha Vantage must not fill one in."""
+    panel = merge_panel(
+        ticker="UNH",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=IngestionSources(
+            fetch_macro_panel=fake_macro_panel,
+            yfinance=FakeMarketSource(),
+            fetch_sec_financials=fake_sec_financials,
+            registry=company_registry,
+            fetch_fallback_financials=fake_fallback_with_gross_profit,
+        ),
+    )
+
+    assert panel[list(COST_OF_REVENUE_COLUMNS)].isna().all().all()
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(EXPECTED_REVENUE)
+    assert panel["operating_income_usd_m"].tolist() == [80.0, 80.0]
+
+
+def test_merge_panel_leaves_only_opex_empty_when_opex_is_unreliable(
+    company_registry: CompanyRegistry,
+) -> None:
+    """GE's opex cannot be rebuilt from SEC; its gross profit can."""
+    panel = merge_panel(
+        ticker="GE",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=IngestionSources(
+            fetch_macro_panel=fake_macro_panel,
+            yfinance=FakeMarketSource(),
+            fetch_sec_financials=fake_sec_financials,
+            registry=company_registry,
+            fetch_fallback_financials=fake_fallback_with_gross_profit,
+        ),
+    )
+
+    assert panel["opex_usd_m"].isna().all()
+    assert panel["gross_profit_usd_m"].tolist() == [880.0, 930.0]
+
+
+def test_merge_panel_keeps_fallback_gross_profit_for_other_companies(
+    company_registry: CompanyRegistry,
+) -> None:
+    """The accepted risk: elsewhere Alpha Vantage still fills the gap."""
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=IngestionSources(
+            fetch_macro_panel=fake_macro_panel,
+            yfinance=FakeMarketSource(),
+            fetch_sec_financials=fake_sec_financials,
+            registry=company_registry,
+            fetch_fallback_financials=fake_fallback_with_gross_profit,
+        ),
+    )
+
+    assert panel["gross_profit_usd_m"].tolist() == [880.0, 930.0]
 
 
 def test_merge_panel_warns_when_gaps_remain_without_a_fallback(

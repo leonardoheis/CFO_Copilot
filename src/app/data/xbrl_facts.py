@@ -8,6 +8,7 @@ reported number for a period is the one to believe.
 import logging
 import operator
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import date
 from typing import Final, NotRequired, TypedDict
 
@@ -84,16 +85,24 @@ def _rejected_accessions(grouped: dict[tuple[date, date], list[XbrlFact]]) -> se
     }
 
 
+def _latest_filed(facts: list[XbrlFact]) -> XbrlFact:
+    return max(facts, key=operator.itemgetter("filed"))
+
+
+def _first_filed(facts: list[XbrlFact]) -> XbrlFact:
+    return min(facts, key=operator.itemgetter("filed"))
+
+
 def _select_fact_per_period(
-    grouped: dict[tuple[date, date], list[XbrlFact]],
-    rejected: set[str],
+    facts: list[XbrlFact],
+    pick_vintage: Callable[[list[XbrlFact]], XbrlFact],
 ) -> dict[tuple[date, date], QuarterlyFact]:
+    grouped = _group_facts_by_period(facts)
+    rejected = _rejected_accessions(grouped)
     selected: dict[tuple[date, date], QuarterlyFact] = {}
     for period, period_facts in grouped.items():
         candidates = [fact for fact in period_facts if fact.get("accn") not in rejected]
-        if not candidates:
-            candidates = period_facts
-        fact = max(candidates, key=operator.itemgetter("filed"))
+        fact = pick_vintage(candidates or period_facts)
         selected[period] = {
             "value": fact_value(fact),
             "filed": fact["filed"],
@@ -101,12 +110,21 @@ def _select_fact_per_period(
     return selected
 
 
-def deduplicate_fact_records(
+def latest_fact_per_period(
     facts: list[XbrlFact],
 ) -> dict[tuple[date, date], QuarterlyFact]:
-    grouped = _group_facts_by_period(facts)
-    rejected = _rejected_accessions(grouped)
-    return _select_fact_per_period(grouped, rejected)
+    return _select_fact_per_period(facts, _latest_filed)
+
+
+def first_reported_fact_per_period(
+    facts: list[XbrlFact],
+) -> dict[tuple[date, date], QuarterlyFact]:
+    """Pick each period's value as first filed, before any later restatement.
+
+    Returns:
+        One fact per ``(start, end)`` period.
+    """
+    return _select_fact_per_period(facts, _first_filed)
 
 
 def deduplicate_instant_facts(

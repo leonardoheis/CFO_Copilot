@@ -43,7 +43,12 @@ def merge_income(
         values.gross_profit_usd_m = millions(report, "grossProfit")
         values.opex_usd_m = millions(report, "operatingExpenses")
         values.operating_income_usd_m = millions(report, "operatingIncome")
-        values.ebitda_usd_m = millions(report, "ebitda")
+        # Not the vendor's "ebitda": it is built on its own "ebit", which is
+        # broken in some quarters (KMB 2006-Q2 = -11,044) and differs from the
+        # SEC rows' operating income + D&A.
+        values.ebitda_usd_m = ebitda_from_operating_income(
+            values, millions(report, "depreciationAndAmortization")
+        )
         values.net_income_usd_m = millions(report, "netIncome")
         diluted = number(report, "dilutedEPS")
         values.eps = diluted if diluted is not None else number(report, "basicEPS")
@@ -54,6 +59,10 @@ def merge_cash_flow(
     payload: JsonObject,
 ) -> None:
     for report, values in _quarterly_reports(values_by_date, payload):
+        if values.ebitda_usd_m is None:
+            values.ebitda_usd_m = ebitda_from_operating_income(
+                values, millions(report, "depreciationDepletionAndAmortization")
+            )
         operating_cash_flow = number(report, "operatingCashflow")
         capital_expenditures = number(report, "capitalExpenditures")
         if operating_cash_flow is not None and capital_expenditures is not None:
@@ -257,6 +266,19 @@ def millions(report: JsonObject, key: str) -> float | None:
     """
     value = number(report, key)
     return value / MILLIONS_DIVISOR if value is not None else None
+
+
+def ebitda_from_operating_income(
+    values: FinancialQuarterValues, depreciation_usd_m: float | None
+) -> float | None:
+    """EBITDA as the SEC rows define it: operating income + D&A.
+
+    Returns:
+        The sum, or ``None`` when either part is missing.
+    """
+    if values.operating_income_usd_m is None or depreciation_usd_m is None:
+        return None
+    return values.operating_income_usd_m + depreciation_usd_m
 
 
 def row_for_date(

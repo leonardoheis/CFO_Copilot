@@ -417,6 +417,8 @@ companies:
       company: UnitedHealth
       sector: Healthcare
       is_public: true
+      # An insurer: its only cost tag is pharmacy (gross margin ~0.98).
+      has_cost_of_revenue: false
     sec:
       type: known_cik
       cik: "0000731766"
@@ -538,6 +540,10 @@ companies:
       company: General Electric
       sector: Industrials
       is_public: true
+      # A conglomerate with a bank (GE Capital) and three spin-offs: its
+      # CostsAndExpenses include financing costs and it rarely files operating
+      # income, so opex/revenue swings from -1.25 to 3.06. Gross profit is kept.
+      has_reliable_opex: false
     sec:
       type: known_cik
       cik: "0000040545"
@@ -656,6 +662,8 @@ companies:
       company: Union Pacific
       sector: Industrials
       is_public: true
+      # A railroad: files no cost-of-revenue tag at all.
+      has_cost_of_revenue: false
     sec:
       type: sec_ticker_lookup
     market:

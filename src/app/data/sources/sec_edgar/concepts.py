@@ -19,7 +19,8 @@ class ConceptSpec(BaseModel):
 
     ``prefer_largest`` suits a total whose narrower tags report components of
     it; leave it off where a later tag may legitimately be larger, as basic EPS
-    is over diluted.
+    is over diluted. ``never_negative`` marks a cost that a filer can only get
+    wrong in sign (CAT 2008-Q2, BA 2009-Q4), so its magnitude is used.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -27,6 +28,7 @@ class ConceptSpec(BaseModel):
     tags: tuple[str, ...]
     unit: str = USD_UNIT
     prefer_largest: bool = False
+    never_negative: bool = False
 
     @field_validator("tags")
     @classmethod
@@ -65,7 +67,17 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "CostOfRevenue",
         ),
         prefer_largest=True,
+        never_negative=True,
     ),
+    # SLB, VZ and GE file products and services apart with no combined total;
+    # these three let parsing sum the parts only where no total exists.
+    "cogs_total": ConceptSpec(
+        tags=("CostOfGoodsAndServicesSold", "CostOfRevenue"),
+        prefer_largest=True,
+        never_negative=True,
+    ),
+    "cost_of_products": ConceptSpec(tags=("CostOfGoodsSold",), never_negative=True),
+    "cost_of_services": ConceptSpec(tags=("CostOfServices",), never_negative=True),
     "costs_and_expenses": ConceptSpec(tags=("CostsAndExpenses",)),
     "operating_income": ConceptSpec(tags=("OperatingIncomeLoss",)),
     "net_income": ConceptSpec(tags=("NetIncomeLoss",)),

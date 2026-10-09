@@ -83,6 +83,24 @@ def test_growth_that_tracks_a_macro_series_correlates_perfectly(
     assert set(MACRO_COLUMNS) <= set(table.columns)
 
 
+def test_a_variable_that_crosses_zero_keeps_its_negative_quarters(
+    make_panel: PanelFactory,
+) -> None:
+    """Operating income can be negative; log growth would drop those quarters."""
+    panel = make_panel(ticker="AAA", quarters=QUARTERS)
+    panel["operating_income_usd_m"] = 50 * np.sin(np.arange(QUARTERS) / 2)
+    scaled_change = panel["operating_income_usd_m"].diff(4) / (
+        panel["revenue_usd_m"].rolling(4).sum()
+    )
+    panel["vix"] = scaled_change
+
+    table = MacroCorrelator(macro_columns=("vix",)).correlate(
+        {"AAA": panel}, variable="operating_income_usd_m"
+    )
+
+    assert table.loc["AAA", "vix"] == pytest.approx(1.0)
+
+
 def test_only_the_injected_macro_columns_are_correlated(
     make_panel: PanelFactory,
 ) -> None:

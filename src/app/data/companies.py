@@ -15,6 +15,8 @@ class CompanyPanelMetadata:
     company: str
     sector: str
     is_public: bool
+    has_cost_of_revenue: bool = True
+    has_reliable_opex: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +59,8 @@ class _PanelConfig(BaseModel):
     company: str
     sector: str
     is_public: bool
+    has_cost_of_revenue: bool = True
+    has_reliable_opex: bool = True
 
 
 class _KnownCikConfig(BaseModel):
@@ -172,6 +176,8 @@ def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
         company=config.panel.company,
         sector=config.panel.sector,
         is_public=config.panel.is_public,
+        has_cost_of_revenue=config.panel.has_cost_of_revenue,
+        has_reliable_opex=config.panel.has_reliable_opex,
     )
     return ScrapedCompany(
         tickers=config.tickers,
@@ -260,6 +266,22 @@ class CompanyRegistry:
             The company name, sector, and public status.
         """
         return self.scraped_company(ticker).panel
+
+    def tickers_without_cost_of_revenue(self) -> frozenset[str]:
+        return frozenset(
+            ticker
+            for company in self.companies
+            if not company.panel.has_cost_of_revenue
+            for ticker in company.tickers
+        )
+
+    def tickers_without_reliable_opex(self) -> frozenset[str]:
+        return frozenset(
+            ticker
+            for company in self.companies
+            if not company.panel.has_reliable_opex
+            for ticker in company.tickers
+        )
 
     def market_history_tickers(self, ticker: str) -> tuple[str, ...]:
         """Return the Yahoo Finance symbols to try, current symbol first.

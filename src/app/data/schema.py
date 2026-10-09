@@ -49,6 +49,12 @@ FINANCIAL_COLUMNS: Final[tuple[str, ...]] = (
     "net_margin",
     "eps",
 )
+# Undefined for a company without cost of revenue (an insurer, a railroad).
+COST_OF_REVENUE_COLUMNS: Final[tuple[str, ...]] = (
+    "gross_profit_usd_m",
+    "gross_margin",
+    "opex_usd_m",
+)
 
 
 class FinancialQuarterValues(BaseModel):

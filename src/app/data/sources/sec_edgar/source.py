@@ -1,5 +1,6 @@
 """SEC EDGAR HTTP client: CIK resolution and us-gaap fact retrieval."""
 
+import logging
 import math
 from datetime import date
 from typing import Final, cast
@@ -19,6 +20,7 @@ from app.data.xbrl import (
     InstantXbrlFact,
     PeriodMeasure,
     XbrlFact,
+    annual_totals_by_end,
     instant_series_from_facts,
     quarterly_facts_from_facts,
 )
@@ -35,12 +37,15 @@ from .concepts import (
 from .parsing import (
     JsonObject,
     concept_facts,
+    cost_of_revenue,
     financial_panel_from_raw,
     implied_shares_from_earnings,
     merge_raw_financial_frames,
     split_factors_for_filing_dates,
     without_implausible_counts,
 )
+
+logger = logging.getLogger(__name__)
 
 SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
 # Not the per-concept endpoint: for some filers (ABT, F, KO) it answers 200 with
@@ -61,6 +66,25 @@ def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
         The series with zeros replaced by NaN.
     """
     return values.where(values != 0)
+
+
+def _with_sign_errors_corrected(
+    facts: list[XbrlFact], cik: str, tag: str
+) -> list[XbrlFact]:
+    """Read a negative filing of a never-negative cost as its magnitude.
+
+    Returns:
+        The facts, each negative value replaced by its absolute value.
+    """
+    negative = [fact for fact in facts if fact["val"] < 0]
+    if negative:
+        logger.warning(
+            "Reading %d negative %s facts for CIK %s as sign errors",
+            len(negative),
+            tag,
+            cik,
+        )
+    return [fact | {"val": abs(fact["val"])} for fact in facts]
 
 
 def _empty_chain_records(quarter_dates: list[date]) -> pd.DataFrame:
@@ -204,6 +228,12 @@ class SecEdgarSource:
             if name not in {"shares_outstanding", "revenue"}
         }
         series_by_name["revenue"] = revenue_records["value"]
+        series_by_name["cogs"] = cost_of_revenue(
+            series_by_name["cogs"],
+            series_by_name.pop("cogs_total"),
+            series_by_name.pop("cost_of_products"),
+            series_by_name.pop("cost_of_services"),
+        )
         shares = self._fetch_shares_chain(cik, quarter_dates, splits)
         if not shares.notna().all():
             # Some filers (e.g. Google's legacy CIK) report no share-count fact
@@ -267,10 +297,26 @@ class SecEdgarSource:
             each row taken from whichever tag supplied the winning value.
         """
         combined = _empty_chain_records(quarter_dates)
+        facts_by_tag = {
+            tag: self.fetch_concept(cik, tag, spec.unit) for tag in spec.tags
+        }
+        if spec.never_negative:
+            facts_by_tag = {
+                tag: _with_sign_errors_corrected(facts, cik, tag)
+                for tag, facts in facts_by_tag.items()
+            }
+        # A quarter equal to another tag's full year is that year (ORCL FY2020).
+        annual_totals = (
+            annual_totals_by_end(facts_by_tag.values())
+            if spec.unit == USD_UNIT
+            else None
+        )
         for tag in spec.tags:
-            facts = self.fetch_concept(cik, tag, spec.unit)
+            facts = facts_by_tag[tag]
             if facts:
-                records = quarterly_facts_from_facts(facts, quarter_dates)
+                records = quarterly_facts_from_facts(
+                    facts, quarter_dates, annual_totals=annual_totals
+                )
                 values = records["value"]
                 if spec.unit == PER_SHARE_UNIT:
                     values /= split_factors_for_filing_dates(

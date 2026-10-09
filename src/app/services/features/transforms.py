@@ -21,6 +21,7 @@ class TargetVariable(StrEnum):
     REVENUE = "revenue_usd_m"
     GROSS_PROFIT = "gross_profit_usd_m"
     OPEX = "opex_usd_m"
+    OPERATING_INCOME = "operating_income_usd_m"
     EBITDA = "ebitda_usd_m"
     FREE_CASH_FLOW = "free_cash_flow_usd_m"
 

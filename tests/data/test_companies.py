@@ -93,6 +93,29 @@ def test_resolve_company_metadata_for_googl(
     assert metadata.is_public is True
 
 
+def test_a_company_has_cost_of_revenue_unless_declared_otherwise(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.company_metadata("GOOGL").has_cost_of_revenue is True
+    assert company_registry.company_metadata("UNH").has_cost_of_revenue is False
+
+
+def test_registry_lists_the_companies_without_cost_of_revenue(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.tickers_without_cost_of_revenue() == frozenset({
+        "UNH",
+        "UNP",
+    })
+
+
+def test_registry_lists_the_companies_without_reliable_opex(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.tickers_without_reliable_opex() == frozenset({"GE"})
+    assert company_registry.company_metadata("GE").has_cost_of_revenue is True
+
+
 def test_resolve_scraped_company_for_alphabet_tickers_share_profile(
     company_registry: CompanyRegistry,
 ) -> None:

@@ -2,9 +2,13 @@
 # of year-over-year figures. Master plan §3.4. Add a company by editing this file.
 # GE: master says "2023-24"; these two quarters are proposed, please confirm.
 breaks:
+  # Phillips 66 spin-off closed 2012-Q2, but the restated 10-Qs move the basis
+  # change in the panel to 2011-Q2 (2011-Q1 = 56,530; 2011-Q2 = 17,668).
+  COP: [2011-06-30]
   ABT: [2013-03-31]
   BMY: [2019-12-31]
   PFE: [2020-12-31]
   MRK: [2021-06-30]
-  T: [2022-06-30]
+  # BellSouth merger closed 2006-12-29: revenue 15,891 (2006-Q4) -> 28,969 (2007-Q1).
+  T: [2007-03-31, 2022-06-30]
   GE: [2023-03-31, 2024-06-30]

@@ -1,5 +1,6 @@
 from datetime import date
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 import pytest
@@ -99,6 +100,58 @@ def test_fetch_financials_panel_maps_quarterly_values(
     assert panel.loc[0, "free_cash_flow_usd_m"] == pytest.approx(90.0)
     assert panel.loc[0, "eps"] == pytest.approx(0.25)
     assert panel.loc[0, "shares_outstanding"] == pytest.approx(1_000_000_000)
+
+
+def _ebitda(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    income_fields: dict[str, str],
+    cash_flow_fields: dict[str, str],
+) -> "pd.Series[float]":
+    payloads = _payloads()
+    income = cast(
+        "list[dict[str, str]]", payloads["INCOME_STATEMENT"]["quarterlyReports"]
+    )
+    cash_flow = cast("list[dict[str, str]]", payloads["CASH_FLOW"]["quarterlyReports"])
+    income[0] |= income_fields
+    cash_flow[0] |= cash_flow_fields
+    panel = _source(tmp_path, monkeypatch, payloads).fetch_financials_panel(
+        "KMB", date(2006, 1, 1), date(2006, 3, 31)
+    )
+    return panel["ebitda_usd_m"]
+
+
+def test_ebitda_is_operating_income_plus_d_and_a_not_the_vendor_figure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """KMB 2006-Q2: the vendor's ebitda sits on a broken ebit of -11,044."""
+    kmb = {
+        "operatingIncome": "544100000",
+        "ebit": "-11044300000",
+        "ebitda": "-10805700000",
+        "depreciationAndAmortization": "238600000",
+    }
+
+    assert _ebitda(tmp_path, monkeypatch, kmb, {}).tolist() == pytest.approx([782.7])
+
+
+def test_cash_flow_d_and_a_fills_a_missing_income_statement_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    abt = {"operatingIncome": "1782000000", "ebitda": "1782000000"}
+    cash_flow = {"depreciationDepletionAndAmortization": "1013000000"}
+
+    assert _ebitda(tmp_path, monkeypatch, abt, cash_flow).tolist() == pytest.approx([
+        2795.0
+    ])
+
+
+def test_without_any_d_and_a_ebitda_is_missing_not_operating_income(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ford = {"operatingIncome": "2267000000", "ebitda": "2267000000"}
+
+    assert _ebitda(tmp_path, monkeypatch, ford, {}).isna().all()
 
 
 def test_fetch_payload_returns_the_raw_json_and_caches_it(

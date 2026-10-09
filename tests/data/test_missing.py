@@ -4,7 +4,7 @@ import pytest
 
 from app.data.consolidation import consolidate_panels
 from app.data.missing import missing_value_ledger
-from app.data.schema import FINANCIAL_COLUMNS
+from app.data.schema import COST_OF_REVENUE_COLUMNS, FINANCIAL_COLUMNS
 from tests.conftest import PanelFactory
 
 
@@ -47,6 +47,38 @@ def test_a_row_without_revenue_is_no_filing_data(panel_long: pd.DataFrame) -> No
     panel_long.loc[5, [*FINANCIAL_COLUMNS, "market_cap_usd_m"]] = np.nan
 
     assert set(missing_value_ledger(panel_long)["reason"]) == {"no_filing_data"}
+
+
+def test_gross_profit_gaps_of_a_company_without_cost_of_revenue_are_explained(
+    panel_long: pd.DataFrame,
+) -> None:
+    panel_long[list(COST_OF_REVENUE_COLUMNS)] = np.nan
+
+    ledger = missing_value_ledger(panel_long, no_cost_of_revenue=frozenset({"AAA"}))
+
+    assert set(ledger["reason"]) == {"no_cost_of_revenue"}
+    assert set(ledger["column"]) == set(COST_OF_REVENUE_COLUMNS)
+
+
+def test_gross_profit_gaps_of_any_other_company_stay_unexplained(
+    panel_long: pd.DataFrame,
+) -> None:
+    panel_long.loc[3, "gross_profit_usd_m"] = np.nan
+
+    ledger = missing_value_ledger(panel_long, no_cost_of_revenue=frozenset({"BBB"}))
+
+    assert ledger["reason"].tolist() == ["unexplained"]
+
+
+def test_opex_gaps_of_a_company_without_reliable_opex_are_explained(
+    panel_long: pd.DataFrame,
+) -> None:
+    panel_long["opex_usd_m"] = np.nan
+
+    ledger = missing_value_ledger(panel_long, unreliable_opex=frozenset({"AAA"}))
+
+    assert set(ledger["reason"]) == {"unreliable_opex"}
+    assert set(ledger["column"]) == {"opex_usd_m"}
 
 
 def test_an_eps_gap_with_price_and_revenue_is_unexplained(

@@ -63,11 +63,11 @@ def test_registry_loads_from_yaml(tmp_path: Path) -> None:
     )
 
 
-def test_the_project_registry_excludes_cop_and_blocks_opex() -> None:
+def test_every_project_registry_entry_names_an_existing_spec() -> None:
     defects = load_ingestion_defects(Settings.INGESTION_DEFECTS_PATH)
+    specs = {*defects.excluded_companies.values(), *defects.blocked_targets.values()}
 
-    assert "COP" in defects.excluded_companies
-    assert "opex_usd_m" in defects.blocked_targets
+    assert all((Settings.ROOT_PATH / spec).is_file() for spec in specs)
 
 
 def test_an_empty_registry_file_blocks_nothing(tmp_path: Path) -> None:

@@ -1,6 +1,8 @@
 import logging
 import math
 import operator
+from collections import defaultdict
+from collections.abc import Iterable, Mapping
 from datetime import date
 from enum import StrEnum
 from typing import Final, TypedDict
@@ -12,9 +14,11 @@ from app.data.xbrl_facts import (
     InstantXbrlFact,
     QuarterlyFact,
     XbrlFact,
-    deduplicate_fact_records,
     deduplicate_instant_facts,
+    fact_period,
     fact_value,
+    first_reported_fact_per_period,
+    latest_fact_per_period,
 )
 
 __all__ = [
@@ -24,6 +28,7 @@ __all__ = [
     "PeriodMeasure",
     "QuarterlyFact",
     "XbrlFact",
+    "annual_totals_by_end",
     "instant_series_from_facts",
     "quarterly_facts_from_facts",
 ]
@@ -33,6 +38,9 @@ MAX_QUARTER_DAYS: Final = 100
 MIN_YEAR_TO_DATE_DAYS: Final = 160
 NATIVE_QUARTERS_BEFORE_YEAR_END: Final = 3
 MAX_INSTANT_STALENESS_DAYS: Final = 100
+SAME_BASIS_TOLERANCE: Final = 0.01
+MIN_ANNUAL_DAYS: Final = 300
+ANNUAL_TOTAL_TOLERANCE: Final = 0.001
 logger = logging.getLogger(__name__)
 
 
@@ -71,38 +79,133 @@ class DerivedQuarter(TypedDict):
     provenance: FactProvenance
 
 
+def annual_totals_by_end(
+    fact_lists: Iterable[list[XbrlFact]],
+) -> dict[date, tuple[float, ...]]:
+    """Collect every year-long value by its end date, across a concept's tags.
+
+    Returns:
+        End date to the annual values any of the tags filed for it.
+    """
+    totals: defaultdict[date, set[float]] = defaultdict(set)
+    for facts in fact_lists:
+        for fact in facts:
+            if "start" not in fact:
+                continue
+            start, end = fact_period(fact)
+            if (end - start).days >= MIN_ANNUAL_DAYS:
+                totals[end].add(fact_value(fact))
+    return {end: tuple(values) for end, values in totals.items()}
+
+
 def quarterly_facts_from_facts(
     facts: list[XbrlFact],
     quarter_dates: list[date],
     measure: PeriodMeasure = PeriodMeasure.FLOW,
+    annual_totals: Mapping[date, tuple[float, ...]] | None = None,
 ) -> pd.DataFrame:
     """Convert duration facts to values and their filing dates.
+
+    ``annual_totals`` adds the years other tags of the same concept filed, so a
+    quarter carrying another tag's annual value is caught too (ORCL FY2020).
 
     Returns:
         A dataframe with ``value`` and ``filed`` columns.
     """
-    values_by_period = deduplicate_fact_records(facts)
+    latest_by_period = latest_fact_per_period(facts)
+    first_reported_by_period = first_reported_fact_per_period(facts)
+    known_years = annual_totals_by_end([facts])
+    for end, values in (annual_totals or {}).items():
+        known_years[end] = known_years.get(end, ()) + values
     records: list[DerivedQuarter] = []
 
     for quarter_date in quarter_dates:
-        native = _find_native_fact(values_by_period, quarter_date)
-        if native is not None:
+        native = _find_native_fact(latest_by_period, quarter_date)
+        if native is not None and not (
+            measure is PeriodMeasure.FLOW and _is_annual_total(known_years, native)
+        ):
             records.append(native)
             continue
 
-        derived = _find_ytd_fact(values_by_period, quarter_date, measure)
-        if derived is not None:
-            records.append(derived)
-            continue
-
-        fiscal_quarter = _find_annual_minus_three_quarters(
-            values_by_period,
-            quarter_date,
-            measure,
+        previous_value = records[-1]["value"] if records else math.nan
+        records.append(
+            _same_basis_quarter(
+                _derive_quarter(first_reported_by_period, quarter_date, measure),
+                _derive_quarter(latest_by_period, quarter_date, measure),
+                previous_value,
+                quarter_date,
+            )
         )
-        records.append(fiscal_quarter if fiscal_quarter is not None else _absent())
 
     return pd.DataFrame(records, index=quarter_dates)
+
+
+def _is_annual_total(
+    known_years: Mapping[date, tuple[float, ...]],
+    native: DerivedQuarter,
+) -> bool:
+    """Spot a full year's flow filed under a quarter's dates (ORCL FY2018-22 Q4).
+
+    Returns:
+        Whether a year-long value ending on the same day equals the quarter's.
+    """
+    if native["period_end"] is None:
+        return False
+    return any(
+        _agree(annual, native["value"], ANNUAL_TOTAL_TOLERANCE)
+        for annual in known_years.get(native["period_end"], ())
+    )
+
+
+def _derive_quarter(
+    values_by_period: dict[tuple[date, date], QuarterlyFact],
+    quarter_date: date,
+    measure: PeriodMeasure,
+) -> DerivedQuarter | None:
+    return _find_ytd_fact(
+        values_by_period, quarter_date, measure
+    ) or _find_annual_minus_three_quarters(values_by_period, quarter_date, measure)
+
+
+def _same_basis_quarter(
+    first_reported: DerivedQuarter | None,
+    latest: DerivedQuarter | None,
+    previous_value: float,
+    quarter_date: date,
+) -> DerivedQuarter:
+    """Pick the subtraction whose two sides share a reporting basis.
+
+    A restatement between the nine-month filing and the 10-K puts one pairing
+    on two bases: first-reported values break when it lands after Q3 (PFE
+    2020-Q4), latest values when the year is restated later (PFE 2018-Q4, COP
+    2010-Q4). When they disagree, the one nearer the previous quarter wins.
+
+    Returns:
+        The chosen quarter, or a missing one when nothing can arbitrate.
+    """
+    if first_reported is None or latest is None:
+        return first_reported or latest or _absent()
+    if _agree(first_reported["value"], latest["value"]):
+        return first_reported
+    if math.isnan(previous_value):
+        logger.warning(
+            "Restated year leaves %s ambiguous (%s vs %s) and no previous quarter",
+            quarter_date,
+            first_reported["value"],
+            latest["value"],
+        )
+        return _absent()
+    # ponytail: nearest-previous-quarter heuristic; it misses a seasonal peak
+    # (GOOGL 2012-Q4) and lumpy flows. A seasonal variant was measured and was
+    # worse overall (spec D7). Both candidates are filed figures, never invented.
+    return min(
+        (first_reported, latest),
+        key=lambda candidate: abs(candidate["value"] - previous_value),
+    )
+
+
+def _agree(left: float, right: float, tolerance: float = SAME_BASIS_TOLERANCE) -> bool:
+    return abs(left - right) <= tolerance * max(abs(left), abs(right), 1.0)
 
 
 def _absent() -> DerivedQuarter:

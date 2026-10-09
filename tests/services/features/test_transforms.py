@@ -131,13 +131,14 @@ def test_yoy_growth_is_the_four_quarter_log_difference(
     assert growth.iloc[SEASONAL_LAG] == pytest.approx(first_year_over_year)
 
 
-def test_the_five_target_variables_are_panel_financial_columns() -> None:
+def test_the_six_target_variables_are_panel_financial_columns() -> None:
     values = {variable.value for variable in TargetVariable}
 
     assert values == {
         "revenue_usd_m",
         "gross_profit_usd_m",
         "opex_usd_m",
+        "operating_income_usd_m",
         "ebitda_usd_m",
         "free_cash_flow_usd_m",
     }
@@ -214,6 +215,13 @@ def test_revenue_keeps_the_log_arms_and_the_rest_the_scaled_arm() -> None:
     for variable in TargetVariable:
         if variable is not TargetVariable.REVENUE:
             assert arms_for(variable) == (TargetArm.REVENUE_SCALED_YOY,)
+
+
+def test_operating_income_is_a_selectable_target() -> None:
+    """Master plan §3.3 forecasts operating income; it can cross zero."""
+    variable = TargetVariable("operating_income_usd_m")
+
+    assert default_arm(variable) is TargetArm.REVENUE_SCALED_YOY
 
 
 def test_each_variables_default_arm_is_one_of_its_own() -> None:

@@ -117,6 +117,21 @@ def split_factors_for_filing_dates(
     return factors
 
 
+def cost_of_revenue(
+    cogs: pd.Series,
+    total: pd.Series,
+    products: pd.Series,
+    services: pd.Series,
+) -> pd.Series:
+    """Sum products and services where no combined total was filed.
+
+    Returns:
+        ``cogs`` with the sum of the parts wherever it applies.
+    """
+    parts = products + services
+    return cogs.where(total.notna() | parts.isna(), parts)
+
+
 def financial_panel_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
     """Convert raw us-gaap concept series into the financial panel columns.
 

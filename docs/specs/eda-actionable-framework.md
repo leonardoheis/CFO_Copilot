@@ -75,10 +75,13 @@ Every plot is preceded by the question it answers and followed by the answer,
 in markdown (article Step 8 best practice). Plots use seaborn, styled as the
 article's figures.
 
-**F2. One target variable per run.** A single parameter at the top of NB01
-selects the forecast target from: revenue, gross profit, opex, EBITDA, free
-cash flow. Sections 0–1 and 3–5 cover the whole panel whatever the choice;
-sections 2 and 6–9 and report (c) of F4 cover the selected variable.
+**F2. Every forecast target in one run** (changed 2026-10-08; was one target
+per run). `TARGET_VARIABLES` at the top of NB01 lists the master plan's four
+targets (§ 3.3): revenue, operating income, EBITDA, free cash flow. Sections
+0–1 and 3–5 cover the whole panel once; sections 2 and 6–9 and report (c) of
+F4 run once per target, each with its own W&B runs, feature files and decision
+table. Gross profit and opex stay selectable `TargetVariable` members but are
+not in the list. Operating income was added to `TargetVariable` for this.
 
 The decision table comes last because its feature-group rule (F14) needs the
 feature audit (F13); the confirmed order had them the other way round, which
