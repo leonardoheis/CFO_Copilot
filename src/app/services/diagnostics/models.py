@@ -65,6 +65,8 @@ class DiagnosticsSettings(BaseModel):
     max_differencing_order: int = Field(default=2, ge=0)
     # Longest interior gap filled for diagnosis only; 0 fills nothing.
     max_interpolated_gap: int = Field(default=1, ge=0)
+    # Window over which a transform's change size is compared with its level.
+    variance_window: int = Field(default=8, ge=3)
 
     @model_validator(mode="after")
     def _floor_covers_two_seasonal_cycles(self) -> Self:

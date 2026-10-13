@@ -32,6 +32,15 @@ from .segments import (
 )
 from .series import SeriesDiagnostician, observed_since_last_gap
 from .service import DiagnosticsService
+from .transform_comparison import (
+    LevelTransform,
+    TransformComparer,
+    baseline_transform,
+    box_cox,
+    candidates_for,
+    preferred_transform,
+    summarize_transforms,
+)
 
 __all__ = [
     "AuditSettings",
@@ -52,6 +61,7 @@ __all__ = [
     "FeatureAuditor",
     "FeatureScore",
     "FigureSettings",
+    "LevelTransform",
     "MacroCorrelation",
     "MacroCorrelator",
     "OutlierRegister",
@@ -65,11 +75,17 @@ __all__ = [
     "SeriesDiagnostician",
     "SeriesDiagnostics",
     "TooFewCompaniesError",
+    "TransformComparer",
+    "baseline_transform",
+    "box_cox",
+    "candidates_for",
     "median_timeline",
     "observed_since_last_gap",
     "pooled_yoy_changes",
+    "preferred_transform",
     "profile_frame",
     "seasonal_profile",
     "segment_frame",
+    "summarize_transforms",
     "yoy_changes",
 ]

@@ -37,6 +37,7 @@ from app.services.diagnostics import (
     SegmentProfiler,
     SegmentSettings,
     SeriesDiagnostician,
+    TransformComparer,
 )
 from app.services.features import (
     FeatureBuilder,
@@ -129,6 +130,9 @@ class Container(containers.DeclarativeContainer):
         outlier_register=providers.Factory(OutlierRegister, settings=OutlierSettings()),
     )
     segment_profiler = providers.Factory(SegmentProfiler, settings=SegmentSettings())
+    transform_comparer = providers.Factory(
+        TransformComparer, settings=DiagnosticsSettings()
+    )
     decision_table_builder = providers.Factory(
         DecisionTableBuilder, settings=DecisionSettings()
     )

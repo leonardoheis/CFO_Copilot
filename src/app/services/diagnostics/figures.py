@@ -303,3 +303,28 @@ class EdaFigures:
             )
             figure.tight_layout()
         return figure
+
+    def transform_comparison(self, table: pd.DataFrame) -> Figure:
+        transforms = list(dict.fromkeys(table["transform"]))
+        criteria = {
+            "level_dependence": "Level dependence (|Spearman|; lower is better)",
+            "jarque_bera": "Jarque-Bera of the STL remainder (lower is better)",
+        }
+        with self._styled():
+            figure, panels = plt.subplots(1, len(criteria), figsize=(12, 4))
+            for axes, (column, title) in zip(panels, criteria.items(), strict=True):
+                # matplotlib directly: seaborn 0.13 passes a deprecated ``vert``.
+                axes.boxplot(
+                    [
+                        table.loc[table["transform"] == name, column]
+                        for name in transforms
+                    ],
+                    orientation="horizontal",
+                    tick_labels=transforms,
+                    patch_artist=True,
+                    boxprops={"facecolor": "lightsteelblue"},
+                )
+                axes.set(title=title, xlabel=column)
+            panels[1].set_xscale("log")
+            figure.tight_layout()
+        return figure

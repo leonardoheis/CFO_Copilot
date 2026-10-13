@@ -196,3 +196,18 @@ def test_feature_ranking_draws_one_bar_per_scored_feature(figures: EdaFigures) -
         "growth_yoy_lag1",
         "vix",
     ]
+
+
+def test_transform_comparison_draws_both_criteria(figures: EdaFigures) -> None:
+    table = pd.DataFrame({
+        "transform": ["none", "log", "none", "log"],
+        "level_dependence": [0.8, 0.2, 0.7, 0.1],
+        "jarque_bera": [40.0, 5.0, 30.0, 4.0],
+    })
+
+    figure = figures.transform_comparison(table)
+
+    assert _titles(figure) == [
+        "Level dependence (|Spearman|; lower is better)",
+        "Jarque-Bera of the STL remainder (lower is better)",
+    ]

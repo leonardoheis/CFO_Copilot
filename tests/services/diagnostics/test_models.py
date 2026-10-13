@@ -22,6 +22,7 @@ def test_defaults_are_todays_values() -> None:
         "ljung_box_lag": 8,
         "max_differencing_order": 2,
         "max_interpolated_gap": 1,
+        "variance_window": 8,
     }
     assert RegimeSettings().model_dump() == {
         "n_regimes": 3,

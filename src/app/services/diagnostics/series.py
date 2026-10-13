@@ -111,6 +111,17 @@ def observed_since_last_gap(series: pd.Series) -> pd.Series:
     return series.iloc[start:]
 
 
+def stl_remainder(series: pd.Series, period: int) -> _FloatArray:
+    """Fit a robust STL and keep what trend and season leave unexplained.
+
+    Returns:
+        The remainder, one value per observation.
+    """
+    return (
+        _stl(series.to_numpy(dtype=np.float64), period=period, robust=True).fit().resid
+    )
+
+
 def _is_constant(series: pd.Series) -> bool:
     values = series.to_numpy()
     return bool((values == values[0]).all())

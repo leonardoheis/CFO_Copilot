@@ -90,6 +90,10 @@ could not work.
 **F3. Each variable has one target transform, chosen by its data:**
 
 - **revenue** keeps the three log arms of R5 (it has no non-positive value);
+  the master plan's transform comparison (O1, NB01b, 2026-10-13) keeps log,
+  and keeps the revenue-scaled change below: no alternative beats either on
+  both variance stability and residual normality in more than half of the
+  companies ([`transform-comparison.md`](transform-comparison.md));
 - **gross profit, opex, EBITDA, free cash flow** use the **revenue-scaled
   year-over-year change**: the change against the same quarter a year earlier,
   divided by the company's trailing four-quarter revenue at the origin. It is
