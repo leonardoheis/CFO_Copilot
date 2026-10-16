@@ -211,3 +211,22 @@ def test_transform_comparison_draws_both_criteria(figures: EdaFigures) -> None:
         "Level dependence (|Spearman|; lower is better)",
         "Jarque-Bera of the STL remainder (lower is better)",
     ]
+
+
+def test_a_title_added_by_the_caller_clears_the_panel_titles(
+    figures: EdaFigures,
+) -> None:
+    table = pd.DataFrame({
+        "transform": ["none", "log"],
+        "level_dependence": [0.8, 0.2],
+        "jarque_bera": [40.0, 5.0],
+    })
+    figure = figures.transform_comparison(table)
+
+    title = figure.suptitle("revenue_usd_m", x=0.01, ha="left")
+    figure.canvas.draw()
+
+    title_bottom = title.get_window_extent().y0
+    assert all(
+        title_bottom >= axes.title.get_window_extent().y1 for axes in figure.axes
+    )

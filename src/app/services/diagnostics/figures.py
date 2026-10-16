@@ -54,7 +54,7 @@ class EdaFigures:
                 xlabel="entries",
                 ylabel="",
             )
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def top_series_scores(
@@ -101,7 +101,7 @@ class EdaFigures:
                 score_axes.set_ylim(bottom=0)
                 score_axes.set_title(f"{ticker} {column}: distance from normal")
             grid[0, 1].legend(fontsize=7, loc="upper right")
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def target_distribution(self, target_frame: pd.DataFrame, *, title: str) -> Figure:
@@ -162,7 +162,7 @@ class EdaFigures:
                     widths=0.6,
                 )
             panels[0, 0].set_title("Spread and outliers of each column's change")
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def categories(self, company_sectors: pd.Series, regimes: pd.Series) -> Figure:
@@ -181,7 +181,7 @@ class EdaFigures:
                 xlabel="regime",
                 ylabel="companies",
             )
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def _heatmap(self, table: pd.DataFrame, *, title: str, size: float) -> Figure:
@@ -200,7 +200,7 @@ class EdaFigures:
                 ax=axes,
             )
             axes.set_title(title)
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def correlation_heatmap(self, matrix: pd.DataFrame) -> Figure:
@@ -222,7 +222,7 @@ class EdaFigures:
                 xlabel="seasonal strength",
                 ylabel="companies",
             )
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def segment_boxplots(self, frame: pd.DataFrame, segments: list[str]) -> Figure:
@@ -243,7 +243,7 @@ class EdaFigures:
                     boxprops={"facecolor": "lightsteelblue"},
                 )
                 axes.set(title=f"Target by {segment}", xlabel="target")
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def seasonal_profile(self, profile: pd.DataFrame) -> Figure:
@@ -263,7 +263,7 @@ class EdaFigures:
                 ylabel="mean target",
                 xticks=[1, 2, 3, 4],
             )
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def median_timeline(self, timeline: pd.DataFrame) -> Figure:
@@ -281,7 +281,7 @@ class EdaFigures:
                 title="Panel-median target (covid shaded, breaks marked)",
                 ylabel="median target",
             )
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def feature_ranking(self, features: pd.DataFrame) -> Figure:
@@ -301,7 +301,7 @@ class EdaFigures:
                 xlabel="mutual information (nats)",
                 ylabel="",
             )
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
 
     def transform_comparison(self, table: pd.DataFrame) -> Figure:
@@ -326,5 +326,5 @@ class EdaFigures:
                 )
                 axes.set(title=title, xlabel=column)
             panels[1].set_xscale("log")
-            figure.tight_layout()
+            figure.set_layout_engine("tight")
         return figure
