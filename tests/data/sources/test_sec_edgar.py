@@ -341,6 +341,96 @@ def test_cost_of_revenue_is_products_alone_without_services(
     assert gross_profit.iloc[0] == pytest.approx(7_164.0 - 2_133.0)
 
 
+OPERATING_INCOME_M = 1_842.0
+
+
+def _depreciation_and_amortization_from_tags(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+    dep_amort_tags: dict[str, float],
+) -> float:
+    quarter = date(2026, 3, 31)
+    millions_by_tag = {
+        "Revenues": 11_164.0,
+        "OperatingIncomeLoss": OPERATING_INCOME_M,
+        **dep_amort_tags,
+    }
+    in_usd = {
+        tag: millions * MILLIONS_DIVISOR for tag, millions in millions_by_tag.items()
+    }
+
+    def fake_fetch_concept(
+        _cik: str,
+        tag: str,
+        _unit: str = "USD",
+    ) -> list[XbrlFact]:
+        if tag not in in_usd:
+            return []
+        return [
+            _duration_fact("2026-01-01", "2026-03-31", in_usd[tag], filed="2026-04-30")
+        ]
+
+    monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
+    panel = sec_source.fetch_financials_panel("AMZN", quarter, quarter)
+    return float(panel["ebitda_usd_m"].iloc[0]) - OPERATING_INCOME_M
+
+
+def test_d_and_a_sums_depreciation_and_amortization_without_a_total(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """ABT files depreciation and intangible amortization apart, with no total."""
+    dep_amort = _depreciation_and_amortization_from_tags(
+        sec_source,
+        monkeypatch,
+        {"Depreciation": 370.0, "AmortizationOfIntangibleAssets": 360.0},
+    )
+
+    assert dep_amort == pytest.approx(370.0 + 360.0)
+
+
+def test_d_and_a_keeps_a_filed_total_over_its_parts(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dep_amort = _depreciation_and_amortization_from_tags(
+        sec_source,
+        monkeypatch,
+        {
+            "DepreciationDepletionAndAmortization": 800.0,
+            "Depreciation": 370.0,
+            "AmortizationOfIntangibleAssets": 360.0,
+        },
+    )
+
+    assert dep_amort == pytest.approx(800.0)
+
+
+def test_a_negative_amortization_leaves_depreciation_alone(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """BMY 2009 filed intangible amortization as -170, which is not an expense."""
+    dep_amort = _depreciation_and_amortization_from_tags(
+        sec_source,
+        monkeypatch,
+        {"Depreciation": 469.0, "AmortizationOfIntangibleAssets": -170.0},
+    )
+
+    assert dep_amort == pytest.approx(469.0)
+
+
+def test_d_and_a_is_depreciation_alone_without_amortization(
+    sec_source: SecEdgarSource,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dep_amort = _depreciation_and_amortization_from_tags(
+        sec_source, monkeypatch, {"Depreciation": 370.0}
+    )
+
+    assert dep_amort == pytest.approx(370.0)
+
+
 def test_tag_chain_keeps_first_tag_when_concept_is_not_a_total(
     sec_source: SecEdgarSource,
     monkeypatch: pytest.MonkeyPatch,

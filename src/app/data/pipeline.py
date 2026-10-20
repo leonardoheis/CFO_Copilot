@@ -105,6 +105,10 @@ def merge_panel(
         )
     if not metadata.has_reliable_opex:
         financials = financials.assign(opex_usd_m=math.nan)
+    withheld = pd.to_datetime(financials["date"]).dt.date.isin(
+        metadata.withheld_quarters
+    )
+    financials.loc[withheld, list(FINANCIAL_COLUMNS)] = math.nan
     market = sources.yfinance.fetch_market_panel(ticker, start, end)
     macro = sources.fetch_macro_panel(start, end)
     index_returns = sources.yfinance.fetch_index_return_panel(start, end)

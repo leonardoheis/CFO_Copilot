@@ -146,6 +146,21 @@ def test_cash_flow_d_and_a_fills_a_missing_income_statement_one(
     ])
 
 
+def test_a_negative_income_statement_d_and_a_falls_back_to_cash_flow(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """IBM 2026-Q2: the income statement's D&A is -1,274, the cash flow's 1,349."""
+    ibm = {
+        "operatingIncome": "2615000000",
+        "depreciationAndAmortization": "-1274000000",
+    }
+    cash_flow = {"depreciationDepletionAndAmortization": "1349000000"}
+
+    assert _ebitda(tmp_path, monkeypatch, ibm, cash_flow).tolist() == pytest.approx([
+        3964.0
+    ])
+
+
 def test_without_any_d_and_a_ebitda_is_missing_not_operating_income(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

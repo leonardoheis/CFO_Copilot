@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from datetime import date
 from typing import Final
 
 import pandas as pd
@@ -26,11 +28,13 @@ def _reasons(
     company: pd.DataFrame,
     first_price_date: pd.Timestamp,
     declared_reason: str | None,
+    withheld_rows: pd.Series,
 ) -> pd.Series:
     eps = company["eps"]
     every_row = pd.Series(data=True, index=company.index)
     rules = (
         (str(declared_reason), declared_reason is not None, every_row),
+        ("withheld_quarter", column in FINANCIAL_COLUMNS, withheld_rows),
         ("pe_undefined_by_rule", column == "pe_ratio", eps.isna() | (eps <= 0)),
         (
             "pre_listing",
@@ -46,14 +50,21 @@ def _reasons(
 
 
 def _company_ledger(
-    company: pd.DataFrame, declared_reasons: dict[str, str]
+    company: pd.DataFrame,
+    declared_reasons: dict[str, str],
+    withheld: frozenset[date],
 ) -> pd.DataFrame:
     first_price_date = company.loc[company["stock_price_usd"].notna(), "date"].min()
+    withheld_rows = pd.to_datetime(company["date"]).dt.date.isin(withheld)
     frames = []
     for column in CHECKED_COLUMNS:
         missing = company[column].isna()
         reasons = _reasons(
-            column, company, first_price_date, declared_reasons.get(column)
+            column,
+            company,
+            first_price_date,
+            declared_reasons.get(column),
+            withheld_rows,
         )
         frames.append(
             company.loc[missing, ["ticker", "date"]].assign(
@@ -83,6 +94,7 @@ def missing_value_ledger(
     panel_long: pd.DataFrame,
     no_cost_of_revenue: frozenset[str] = frozenset(),
     unreliable_opex: frozenset[str] = frozenset(),
+    withheld_quarters: Mapping[str, frozenset[date]] | None = None,
 ) -> pd.DataFrame:
     """List every NaN cell with the reason it is missing.
 
@@ -98,6 +110,7 @@ def missing_value_ledger(
             _company_ledger(
                 company,
                 _declared_reasons(str(ticker), no_cost_of_revenue, unreliable_opex),
+                (withheld_quarters or {}).get(str(ticker), frozenset()),
             )
             for ticker, company in panel_long.groupby("ticker", sort=True)
         ],

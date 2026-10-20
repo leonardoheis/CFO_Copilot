@@ -1,11 +1,14 @@
 from collections import Counter
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Literal, assert_never
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.data.dates import quarter_end_dates
 
 CIK_LENGTH = 10
 
@@ -17,6 +20,8 @@ class CompanyPanelMetadata:
     is_public: bool
     has_cost_of_revenue: bool = True
     has_reliable_opex: bool = True
+    # Quarter end -> why its financials are withheld (two reporting bases mixed).
+    withheld_quarters: Mapping[date, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +66,24 @@ class _PanelConfig(BaseModel):
     is_public: bool
     has_cost_of_revenue: bool = True
     has_reliable_opex: bool = True
+    withheld_quarters: dict[date, str] = {}
+
+    @field_validator("withheld_quarters")
+    @classmethod
+    def require_quarter_ends(cls, withheld: dict[date, str]) -> dict[date, str]:
+        """Reject a withheld date the panel has no row for.
+
+        Returns:
+            The validated mapping.
+
+        Raises:
+            ValueError: If a date is not a calendar quarter end.
+        """
+        for day in withheld:
+            if quarter_end_dates(day, day) != [day]:
+                msg = f"withheld quarter {day} is not a quarter end"
+                raise ValueError(msg)
+        return withheld
 
 
 class _KnownCikConfig(BaseModel):
@@ -178,6 +201,7 @@ def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
         is_public=config.panel.is_public,
         has_cost_of_revenue=config.panel.has_cost_of_revenue,
         has_reliable_opex=config.panel.has_reliable_opex,
+        withheld_quarters=config.panel.withheld_quarters,
     )
     return ScrapedCompany(
         tickers=config.tickers,
@@ -282,6 +306,14 @@ class CompanyRegistry:
             if not company.panel.has_reliable_opex
             for ticker in company.tickers
         )
+
+    def withheld_quarters(self) -> dict[str, frozenset[date]]:
+        return {
+            ticker: frozenset(company.panel.withheld_quarters)
+            for company in self.companies
+            if company.panel.withheld_quarters
+            for ticker in company.tickers
+        }
 
     def market_history_tickers(self, ticker: str) -> tuple[str, ...]:
         """Return the Yahoo Finance symbols to try, current symbol first.

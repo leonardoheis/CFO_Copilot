@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -114,6 +115,45 @@ def test_registry_lists_the_companies_without_reliable_opex(
 ) -> None:
     assert company_registry.tickers_without_reliable_opex() == frozenset({"GE"})
     assert company_registry.company_metadata("GE").has_cost_of_revenue is True
+
+
+def test_registry_lists_the_quarters_withheld_for_mixed_bases(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.withheld_quarters() == {
+        "ABT": frozenset({date(2012, 12, 31)}),
+        "BMY": frozenset({date(2008, 12, 31)}),
+        "OXY": frozenset({date(2025, 12, 31)}),
+    }
+    assert (
+        "OxyChem"
+        in company_registry.company_metadata("OXY").withheld_quarters[
+            date(2025, 12, 31)
+        ]
+    )
+
+
+def test_load_company_registry_rejects_a_withheld_date_off_quarter_end(
+    tmp_path: Path,
+) -> None:
+    registry = tmp_path / "companies.yaml"
+    registry.write_text(
+        """
+companies:
+  - tickers: [OFF]
+    panel:
+      company: Off
+      sector: Energy
+      is_public: true
+      withheld_quarters: {2025-11-30: mixed bases}
+    sec: {type: known_cik, cik: "0000000001"}
+    market: {type: from_ticker}
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="2025-11-30 is not a quarter end"):
+        load_company_registry(registry)
 
 
 def test_resolve_scraped_company_for_alphabet_tickers_share_profile(

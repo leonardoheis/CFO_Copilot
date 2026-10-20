@@ -405,6 +405,11 @@ companies:
       company: Abbott
       sector: Healthcare
       is_public: true
+      # Spec nb01-pending-items P2.
+      withheld_quarters:
+        2012-12-31: >-
+          Q4 as first filed (10,837) still includes AbbVie while Q1-Q3 are restated
+          without it (~5,300); the restated 5,632 is in a filing the accession vote drops
     sec:
       type: known_cik
       cik: "0000001800"
@@ -443,6 +448,11 @@ companies:
       company: Bristol-Myers Squibb
       sector: Healthcare
       is_public: true
+      # Spec nb01-pending-items P2.
+      withheld_quarters:
+        2008-12-31: >-
+          full year restated without Mead Johnson (17,715) minus nine months filed
+          with it (15,348); no restated 2008 quarter exists in XBRL
     sec:
       type: known_cik
       cik: "0000014272"
@@ -504,6 +514,12 @@ companies:
       company: Occidental Petroleum
       sector: Energy
       is_public: true
+      # Spec nb01-pending-items P2. Delete this entry once the Q3 2026 10-Q
+      # (~November 2026) files the restated 2025 nine months, then re-ingest.
+      withheld_quarters:
+        2025-12-31: >-
+          full year without OxyChem (21,593) minus nine months filed with it
+          (19,841); the restated nine months are not filed yet
     sec:
       type: known_cik
       cik: "0000797468"

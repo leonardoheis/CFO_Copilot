@@ -132,6 +132,23 @@ def cost_of_revenue(
     return cogs.where(total.notna() | parts.isna(), parts)
 
 
+def depreciation_and_amortization(
+    total: pd.Series,
+    depreciation: pd.Series,
+    intangible_amortization: pd.Series,
+) -> pd.Series:
+    """Sum depreciation and intangible amortization where no total was filed.
+
+    Returns:
+        ``total`` where filed, else depreciation plus a non-negative amortization.
+    """
+    # A negative amortization is not an expense (BMY 2009 filed -170).
+    amortization_expense = intangible_amortization.where(
+        intangible_amortization >= 0
+    ).fillna(0.0)
+    return total.combine_first(depreciation + amortization_expense)
+
+
 def financial_panel_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
     """Convert raw us-gaap concept series into the financial panel columns.
 

@@ -274,9 +274,15 @@ def ebitda_from_operating_income(
     """EBITDA as the SEC rows define it: operating income + D&A.
 
     Returns:
-        The sum, or ``None`` when either part is missing.
+        The sum, or ``None`` when either part is missing or D&A is negative.
     """
-    if values.operating_income_usd_m is None or depreciation_usd_m is None:
+    # A negative D&A is a vendor error (IBM 2026-Q2: -1,274); returning None
+    # lets the cash-flow statement's figure fill in.
+    if (
+        values.operating_income_usd_m is None
+        or depreciation_usd_m is None
+        or depreciation_usd_m < 0
+    ):
         return None
     return values.operating_income_usd_m + depreciation_usd_m
 

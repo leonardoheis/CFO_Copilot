@@ -249,7 +249,7 @@ Tickers come from `config/companies.yaml` via `CompanyRegistry` — adding 53 co
 | **Projected last row** | 2026-Q2, all files | **E1 — verify. Set `is_projected`; exclude from train and test** |
 | Fiscal-calendar misalignment | AAPL Sep, MSFT/PG Jun, NKE May, COST Aug, DE Oct, WMT/HD/M/BBY Jan | Audit whether `date` is calendar or fiscal period-end; standardise, record offset |
 | COVID break | 2020-Q2 → 2020-Q4 | Intervention dummy, not noise to fit |
-| Spinoffs / M&A | ABT 2013-Q1, PFE 2020-Q4, MRK 2021-Q2, T 2022-Q2, GE 2023–24, BMY 2019-Q4 | `structural_break` dummy, hand-entered |
+| Spinoffs / M&A | ABT 2012-Q1, PFE 2009-Q4 and 2020-Q4, MRK 2009-Q4 and 2021-Q2, T 2007-Q1 and 2022-Q2, GE 2023–24, BMY 2019-Q4, COP 2011-Q2, CMCSA 2011-Q1, ECL 2012-Q1, DUK 2012-Q3, MDT 2015-Q1, OXY 2025-Q1 (`config/structural_breaks.yaml`) | `structural_break` dummy, hand-entered |
 | Pre-IPO gaps | TSLA (6 revenue, 16 price/EPS, 44 P/E) | Leave NaN; never impute a pre-existence value |
 | One-off items | AMZN 2026-Q2: 31% net margin, EPS 1.95→5.75, FCF −8,821 | Isolation Forest flag, retained not deleted |
 | Macro revision look-ahead | gdp_yoy, unemployment_rate, cpi_yoy | **D13: documented limitation.** fed_funds/dxy/vix/wti_oil are market data, never revised |

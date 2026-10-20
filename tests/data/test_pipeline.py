@@ -1,6 +1,7 @@
 import logging
 import math
 from datetime import date, timedelta
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -304,6 +305,44 @@ def test_merge_panel_leaves_only_opex_empty_when_opex_is_unreliable(
 
     assert panel["opex_usd_m"].isna().all()
     assert panel["gross_profit_usd_m"].tolist() == [880.0, 930.0]
+
+
+def test_merge_panel_withholds_a_declared_quarter_even_from_the_fallback(
+    tmp_path: Path,
+) -> None:
+    """OXY 2025-Q4 mixes bases; Alpha Vantage must not fill it back in."""
+    registry_path = tmp_path / "companies.yaml"
+    registry_path.write_text(
+        """
+companies:
+  - tickers: [WHL]
+    panel:
+      company: Withheld
+      sector: Energy
+      is_public: true
+      withheld_quarters: {2020-03-31: full year minus nine months on another basis}
+    sec: {type: known_cik, cik: "0000000001"}
+    market: {type: from_ticker}
+""",
+        encoding="utf-8",
+    )
+
+    panel = merge_panel(
+        ticker="WHL",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=IngestionSources(
+            fetch_macro_panel=fake_macro_panel,
+            yfinance=FakeMarketSource(),
+            fetch_sec_financials=fake_sec_financials,
+            registry=CompanyRegistry.from_path(registry_path),
+            fetch_fallback_financials=fake_fallback_financials,
+        ),
+    )
+
+    assert panel.loc[0, list(FINANCIAL_COLUMNS)].isna().all()
+    assert panel.loc[1, "revenue_usd_m"] == pytest.approx(1_100.0)
+    assert panel.loc[0, "stock_price_usd"] == pytest.approx(EXPECTED_STOCK_PRICE)
 
 
 def test_merge_panel_keeps_fallback_gross_profit_for_other_companies(

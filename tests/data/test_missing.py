@@ -49,6 +49,17 @@ def test_a_row_without_revenue_is_no_filing_data(panel_long: pd.DataFrame) -> No
     assert set(missing_value_ledger(panel_long)["reason"]) == {"no_filing_data"}
 
 
+def test_a_withheld_quarter_is_explained_as_withheld(panel_long: pd.DataFrame) -> None:
+    panel_long.loc[5, list(FINANCIAL_COLUMNS)] = np.nan
+    withheld = {"AAA": frozenset({panel_long["date"].dt.date.iloc[5]})}
+
+    ledger = missing_value_ledger(panel_long, withheld_quarters=withheld)
+
+    financial = ledger[ledger["column"].isin(FINANCIAL_COLUMNS)]
+    assert set(financial["reason"]) == {"withheld_quarter"}
+    assert set(financial["column"]) == set(FINANCIAL_COLUMNS)
+
+
 def test_gross_profit_gaps_of_a_company_without_cost_of_revenue_are_explained(
     panel_long: pd.DataFrame,
 ) -> None:

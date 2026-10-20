@@ -86,12 +86,15 @@ TAG_CHAINS: Final[dict[str, ConceptSpec]] = {
             "DepreciationDepletionAndAmortization",
             "DepreciationAndAmortization",
             "DepreciationAmortizationAndAccretionNet",
-            "Depreciation",
             "DepreciationAmortizationAndOther",
             "OtherDepreciationAndAmortization",
         ),
         prefer_largest=True,
     ),
+    # ABT, IBM, ORCL and others file these two apart with no total; parsing
+    # sums them only where no total exists.
+    "depreciation": ConceptSpec(tags=("Depreciation",)),
+    "intangible_amortization": ConceptSpec(tags=("AmortizationOfIntangibleAssets",)),
     "operating_cash_flow": ConceptSpec(
         tags=(
             "NetCashProvidedByUsedInOperatingActivities",

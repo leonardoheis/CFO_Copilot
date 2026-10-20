@@ -38,6 +38,7 @@ from .parsing import (
     JsonObject,
     concept_facts,
     cost_of_revenue,
+    depreciation_and_amortization,
     financial_panel_from_raw,
     implied_shares_from_earnings,
     merge_raw_financial_frames,
@@ -233,6 +234,11 @@ class SecEdgarSource:
             series_by_name.pop("cogs_total"),
             series_by_name.pop("cost_of_products"),
             series_by_name.pop("cost_of_services"),
+        )
+        series_by_name["dep_amort"] = depreciation_and_amortization(
+            series_by_name["dep_amort"],
+            series_by_name.pop("depreciation"),
+            series_by_name.pop("intangible_amortization"),
         )
         shares = self._fetch_shares_chain(cik, quarter_dates, splits)
         if not shares.notna().all():
