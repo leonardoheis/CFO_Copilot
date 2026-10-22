@@ -134,6 +134,9 @@ uv run poe docker-build       # Build Docker image
 uv run poe docker-run         # Run container (.env required)
 ```
 
+Run any Python script with `uv run python <script>` (or `uv run python -` for a
+heredoc), never the system `python` or `.venv/Scripts/python.exe` directly.
+
 ## Naming over commentary
 
 Say it in the name, not in a paragraph above it.
