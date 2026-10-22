@@ -35,6 +35,7 @@ __all__ = [
 
 MIN_QUARTER_DAYS: Final = 80
 MAX_QUARTER_DAYS: Final = 100
+TYPICAL_QUARTER_DAYS: Final = 91
 MIN_YEAR_TO_DATE_DAYS: Final = 160
 NATIVE_QUARTERS_BEFORE_YEAR_END: Final = 3
 MAX_INSTANT_STALENESS_DAYS: Final = 100
@@ -294,7 +295,9 @@ def _find_native_fact(
     if not candidates:
         return None
 
-    target_duration = min(candidates, key=lambda duration: abs(duration - 91))
+    target_duration = min(
+        candidates, key=lambda duration: abs(duration - TYPICAL_QUARTER_DAYS)
+    )
     for period in values_by_period:
         start, end = period
         if (
