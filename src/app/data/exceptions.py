@@ -32,11 +32,15 @@ class MalformedPayloadError(DataSourceError):
 
 
 class PanelStoreError(Exception):
-    """Base error for reading stored panels."""
+    """Base error for reading stored panels and feature sets."""
 
 
 class PanelNotFoundError(PanelStoreError):
     """Raised when no panel file exists for a ticker."""
+
+
+class FeaturesNotFoundError(PanelStoreError):
+    """Raised when no feature file exists for a target variable and horizon."""
 
 
 class MalformedPanelError(PanelStoreError):

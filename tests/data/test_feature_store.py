@@ -2,8 +2,10 @@ import math
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from app.data import FeatureStore
+from app.data.exceptions import FeaturesNotFoundError
 
 
 def _dataset() -> pd.DataFrame:
@@ -49,3 +51,10 @@ def test_two_variables_do_not_overwrite_each_other(tmp_path: Path) -> None:
 
     pd.testing.assert_frame_equal(store.read("revenue_usd_m", 1), revenue)
     pd.testing.assert_frame_equal(store.read("ebitda_usd_m", 1), ebitda)
+
+
+def test_a_missing_feature_file_is_named(tmp_path: Path) -> None:
+    store = FeatureStore(directory=tmp_path / "features")
+
+    with pytest.raises(FeaturesNotFoundError, match="revenue_usd_m at horizon 2"):
+        store.read("revenue_usd_m", 2)

@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from app.data.exceptions import FeaturesNotFoundError
+
 
 class FeatureStore:
     """Read and write one pooled feature parquet per target variable and horizon.
@@ -33,4 +35,16 @@ class FeatureStore:
         return path
 
     def read(self, variable: str, horizon: int) -> pd.DataFrame:
-        return pd.read_parquet(self.path_for(variable, horizon))
+        """Read one variable's dataset for one horizon.
+
+        Returns:
+            The dataset as written.
+
+        Raises:
+            FeaturesNotFoundError: No file exists for the variable and horizon.
+        """
+        path = self.path_for(variable, horizon)
+        if not path.exists():
+            message = f"No features for {variable} at horizon {horizon} at {path}"
+            raise FeaturesNotFoundError(message)
+        return pd.read_parquet(path)

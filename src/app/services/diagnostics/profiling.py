@@ -86,9 +86,7 @@ class AutoProfiler:
         Returns:
             The written report.
         """
-        path = self._store.path_for(name)
-        self._report(frame, title).to_file(path, silent=True)
-        return path
+        return self._store.write_report(self._report(frame, title), name)
 
     def compare(
         self,
@@ -104,9 +102,7 @@ class AutoProfiler:
         Returns:
             The written comparison report.
         """
-        path = self._store.path_for(name)
         comparison = self._report(before, before_title).compare(
             self._report(after, after_title)
         )
-        comparison.to_file(path, silent=True)
-        return path
+        return self._store.write_report(comparison, name)
