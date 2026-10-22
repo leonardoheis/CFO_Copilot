@@ -88,9 +88,7 @@ class _Settings(BaseSettings):
 
     @property
     def DATA_DIRECTORY(self) -> Path:
-        data_directory = self.ROOT_PATH / "data"
-        data_directory.mkdir(parents=True, exist_ok=True)
-        return data_directory
+        return self.ROOT_PATH / "data"
 
     @property
     def COMPANY_REGISTRY_PATH(self) -> Path:
@@ -113,9 +111,7 @@ class _Settings(BaseSettings):
         return self.DATA_DIRECTORY / "processed" / "macro_q.parquet"
 
     def panel_output_path(self, ticker: str) -> Path:
-        processed_directory = self.DATA_DIRECTORY / "processed"
-        processed_directory.mkdir(parents=True, exist_ok=True)
-        return processed_directory / f"{ticker.upper()}_panel.parquet"
+        return self.DATA_DIRECTORY / "processed" / f"{ticker.upper()}_panel.parquet"
 
 
 Settings = _Settings()

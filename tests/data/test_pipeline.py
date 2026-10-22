@@ -14,6 +14,7 @@ from app.data.pipeline import (
     merge_panel,
     most_recent_completed_quarter,
     resolve_date_range,
+    write_panel,
 )
 from app.data.schema import (
     COST_OF_REVENUE_COLUMNS,
@@ -467,3 +468,11 @@ def test_merge_panel_records_how_far_a_period_end_sits_from_its_quarter(
 
     assert panel["period_end_offset_days"].tolist() == [FISCAL_OFFSET_DAYS] * 2
     assert panel["financials_provenance"].tolist() == ["native"] * 2
+
+
+def test_write_panel_creates_the_missing_directory(tmp_path: Path) -> None:
+    output_path = tmp_path / "data" / "processed" / "AAPL_panel.parquet"
+
+    write_panel(pd.DataFrame({"revenue_usd_m": [1.0]}), output_path)
+
+    assert output_path.is_file()
