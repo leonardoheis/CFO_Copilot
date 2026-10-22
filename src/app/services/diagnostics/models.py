@@ -3,6 +3,7 @@ from typing import Literal, NamedTuple, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.data.schema import POSITIVE_COLUMNS, RATIO_COLUMNS
+from app.settings import RANDOM_SEED
 
 _STL_MINIMUM_CYCLES = 2
 
@@ -85,7 +86,7 @@ class RegimeSettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     n_regimes: int = Field(default=3, ge=2)
-    seed: int = 42
+    seed: int = RANDOM_SEED
     n_init: int = Field(default=10, ge=1)
 
 
@@ -118,12 +119,10 @@ class OutlierSettings(BaseModel):
 
 
 class CorrelationSettings(BaseModel):
-    """How columns are correlated and when a pair counts as redundant."""
+    """When a pair of columns counts as redundant."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    # Rank correlation: robust to the heavy tails of financial changes.
-    method: Literal["spearman"] = "spearman"
     redundancy_threshold: float = Field(default=0.85, gt=0.0, lt=1.0)
 
 
@@ -165,15 +164,6 @@ class SegmentSettings(BaseModel):
             )
             raise ValueError(message)
         return self
-
-
-class AuditSettings(BaseModel):
-    """How the feature audit scores features against the target."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    # Mutual information breaks distance ties with random noise; fix it.
-    seed: int = 42
 
 
 class DecisionSettings(BaseModel):

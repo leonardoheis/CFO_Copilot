@@ -16,7 +16,6 @@ from app.data.sources_bundle import IngestionSources
 from app.data.structural_breaks import load_structural_breaks
 from app.services import PredictionService, TrainingService
 from app.services.diagnostics import (
-    AuditSettings,
     AutoProfiler,
     CorrelationAnalyzer,
     CorrelationSettings,
@@ -137,7 +136,7 @@ class Container(containers.DeclarativeContainer):
         DecisionTableBuilder, settings=DecisionSettings()
     )
     feature_auditor = providers.Factory(
-        FeatureAuditor, settings=AuditSettings(), correlations=correlation_analyzer
+        FeatureAuditor, correlations=correlation_analyzer
     )
     report_store = providers.Factory(
         ReportStore, directory=Settings.DATA_DIRECTORY / "reports"

@@ -1,9 +1,13 @@
 import sys
 from datetime import date
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Not a settings field: an .env override would silently change NB00's outlier
+# flags and every seeded diagnostic, and the W&B run config would still say 42.
+RANDOM_SEED: Final = 42
 
 # The container sets WORKDIR to the directory holding .env, so the bare relative
 # name must stay. It resolves against the current directory though, which leaves

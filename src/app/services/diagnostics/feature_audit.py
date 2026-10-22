@@ -5,8 +5,11 @@ import numpy as np
 import pandas as pd
 from sklearn.feature_selection import mutual_info_regression
 
-from app.services.diagnostics.correlation import CorrelationAnalyzer
-from app.services.diagnostics.models import AuditSettings
+from app.services.diagnostics.correlation import (
+    CorrelationAnalyzer,
+    correlation_matrix,
+)
+from app.settings import RANDOM_SEED
 
 # A constant feature carries no information and has no rank correlation.
 _MIN_DISTINCT_VALUES: Final = 2
@@ -64,10 +67,11 @@ class FeatureAuditor:
     """
 
     def __init__(
-        self, settings: AuditSettings, correlations: CorrelationAnalyzer
+        self, correlations: CorrelationAnalyzer, seed: int = RANDOM_SEED
     ) -> None:
-        self._settings = settings
         self._correlations = correlations
+        # Mutual information breaks distance ties with random noise; fix it.
+        self._seed = seed
 
     def _score(self, labelled: pd.DataFrame, feature: str, group: str) -> FeatureScore:
         present = labelled[[feature, "y"]].dropna()
@@ -81,12 +85,12 @@ class FeatureAuditor:
                 codes,
                 present["y"],
                 discrete_features=True,
-                random_state=self._settings.seed,
+                random_state=self._seed,
             )
             spearman = np.nan
         else:
             information = mutual_info_regression(
-                values.to_frame(), present["y"], random_state=self._settings.seed
+                values.to_frame(), present["y"], random_state=self._seed
             )
             spearman = float(values.corr(present["y"], method="spearman"))
         return FeatureScore(
@@ -112,7 +116,7 @@ class FeatureAuditor:
             .sort_values("mutual_information", ascending=False, na_position="last")
             .reset_index(drop=True)
         )
-        matrix = self._correlations.matrix(labelled[columns])
+        matrix = correlation_matrix(labelled[columns])
         return FeatureAudit(
             features=features,
             redundant_pairs=self._correlations.redundant_pairs(matrix),

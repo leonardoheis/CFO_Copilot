@@ -7,6 +7,7 @@ import pandas as pd
 from sklearn.ensemble import IsolationForest
 
 from app.data.exceptions import ConsolidationError
+from app.settings import RANDOM_SEED
 
 BREAK_WINDOW_QUARTERS: Final = 4
 MIN_OUTLIER_ROWS: Final = 16
@@ -54,7 +55,7 @@ def structural_break_flag(
 
 
 def outlier_flag(
-    panel: pd.DataFrame, *, contamination: float = 0.03, seed: int = 42
+    panel: pd.DataFrame, *, contamination: float = 0.03, seed: int = RANDOM_SEED
 ) -> pd.Series:
     """Flag unusual quarters with an Isolation Forest; the flag removes nothing.
 
@@ -105,7 +106,7 @@ def add_flags(
     *,
     last_reported_quarter: date,
     contamination: float = 0.03,
-    seed: int = 42,
+    seed: int = RANDOM_SEED,
 ) -> pd.DataFrame:
     """Add the five NB00 flag columns company by company.
 

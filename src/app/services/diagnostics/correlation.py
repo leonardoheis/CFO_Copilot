@@ -13,6 +13,8 @@ from app.services.features.transforms import (
 )
 
 _PAIR_COLUMNS: Final = ["left", "right", "rho"]
+# Rank correlation: robust to the heavy tails of financial changes.
+_METHOD: Final = "spearman"
 
 
 def _yoy_change(panel: pd.DataFrame, column: str) -> pd.Series:
@@ -54,18 +56,26 @@ def pooled_yoy_changes(
     )
 
 
-class CorrelationAnalyzer:
-    """Correlate year-over-year changes and list redundant pairs.
+def correlation_matrix(changes: pd.DataFrame) -> pd.DataFrame:
+    """Rank-correlate every pair of numeric columns.
 
-    Levels trend together over 20 years, so they correlate spuriously; changes
-    do not.
+    Levels trend together over 20 years, so they correlate spuriously; pass
+    changes, not levels.
+
+    Returns:
+        The square correlation matrix.
+    """
+    return changes.select_dtypes("number").corr(method=_METHOD)
+
+
+class CorrelationAnalyzer:
+    """List the redundant pairs of a correlation matrix.
 
     Usage::
 
         analyzer = container.correlation_analyzer()
         changes = pooled_yoy_changes(panels, columns)
-        matrix = analyzer.matrix(changes[columns])
-        redundant = analyzer.redundant_pairs(matrix)
+        redundant = analyzer.redundant_pairs(correlation_matrix(changes[columns]))
     """
 
     def __init__(self, settings: CorrelationSettings) -> None:
@@ -74,14 +84,6 @@ class CorrelationAnalyzer:
     @property
     def redundancy_threshold(self) -> float:
         return self._settings.redundancy_threshold
-
-    def matrix(self, changes: pd.DataFrame) -> pd.DataFrame:
-        """Correlate every pair of numeric columns.
-
-        Returns:
-            The square correlation matrix.
-        """
-        return changes.select_dtypes("number").corr(method=self._settings.method)
 
     def redundant_pairs(self, matrix: pd.DataFrame) -> pd.DataFrame:
         """List pairs whose correlation exceeds the redundancy threshold.

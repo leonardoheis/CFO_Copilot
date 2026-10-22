@@ -6,6 +6,7 @@ from pydantic import ValidationError
 from app.services.diagnostics import (
     CorrelationAnalyzer,
     CorrelationSettings,
+    correlation_matrix,
     pooled_yoy_changes,
     yoy_changes,
 )
@@ -78,7 +79,7 @@ def test_only_pairs_above_the_threshold_are_redundant() -> None:
     })
     analyzer = CorrelationAnalyzer(settings=CorrelationSettings())
 
-    matrix = analyzer.matrix(changes)
+    matrix = correlation_matrix(changes)
     pairs = analyzer.redundant_pairs(matrix)
 
     assert list(pairs.columns) == ["left", "right", "rho"]

@@ -3,11 +3,11 @@ import pandas as pd
 import pytest
 
 from app.services.diagnostics import (
-    AuditSettings,
     CorrelationAnalyzer,
     CorrelationSettings,
     FeatureAuditor,
 )
+from app.settings import RANDOM_SEED
 
 ROWS = 400
 
@@ -15,8 +15,7 @@ ROWS = 400
 @pytest.fixture
 def auditor() -> FeatureAuditor:
     return FeatureAuditor(
-        settings=AuditSettings(),
-        correlations=CorrelationAnalyzer(settings=CorrelationSettings()),
+        correlations=CorrelationAnalyzer(settings=CorrelationSettings())
     )
 
 
@@ -82,6 +81,20 @@ def test_near_duplicate_features_are_redundant(
     assert audit.redundant_pairs[["left", "right"]].to_numpy().tolist() == [
         ["growth_yoy_lag1", "growth_yoy_lag2"]
     ]
+
+
+def test_the_default_seed_is_the_project_seed(
+    auditor: FeatureAuditor, dataset: pd.DataFrame
+) -> None:
+    seeded = FeatureAuditor(
+        correlations=CorrelationAnalyzer(settings=CorrelationSettings()),
+        seed=RANDOM_SEED,
+    )
+
+    pd.testing.assert_frame_equal(
+        auditor.audit(dataset, groups=GROUPS).features,
+        seeded.audit(dataset, groups=GROUPS).features,
+    )
 
 
 def test_the_group_summary_has_one_row_per_group(

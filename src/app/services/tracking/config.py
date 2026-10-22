@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from app.services.tracking.exceptions import InvalidRunNameError
+from app.settings import RANDOM_SEED
 
 Protocol = Literal["A", "B"]
 
@@ -51,7 +52,7 @@ class RunConfig(BaseModel):
     horizon: int | None = None
     macro_source: Literal["final_revised", "point_in_time"] = "final_revised"
     harness_version: str | None = None
-    seed: int = 42
+    seed: int = RANDOM_SEED
 
 
 class WandbSettings(BaseModel):

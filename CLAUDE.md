@@ -149,6 +149,18 @@ Say it in the name, not in a paragraph above it.
 - Same for variables: `annual_candidates` beats `tmp` plus a note explaining
   what `tmp` holds.
 
+## No needless indirection
+
+- **Do not wrap an expression in a private function just to reuse it or to
+  pass an argument.** A helper whose body is one constructor call or one
+  expression hides the code it replaces. Write the expression where it is used,
+  even if it appears twice.
+- In tests, build the object in the fixture or in the test itself; do not add a
+  `_make_x()` helper for a single constructor call.
+- Add a helper only when it is strictly necessary: it names a rule the reader
+  could not infer, removes genuinely duplicated logic (not a repeated call), or
+  a framework requires it.
+
 ## Lint suppressions
 
 - **Do not silence a linter to make code pass.** `# noqa` and `# ruff: ignore`

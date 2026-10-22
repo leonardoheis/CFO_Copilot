@@ -1,5 +1,10 @@
 from .audit import DataDictionary, OutlierRegister
-from .correlation import CorrelationAnalyzer, pooled_yoy_changes, yoy_changes
+from .correlation import (
+    CorrelationAnalyzer,
+    correlation_matrix,
+    pooled_yoy_changes,
+    yoy_changes,
+)
 from .decisions import DecisionInputs, DecisionRow, DecisionTableBuilder
 from .exceptions import (
     DiagnosticsError,
@@ -9,7 +14,6 @@ from .exceptions import (
 from .feature_audit import FeatureAudit, FeatureAuditor, FeatureScore
 from .figures import EdaFigures
 from .models import (
-    AuditSettings,
     CompanyMacroSensitivity,
     CorrelationSettings,
     DecisionSettings,
@@ -43,7 +47,6 @@ from .transform_comparison import (
 )
 
 __all__ = [
-    "AuditSettings",
     "AutoProfiler",
     "CompanyMacroSensitivity",
     "CorrelationAnalyzer",
@@ -79,6 +82,7 @@ __all__ = [
     "baseline_transform",
     "box_cox",
     "candidates_for",
+    "correlation_matrix",
     "median_timeline",
     "observed_since_last_gap",
     "pooled_yoy_changes",
