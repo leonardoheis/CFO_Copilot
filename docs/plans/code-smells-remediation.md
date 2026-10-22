@@ -236,6 +236,12 @@ on disk are unaffected.
 - **Tests:** a failing ticker appears in the report as failed and the run
   continues.
 - **Rerun:** Only after re-ingestion (the coverage report only).
+- **Status:** done. `_probe_ticker` catches `DataSourceError` at the per-ticker
+  boundary, logs a warning, and returns the report entry itself (the JSON dict
+  already written to the report), so the loop only appends and echoes. The
+  computation moved to `_coverage_report`, which the tests now stub so the real
+  catch runs. Console lines and the JSON report are unchanged; the existing
+  tests asserted both and pass with no assertion changes.
 
 ## Phase 4: Duplication that is the same rule
 

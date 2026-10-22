@@ -47,7 +47,7 @@ def probed_tickers(monkeypatch: pytest.MonkeyPatch) -> list[str]:
             raise DataSourceUnavailableError(message)
         return _report(ticker, passed=ticker != "BAD")
 
-    monkeypatch.setattr(coverage_runner, "_probe_ticker", fake_probe)
+    monkeypatch.setattr(coverage_runner, "_coverage_report", fake_probe)
     return probed
 
 
@@ -123,7 +123,7 @@ def test_probe_wires_sources_from_the_container_and_evaluates_the_overlap(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Drives _build_probe_context and _probe_ticker through the public CLI.
+    """Drives _build_probe_context and _coverage_report through the public CLI.
 
     Both are private and have no other seam to test through — the
     `probed_tickers` fixture monkeypatches them away for every other test.

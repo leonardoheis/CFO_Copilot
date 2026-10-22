@@ -1,4 +1,5 @@
 import json
+import logging
 import sys
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -21,6 +22,8 @@ from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.sources.yfinance_source import YfinanceSource
 from app.injections import configure_container
 from app.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_PROBE_YEARS = 20
 
@@ -81,24 +84,31 @@ def _collect_reports(
     reports: list[dict[str, object]] = []
     for ticker in tickers:
         normalized_ticker = ticker.upper()
-        try:
-            report = _probe_ticker(normalized_ticker, context)
-            reports.append(report_as_dict(report))
-            status = "PASS" if report.passed else "FAIL"
-            click.echo(f"{normalized_ticker}: {status}")
-        except DataSourceError as error:
-            reports.append(
-                {
-                    "ticker": normalized_ticker,
-                    "passed": False,
-                    "error": str(error),
-                },
-            )
-            click.echo(f"{normalized_ticker}: FAIL ({error})")
+        entry = _probe_ticker(normalized_ticker, context)
+        reports.append(entry)
+        status = "PASS" if entry["passed"] else "FAIL"
+        error = entry.get("error")
+        detail = "" if error is None else f" ({error})"
+        click.echo(f"{normalized_ticker}: {status}{detail}")
     return reports
 
 
-def _probe_ticker(ticker: str, context: ProbeContext) -> CoverageReport:
+def _probe_ticker(ticker: str, context: ProbeContext) -> dict[str, object]:
+    """Probe one ticker, recording a source failure rather than raising.
+
+    Returns:
+        The ticker's report entry; a failed source gives ``passed: False`` and
+        its ``error``.
+    """
+    try:
+        report = _coverage_report(ticker, context)
+    except DataSourceError as error:
+        logger.warning("Could not probe %s: %s", ticker, error)
+        return {"ticker": ticker, "passed": False, "error": str(error)}
+    return report_as_dict(report)
+
+
+def _coverage_report(ticker: str, context: ProbeContext) -> CoverageReport:
     alpha_panel = context.client.fetch_financials_panel(
         ticker,
         context.start,
