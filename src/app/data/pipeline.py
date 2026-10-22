@@ -11,6 +11,7 @@ from app.data.schema import (
     COST_OF_REVENUE_COLUMNS,
     FINANCIAL_COLUMNS,
     METADATA_COLUMNS,
+    MILLIONS_DIVISOR,
     PANEL_COLUMNS,
 )
 from app.data.sources_bundle import IngestionSources
@@ -19,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_HISTORY_YEARS = 20
 XBRL_HISTORY_START = date(2008, 4, 1)
-MILLIONS_DIVISOR = 1_000_000
 Q1_END_MONTH = 3
 Q2_END_MONTH = 6
 Q3_END_MONTH = 9

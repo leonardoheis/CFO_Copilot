@@ -12,7 +12,6 @@ COVERAGE_FIELDS: Final[tuple[str, ...]] = (
     *FINANCIAL_COLUMNS,
     "shares_outstanding",
 )
-OVERLAP_START: Final = date(2008, 4, 1)
 OVERLAP_END: Final = date(2012, 12, 31)
 EPS_RELATIVE_TOLERANCE: Final = 0.10
 DEFAULT_RELATIVE_TOLERANCE: Final = 0.02
@@ -145,7 +144,7 @@ def _overlap_errors(
     alpha: pd.DataFrame,
     sec: pd.DataFrame,
 ) -> dict[str, float]:
-    overlap_start = _quarter_timestamp(OVERLAP_START)
+    overlap_start = _quarter_timestamp(XBRL_HISTORY_START)
     overlap_end = _quarter_timestamp(OVERLAP_END)
     dates = [
         value

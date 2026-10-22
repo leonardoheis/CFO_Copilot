@@ -259,6 +259,24 @@ on disk are unaffected.
   Merge each pair only after a characterization test shows both sites agree.
 - **Tests:** one characterization test per pair, kept after the merge.
 - **Rerun:** No (any disagreement found moves that pair to the catalog).
+- **Status:** done. All six pairs agreed; none moved to the catalog.
+  - `MILLIONS_DIVISOR`: `pipeline.py` imports it from `schema.py`.
+  - XBRL start: `coverage.OVERLAP_START` removed; `coverage.py` and
+    `coverage_runner.py` use `pipeline.XBRL_HISTORY_START`.
+  - 20-year default: `coverage_runner` calls `pipeline.resolve_date_range`;
+    `DEFAULT_PROBE_YEARS` and `_default_start` removed.
+  - Company value columns: `missing.CHECKED_COLUMNS` removed for
+    `schema.COMPANY_VALUE_COLUMNS` (same members, same order).
+  - Pre-listing: `missing.py` uses `flags.pre_listing_flag`. New tests pin that
+    the ledger's pre-listing rows are the flagged rows, and that a company that
+    never traded has none.
+  - Margins: not merged. Both treat zero or missing revenue as no margin, but
+    SEC computes whole columns and Alpha Vantage one scalar row at a time, so a
+    shared function would force one side into the other's shape. A new
+    `test_sec_edgar_parsing.py` pins SEC's zero-revenue case next to the
+    existing Alpha Vantage test.
+  - The three constant pairs were checked equal before merging; once merged
+    they are one name, so no test is kept for them.
 
 ### #14 Robust-z calculation is duplicated
 - **Smell:** Duplicate Code.

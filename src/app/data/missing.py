@@ -4,15 +4,13 @@ from typing import Final
 
 import pandas as pd
 
-from app.data.schema import COST_OF_REVENUE_COLUMNS, FINANCIAL_COLUMNS
-
-CHECKED_COLUMNS: Final = (
-    *FINANCIAL_COLUMNS,
-    "stock_price_usd",
-    "dividend_yield",
-    "market_cap_usd_m",
-    "pe_ratio",
+from app.data.flags import pre_listing_flag
+from app.data.schema import (
+    COMPANY_VALUE_COLUMNS,
+    COST_OF_REVENUE_COLUMNS,
+    FINANCIAL_COLUMNS,
 )
+
 _PRE_LISTING_COLUMNS: Final = (
     "stock_price_usd",
     "dividend_yield",
@@ -26,7 +24,7 @@ _FILING_COLUMNS: Final = (*FINANCIAL_COLUMNS, "market_cap_usd_m")
 def _reasons(
     column: str,
     company: pd.DataFrame,
-    first_price_date: pd.Timestamp,
+    pre_listing_rows: pd.Series,
     declared_reason: str | None,
     withheld_rows: pd.Series,
 ) -> pd.Series:
@@ -39,7 +37,7 @@ def _reasons(
         (
             "pre_listing",
             column in _PRE_LISTING_COLUMNS,
-            company["date"] < first_price_date,
+            pre_listing_rows,
         ),
         ("no_filing_data", column in _FILING_COLUMNS, company["revenue_usd_m"].isna()),
     )
@@ -54,15 +52,15 @@ def _company_ledger(
     declared_reasons: dict[str, str],
     withheld: frozenset[date],
 ) -> pd.DataFrame:
-    first_price_date = company.loc[company["stock_price_usd"].notna(), "date"].min()
+    pre_listing_rows = pre_listing_flag(company)
     withheld_rows = pd.to_datetime(company["date"]).dt.date.isin(withheld)
     frames = []
-    for column in CHECKED_COLUMNS:
+    for column in COMPANY_VALUE_COLUMNS:
         missing = company[column].isna()
         reasons = _reasons(
             column,
             company,
-            first_price_date,
+            pre_listing_rows,
             declared_reasons.get(column),
             withheld_rows,
         )

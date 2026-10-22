@@ -106,7 +106,9 @@ def test_probe_defaults_the_range_to_twenty_years_ending_last_quarter(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(coverage_runner, "most_recent_completed_quarter", lambda _: END)
+    monkeypatch.setattr(
+        "app.data.pipeline.most_recent_completed_quarter", lambda _: END
+    )
     output = tmp_path / "report.json"
 
     CliRunner().invoke(

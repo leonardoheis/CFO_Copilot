@@ -2,21 +2,20 @@ import json
 import logging
 import sys
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import click
 
 from app.data.coverage import (
     OVERLAP_END,
-    OVERLAP_START,
     CoverageReport,
     evaluate_coverage,
     report_as_dict,
 )
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceError
-from app.data.pipeline import most_recent_completed_quarter
+from app.data.pipeline import XBRL_HISTORY_START, resolve_date_range
 from app.data.sources.alpha_vantage import AlphaVantageSource
 from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.sources.yfinance_source import YfinanceSource
@@ -24,8 +23,6 @@ from app.injections import configure_container
 from app.settings import Settings
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_PROBE_YEARS = 20
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,10 +36,6 @@ class ProbeContext:
 
 def _parse_date(value: datetime | None) -> date | None:
     return value.date() if value is not None else None
-
-
-def _default_start(end: date) -> date:
-    return date(end.year - DEFAULT_PROBE_YEARS, end.month, end.day)
 
 
 def _write_coverage_report(
@@ -117,7 +110,7 @@ def _coverage_report(ticker: str, context: ProbeContext) -> CoverageReport:
     overlap_end = min(context.end, OVERLAP_END)
     sec_panel = context.sec_source.fetch_financials_panel(
         ticker,
-        OVERLAP_START,
+        XBRL_HISTORY_START,
         overlap_end,
         context.market_source.fetch_splits(ticker),
     )
@@ -168,10 +161,9 @@ def probe_alpha_vantage(
     refresh: bool,
     output: Path | None,
 ) -> None:
-    resolved_end = _parse_date(end) or most_recent_completed_quarter(
-        datetime.now(tz=UTC).date(),
+    resolved_start, resolved_end = resolve_date_range(
+        _parse_date(start), _parse_date(end)
     )
-    resolved_start = _parse_date(start) or _default_start(resolved_end)
     context = _build_probe_context(resolved_start, resolved_end, refresh=refresh)
     reports = _collect_reports(tickers, context)
 

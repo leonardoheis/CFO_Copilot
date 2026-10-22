@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from app.data.consolidation import consolidate_panels
+from app.data.flags import pre_listing_flag
 from app.data.missing import missing_value_ledger
 from app.data.schema import COST_OF_REVENUE_COLUMNS, FINANCIAL_COLUMNS
 from tests.conftest import PanelFactory
@@ -102,3 +103,25 @@ def test_an_eps_gap_with_price_and_revenue_is_unexplained(
     assert ledger[["column", "reason"]].to_numpy().tolist() == [["eps", "unexplained"]]
     assert ledger.loc[ledger.index[0], "ticker"] == "AAA"
     assert ledger.loc[ledger.index[0], "date"] == panel_long.loc[7, "date"]
+
+
+def test_pre_listing_rows_are_the_rows_the_pre_listing_flag_marks(
+    panel_long: pd.DataFrame,
+) -> None:
+    panel_long.loc[:2, "stock_price_usd"] = np.nan
+
+    ledger = missing_value_ledger(panel_long)
+    pre_listing_dates = ledger.loc[ledger["reason"] == "pre_listing", "date"]
+
+    assert set(pre_listing_dates) == set(
+        panel_long.loc[pre_listing_flag(panel_long), "date"]
+    )
+
+
+def test_a_company_never_priced_has_no_pre_listing_rows(
+    panel_long: pd.DataFrame,
+) -> None:
+    panel_long["stock_price_usd"] = np.nan
+
+    assert "pre_listing" not in set(missing_value_ledger(panel_long)["reason"])
+    assert not pre_listing_flag(panel_long).any()
