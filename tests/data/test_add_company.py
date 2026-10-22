@@ -4,6 +4,8 @@ import pytest
 from click.testing import CliRunner
 
 from app.data.add_company import add_company
+from app.data.exceptions import DataSourceUnavailableError
+from app.data.sources import SecTicker
 
 pytestmark = pytest.mark.usefixtures("stub_sec_lookup")
 
@@ -32,8 +34,8 @@ def registry(tmp_path: Path) -> Path:
 @pytest.fixture
 def stub_sec_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "app.data.add_company.lookup_ticker",
-        lambda ticker, **_: {"INTC": ("0000050863", "INTEL CORP")}.get(ticker.upper()),
+        "app.data.add_company.fetch_sec_tickers",
+        lambda **_: {"INTC": SecTicker(cik="0000050863", title="INTEL CORP")},
     )
 
 
@@ -58,6 +60,25 @@ def test_rejects_a_ticker_sec_does_not_know(registry: Path) -> None:
 
     assert result.exit_code != 0
     assert "IBME" in result.output
+    assert registry.read_text(encoding="utf-8") == REGISTRY
+
+
+def test_reports_an_unavailable_sec_without_a_traceback(
+    registry: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def unavailable(**_: object) -> dict[str, SecTicker]:
+        msg = "SEC ticker file not found"
+        raise DataSourceUnavailableError(msg)
+
+    monkeypatch.setattr("app.data.add_company.fetch_sec_tickers", unavailable)
+
+    result = CliRunner().invoke(
+        add_company,
+        ["--ticker", "INTC", "--sector", "Technology", "--registry", str(registry)],
+    )
+
+    assert result.exit_code == 1
+    assert "SEC ticker file not found" in result.output
     assert registry.read_text(encoding="utf-8") == REGISTRY
 
 

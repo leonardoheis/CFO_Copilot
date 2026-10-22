@@ -1,4 +1,9 @@
-from .parsing import merge_raw_financial_frames
-from .source import SecEdgarSource
+from .parsing import SecTicker, merge_raw_financial_frames
+from .source import SecEdgarSource, fetch_sec_tickers
 
-__all__ = ["SecEdgarSource", "merge_raw_financial_frames"]
+__all__ = [
+    "SecEdgarSource",
+    "SecTicker",
+    "fetch_sec_tickers",
+    "merge_raw_financial_frames",
+]

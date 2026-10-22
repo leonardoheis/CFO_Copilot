@@ -35,12 +35,14 @@ from .concepts import (
 )
 from .parsing import (
     JsonObject,
+    SecTicker,
     concept_facts,
     cost_of_revenue,
     depreciation_and_amortization,
     financial_panel_from_raw,
     implied_shares_from_earnings,
     merge_raw_financial_frames,
+    sec_tickers,
     split_factors_for_filing_dates,
     without_implausible_counts,
 )
@@ -57,6 +59,50 @@ NOT_FOUND_STATUS: Final = 404
 MISSING_USER_AGENT_MESSAGE: Final = (
     "SEC_USER_AGENT is not set. Add it to your .env file (see .env.example)."
 )
+
+
+def _get_sec_json(url: str, *, user_agent: str, timeout: int) -> object | None:
+    """Fetch one SEC document.
+
+    Returns:
+        The decoded JSON, or None when SEC has no document at ``url``.
+
+    Raises:
+        DataSourceUnavailableError: No user agent, any other HTTP failure, or a
+            body that is not JSON.
+    """
+    if not user_agent:
+        raise DataSourceUnavailableError(MISSING_USER_AGENT_MESSAGE)
+    try:
+        response = requests.get(
+            url,
+            headers={"User-Agent": user_agent},
+            timeout=timeout,
+        )
+        if response.status_code == NOT_FOUND_STATUS:
+            return None
+        response.raise_for_status()
+        payload: object = response.json()
+    except (requests.RequestException, ValueError) as error:
+        msg = f"Failed to fetch SEC EDGAR {url}: {error}"
+        raise DataSourceUnavailableError(msg) from error
+    return payload
+
+
+def fetch_sec_tickers(*, user_agent: str, timeout: int) -> dict[str, SecTicker]:
+    """Download SEC's ticker file, indexed by upper-case ticker.
+
+    Returns:
+        Each ticker's zero-padded CIK and registered title.
+
+    Raises:
+        DataSourceUnavailableError: The file cannot be fetched.
+    """
+    payload = _get_sec_json(SEC_TICKERS_URL, user_agent=user_agent, timeout=timeout)
+    if payload is None:
+        msg = f"SEC ticker file not found at {SEC_TICKERS_URL}"
+        raise DataSourceUnavailableError(msg)
+    return sec_tickers(payload)
 
 
 def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
@@ -146,7 +192,7 @@ class SecEdgarSource:
         self._user_agent = user_agent
         self._registry = registry
         self._timeout = timeout
-        self._ticker_ciks: dict[str, str] | None = None
+        self._tickers: dict[str, SecTicker] | None = None
         self._company_facts_by_cik: dict[str, JsonObject] = {}
 
     def resolve_cik(self, ticker: str) -> str:
@@ -157,14 +203,13 @@ class SecEdgarSource:
 
     def _lookup_ticker_cik(self, ticker: str) -> str:
         normalized_ticker = ticker.upper()
-        ticker_ciks = self._load_ticker_ciks()
-        cik = ticker_ciks.get(normalized_ticker)
-        if cik is None:
+        found = self._load_tickers().get(normalized_ticker)
+        if found is None:
             msg = f"No SEC EDGAR CIK found for ticker {normalized_ticker}"
             raise TickerNotFoundError(
                 msg,
             )
-        return cik
+        return found.cik
 
     def fetch_concept(
         self,
@@ -179,7 +224,11 @@ class SecEdgarSource:
         cached = self._company_facts_by_cik.get(padded_cik)
         if cached is not None:
             return cached
-        payload = self._get_json(SEC_COMPANY_FACTS_URL.format(cik=padded_cik))
+        payload = _get_sec_json(
+            SEC_COMPANY_FACTS_URL.format(cik=padded_cik),
+            user_agent=self._user_agent,
+            timeout=self._timeout,
+        )
         # 404 is SEC's answer for a CIK that has never filed XBRL.
         if payload is None:
             payload = {}
@@ -398,51 +447,9 @@ class SecEdgarSource:
                 )
         return combined
 
-    def _load_ticker_ciks(self) -> dict[str, str]:
-        if self._ticker_ciks is not None:
-            return self._ticker_ciks
-
-        payload = self._get_json(SEC_TICKERS_URL)
-        if payload is None:
-            msg = f"SEC ticker file not found at {SEC_TICKERS_URL}"
-            raise DataSourceUnavailableError(msg)
-        if not isinstance(payload, dict):
-            msg = "SEC ticker file is not a JSON object"
-            raise MalformedPayloadError(msg)
-        ticker_ciks: dict[str, str] = {}
-        for entry in payload.values():
-            if not isinstance(entry, dict) or not {"ticker", "cik_str"} <= entry.keys():
-                msg = f"Malformed SEC ticker entry: {entry!r}"
-                raise MalformedPayloadError(msg)
-            ticker = str(entry["ticker"]).upper()
-            cik = str(entry["cik_str"]).zfill(10)
-            ticker_ciks[ticker] = cik
-        self._ticker_ciks = ticker_ciks
-        return ticker_ciks
-
-    def _get_json(self, url: str) -> object | None:
-        """Fetch one SEC document.
-
-        Returns:
-            The decoded JSON, or None when SEC has no document at ``url``.
-
-        Raises:
-            DataSourceUnavailableError: No user agent, any other HTTP failure,
-                or a body that is not JSON.
-        """
-        if not self._user_agent:
-            raise DataSourceUnavailableError(MISSING_USER_AGENT_MESSAGE)
-        try:
-            response = requests.get(
-                url,
-                headers={"User-Agent": self._user_agent},
-                timeout=self._timeout,
+    def _load_tickers(self) -> dict[str, SecTicker]:
+        if self._tickers is None:
+            self._tickers = fetch_sec_tickers(
+                user_agent=self._user_agent, timeout=self._timeout
             )
-            if response.status_code == NOT_FOUND_STATUS:
-                return None
-            response.raise_for_status()
-            payload: object = response.json()
-        except (requests.RequestException, ValueError) as error:
-            msg = f"Failed to fetch SEC EDGAR {url}: {error}"
-            raise DataSourceUnavailableError(msg) from error
-        return payload
+        return self._tickers

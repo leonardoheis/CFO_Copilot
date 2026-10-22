@@ -7,7 +7,9 @@ import logging
 from typing import Final, cast
 
 import pandas as pd
+from pydantic import BaseModel, ConfigDict
 
+from app.data.companies import CIK_LENGTH, is_valid_cik
 from app.data.exceptions import MalformedPayloadError
 from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
 from app.data.splits import cumulative_split_factors
@@ -17,6 +19,48 @@ MIN_SHARE_COUNT_FRACTION_OF_MEDIAN: Final = 0.01
 logger = logging.getLogger(__name__)
 
 type JsonObject = dict[str, object]
+
+
+class SecTicker(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    cik: str
+    title: str
+
+
+def sec_tickers(payload: object) -> dict[str, SecTicker]:
+    """Index SEC's company_tickers.json by upper-case ticker.
+
+    Returns:
+        Each ticker's zero-padded CIK and registered title.
+
+    Raises:
+        MalformedPayloadError: The file, an entry, or an entry's CIK is malformed.
+    """
+    if not isinstance(payload, dict):
+        msg = "SEC ticker file is not a JSON object"
+        raise MalformedPayloadError(msg)
+    tickers: dict[str, SecTicker] = {}
+    for entry in payload.values():
+        if (
+            not isinstance(entry, dict)
+            or not {
+                "ticker",
+                "cik_str",
+                "title",
+            }
+            <= entry.keys()
+        ):
+            msg = f"Malformed SEC ticker entry: {entry!r}"
+            raise MalformedPayloadError(msg)
+        cik = str(entry["cik_str"]).zfill(CIK_LENGTH)
+        if not is_valid_cik(cik):
+            msg = f"SEC ticker entry has an invalid CIK: {entry!r}"
+            raise MalformedPayloadError(msg)
+        tickers[str(entry["ticker"]).upper()] = SecTicker(
+            cik=cik, title=str(entry["title"])
+        )
+    return tickers
 
 
 def _child_object(parent: JsonObject, key: str, tag: str) -> JsonObject:

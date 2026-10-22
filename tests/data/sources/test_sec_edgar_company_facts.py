@@ -5,8 +5,8 @@ import requests
 
 from app.data.companies import CompanyRegistry
 from app.data.exceptions import DataSourceUnavailableError, MalformedPayloadError
-from app.data.sources.sec_edgar import SecEdgarSource
-from app.data.sources.sec_edgar.parsing import concept_facts
+from app.data.sources.sec_edgar import SecEdgarSource, SecTicker, fetch_sec_tickers
+from app.data.sources.sec_edgar.parsing import concept_facts, sec_tickers
 from app.data.xbrl import XbrlFact
 from app.settings import Settings
 
@@ -181,3 +181,48 @@ def test_a_malformed_ticker_entry_is_reported(
 
     with pytest.raises(MalformedPayloadError, match="Malformed SEC ticker entry"):
         source.resolve_cik("QCOM")
+
+
+def test_sec_tickers_pads_the_cik_and_upper_cases_the_ticker() -> None:
+    payload = {"0": {"cik_str": 50863, "ticker": "intc", "title": "INTEL CORP"}}
+
+    assert sec_tickers(payload) == {
+        "INTC": SecTicker(cik="0000050863", title="INTEL CORP"),
+    }
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (["INTC"], "not a JSON object"),
+        ({"0": "INTC"}, "Malformed SEC ticker entry"),
+        ({"0": {"cik_str": 50863, "ticker": "INTC"}}, "Malformed SEC ticker entry"),
+        (
+            {"0": {"cik_str": 12345678901, "ticker": "INTC", "title": "INTEL"}},
+            "invalid CIK",
+        ),
+        (
+            {"0": {"cik_str": "-50863", "ticker": "INTC", "title": "INTEL"}},
+            "invalid CIK",
+        ),
+    ],
+)
+def test_sec_tickers_rejects_a_malformed_file(payload: object, message: str) -> None:
+    with pytest.raises(MalformedPayloadError, match=message):
+        sec_tickers(payload)
+
+
+def test_a_missing_ticker_file_is_reported_as_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        GET_TARGET, lambda *_, **__: FakeResponse({}, HTTPStatus.NOT_FOUND)
+    )
+
+    with pytest.raises(DataSourceUnavailableError, match="company_tickers"):
+        fetch_sec_tickers(user_agent=TEST_USER_AGENT, timeout=1)
+
+
+def test_fetching_tickers_without_a_user_agent_is_refused() -> None:
+    with pytest.raises(DataSourceUnavailableError, match="SEC_USER_AGENT"):
+        fetch_sec_tickers(user_agent="", timeout=1)

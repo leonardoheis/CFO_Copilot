@@ -148,8 +148,12 @@ class _RegistryConfig(BaseModel):
     companies: tuple[_CompanyConfig, ...]
 
 
+def is_valid_cik(cik: str) -> bool:
+    return len(cik) == CIK_LENGTH and cik.isdigit()
+
+
 def _validate_cik(cik: str) -> str:
-    if len(cik) != CIK_LENGTH or not cik.isdigit():
+    if not is_valid_cik(cik):
         msg = f"CIK must contain exactly {CIK_LENGTH} digits"
         raise ValueError(msg)
     return cik

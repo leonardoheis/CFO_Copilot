@@ -217,6 +217,14 @@ on disk are unaffected.
 - **Tests:** one test per malformed-payload case against the shared client; the
   `add_company` cassette stays green.
 - **Rerun:** Only after re-ingestion.
+- **Status:** done. `sec_edgar.parsing.sec_tickers` validates the file and
+  every entry (CIK checked by the registry's `is_valid_cik`);
+  `sec_edgar.source.fetch_sec_tickers` fetches it through the same HTTP
+  boundary as companyfacts. `SecEdgarSource` and `add_company` both use it, and
+  `add_company` reports a `DataSourceError` as a CLI error. `add_company` had no
+  cassette; its tests stub `fetch_sec_tickers`. A duplicated ticker in SEC's
+  file resolves to the last entry, which is what ingestion already did
+  (`add_company` used to take the first).
 
 ### #24 Coverage loop uses exceptions to continue
 - **Smell:** Exception as Control Flow (CLAUDE.md error-handling rule).
