@@ -1,9 +1,10 @@
+from collections.abc import Mapping
 from enum import StrEnum
-from typing import Final
+from typing import Final, Self, assert_never
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from app.services.features.exceptions import (
     InvalidHorizonError,
@@ -33,23 +34,61 @@ class TargetArm(StrEnum):
     REVENUE_SCALED_YOY = "revenue_scaled_yoy"
 
 
-_LOG_ARMS: Final = (
-    TargetArm.LOG_DIFF1,
-    TargetArm.LOG_DIFF4,
-    TargetArm.SEASNAIVE_RESIDUAL,
-)
+class TargetFamily(StrEnum):
+    POSITIVE = "positive"
+    SIGNED = "signed"
+
+
+def target_family(variable: str) -> TargetFamily:
+    """Classify a column by whether it can be zero or negative.
+
+    Returns:
+        Positive for revenue, which never is and so is measured in logs;
+        signed for every other column.
+    """
+    if variable == TargetVariable.REVENUE:
+        return TargetFamily.POSITIVE
+    return TargetFamily.SIGNED
+
+
+class TargetPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    arms: tuple[TargetArm, ...]
+    default_arm: TargetArm
+
+    @model_validator(mode="after")
+    def _default_is_an_allowed_arm(self) -> Self:
+        if self.default_arm not in self.arms:
+            msg = f"default arm {self.default_arm} is not among {self.arms}"
+            raise ValueError(msg)
+        return self
+
+
+TARGET_POLICIES: Final[Mapping[TargetFamily, TargetPolicy]] = {
+    TargetFamily.POSITIVE: TargetPolicy(
+        arms=(
+            TargetArm.LOG_DIFF1,
+            TargetArm.LOG_DIFF4,
+            TargetArm.SEASNAIVE_RESIDUAL,
+        ),
+        # Master plan D4.
+        default_arm=TargetArm.SEASNAIVE_RESIDUAL,
+    ),
+    TargetFamily.SIGNED: TargetPolicy(
+        arms=(TargetArm.REVENUE_SCALED_YOY,),
+        default_arm=TargetArm.REVENUE_SCALED_YOY,
+    ),
+}
 
 
 def arms_for(variable: TargetVariable) -> tuple[TargetArm, ...]:
     """Name the target arms a variable can be forecast with.
 
     Returns:
-        The log arms for revenue, which is never non-positive; the
-        revenue-scaled arm for the variables that can be.
+        The arms of the variable's family.
     """
-    if variable is TargetVariable.REVENUE:
-        return _LOG_ARMS
-    return (TargetArm.REVENUE_SCALED_YOY,)
+    return TARGET_POLICIES[target_family(variable)].arms
 
 
 def log_level(values: pd.Series) -> pd.Series:
@@ -71,12 +110,9 @@ def default_arm(variable: TargetVariable) -> TargetArm:
     """Name the arm NB01 exports for a variable.
 
     Returns:
-        The seasonal-naive residual for revenue (master plan D4), the
-        revenue-scaled change for the others.
+        The default arm of the variable's family.
     """
-    if variable is TargetVariable.REVENUE:
-        return TargetArm.SEASNAIVE_RESIDUAL
-    return TargetArm.REVENUE_SCALED_YOY
+    return TARGET_POLICIES[target_family(variable)].default_arm
 
 
 def yoy_log_growth(values: pd.Series) -> pd.Series:
@@ -104,9 +140,13 @@ def target_growth(
     Returns:
         Log growth for revenue, the revenue-scaled change otherwise.
     """
-    if variable is TargetVariable.REVENUE:
-        return yoy_log_growth(values)
-    return revenue_scaled_yoy_change(values, revenue)
+    match target_family(variable):
+        case TargetFamily.POSITIVE:
+            return yoy_log_growth(values)
+        case TargetFamily.SIGNED:
+            return revenue_scaled_yoy_change(values, revenue)
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 class TargetTransformer(BaseModel):

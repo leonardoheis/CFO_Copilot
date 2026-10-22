@@ -2,11 +2,12 @@
 
 from collections.abc import Callable, Mapping
 from enum import StrEnum
-from typing import Final, Literal, assert_never
+from typing import Final, Literal, Self, assert_never
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from pydantic import BaseModel, ConfigDict, model_validator
 from scipy.stats import (
     anderson,
     boxcox,
@@ -24,7 +25,12 @@ from app.services.diagnostics.series import (
     stl_remainder,
     with_short_interior_gaps_filled,
 )
-from app.services.features.transforms import TargetVariable, trailing_revenue
+from app.services.features.transforms import (
+    TargetFamily,
+    TargetVariable,
+    target_family,
+    trailing_revenue,
+)
 
 
 class LevelTransform(StrEnum):
@@ -42,20 +48,43 @@ class LevelTransform(StrEnum):
 type Normality = Literal["jarque_bera", "anderson_darling"]
 type _FloatArray = npt.NDArray[np.float64]
 
-_POSITIVE_CANDIDATES: Final = (
-    LevelTransform.NONE,
-    LevelTransform.LOG,
-    LevelTransform.SQRT,
-    LevelTransform.BOX_COX,
-    LevelTransform.BOX_COX_SECTOR,
-)
-_SIGNED_CANDIDATES: Final = (
-    LevelTransform.NONE,
-    LevelTransform.REVENUE_SCALED,
-    LevelTransform.ASINH,
-    LevelTransform.YEO_JOHNSON,
-    LevelTransform.YEO_JOHNSON_SECTOR,
-)
+
+class TransformPolicy(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    candidates: tuple[LevelTransform, ...]
+    baseline: LevelTransform
+
+    @model_validator(mode="after")
+    def _baseline_is_a_candidate(self) -> Self:
+        if self.baseline not in self.candidates:
+            msg = f"baseline {self.baseline} is not among {self.candidates}"
+            raise ValueError(msg)
+        return self
+
+
+TRANSFORM_POLICIES: Final[Mapping[TargetFamily, TransformPolicy]] = {
+    TargetFamily.POSITIVE: TransformPolicy(
+        candidates=(
+            LevelTransform.NONE,
+            LevelTransform.LOG,
+            LevelTransform.SQRT,
+            LevelTransform.BOX_COX,
+            LevelTransform.BOX_COX_SECTOR,
+        ),
+        baseline=LevelTransform.LOG,
+    ),
+    TargetFamily.SIGNED: TransformPolicy(
+        candidates=(
+            LevelTransform.NONE,
+            LevelTransform.REVENUE_SCALED,
+            LevelTransform.ASINH,
+            LevelTransform.YEO_JOHNSON,
+            LevelTransform.YEO_JOHNSON_SECTOR,
+        ),
+        baseline=LevelTransform.REVENUE_SCALED,
+    ),
+}
 # Log and square root are Box-Cox at fixed lambdas, up to a shift and a scale that
 # neither criterion sees: Spearman ranks and both normality statistics are
 # affine-invariant.
@@ -70,9 +99,7 @@ def candidates_for(variable: str) -> tuple[LevelTransform, ...]:
     Returns:
         Power transforms for revenue, transforms defined for signed values otherwise.
     """
-    if variable == TargetVariable.REVENUE:
-        return _POSITIVE_CANDIDATES
-    return _SIGNED_CANDIDATES
+    return TRANSFORM_POLICIES[target_family(variable)].candidates
 
 
 def baseline_transform(variable: str) -> LevelTransform:
@@ -81,9 +108,7 @@ def baseline_transform(variable: str) -> LevelTransform:
     Returns:
         Log for revenue, the revenue-scaled value for the signed targets.
     """
-    if variable == TargetVariable.REVENUE:
-        return LevelTransform.LOG
-    return LevelTransform.REVENUE_SCALED
+    return TRANSFORM_POLICIES[target_family(variable)].baseline
 
 
 def box_cox(series: pd.Series, lam: float) -> pd.Series:

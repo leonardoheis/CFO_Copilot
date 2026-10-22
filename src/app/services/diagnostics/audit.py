@@ -45,6 +45,28 @@ def _robust_sigma(deviations: pd.Series, centre: float) -> float:
     return float(deviations.mean()) / _MEAN_AD_TO_SIGMA
 
 
+class _RobustScale(NamedTuple):
+    median: float
+    sigma: float
+
+
+def _robust_scale(values: pd.Series, min_count: int) -> _RobustScale | None:
+    """Centre and spread to judge ``values`` by.
+
+    Returns:
+        The median and robust sigma, or None when fewer than ``min_count``
+        values are observed or they have no spread to judge a deviation by.
+    """
+    observed = values.dropna()
+    if len(observed) < min_count:
+        return None
+    median = float(observed.median())
+    sigma = _robust_sigma((observed - median).abs(), median)
+    if sigma <= _DEGENERATE_SCALE * max(1.0, abs(median)):
+        return None
+    return _RobustScale(median=median, sigma=sigma)
+
+
 class _CompanySeries(NamedTuple):
     ticker: str
     panel: pd.DataFrame
@@ -128,13 +150,8 @@ class OutlierRegister:
 
     def _scores(self, series: _CompanySeries) -> _Scores | None:
         change = self._relative_change(series)
-        observed = change.dropna()
-        if len(observed) < self._settings.min_changes:
-            return None
-        median = float(observed.median())
-        sigma = _robust_sigma((observed - median).abs(), median)
-        # Changes that are all equal have no spread to judge a deviation by.
-        if sigma <= _DEGENERATE_SCALE * max(1.0, abs(median)):
+        scale = _robust_scale(change, self._settings.min_changes)
+        if scale is None:
             return None
         window = self._settings.hampel_window
         local_median = change.rolling(window, center=True, min_periods=window // 2)
@@ -145,11 +162,11 @@ class OutlierRegister:
             .rolling(window, center=True, min_periods=window // 2)
             .median()
             .div(_MAD_TO_SIGMA)
-            .clip(lower=self._settings.hampel_mad_floor * sigma)
+            .clip(lower=self._settings.hampel_mad_floor * scale.sigma)
         )
         return _Scores(
             change=change,
-            robust_z=(change - median) / sigma,
+            robust_z=(change - scale.median) / scale.sigma,
             hampel_z=(change - local_centre) / local_sigma,
         )
 
@@ -168,14 +185,10 @@ class OutlierRegister:
         return [finding for finding in findings if not finding.empty]
 
     def _target_extremes(self, group: pd.DataFrame) -> pd.DataFrame:
-        observed = group["y"].dropna()
-        if len(observed) < self._settings.min_changes:
+        scale = _robust_scale(group["y"], self._settings.min_changes)
+        if scale is None:
             return pd.DataFrame(columns=list(TARGET_EXTREME_COLUMNS))
-        median = float(observed.median())
-        sigma = _robust_sigma((observed - median).abs(), median)
-        if sigma <= _DEGENERATE_SCALE * max(1.0, abs(median)):
-            return pd.DataFrame(columns=list(TARGET_EXTREME_COLUMNS))
-        robust_z = (group["y"] - median) / sigma
+        robust_z = (group["y"] - scale.median) / scale.sigma
         extreme = robust_z.abs() > self._settings.z_threshold
         return group.loc[extreme].assign(
             robust_z=robust_z[extreme],

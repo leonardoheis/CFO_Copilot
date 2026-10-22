@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pydantic import ValidationError
+from syrupy.assertion import SnapshotAssertion
 
 from app.services.diagnostics import DataDictionary, OutlierRegister, OutlierSettings
 
@@ -247,3 +248,22 @@ def test_a_series_too_short_to_score_gives_no_scores(
     )
 
     assert scores.empty
+
+
+def test_scores_and_target_extremes_keep_their_values(
+    register: OutlierRegister, snapshot: SnapshotAssertion
+) -> None:
+    revenue = _growing_revenue()
+    revenue[16:] = [value * 4 for value in revenue[16:]]
+    rng = np.random.default_rng(1)
+    targets = list(0.05 + 0.01 * rng.normal(size=QUARTERS))
+    targets[10] = 2.0
+    targets[20] = -1.5
+
+    scores = register.scores_for(_panel("AAA", revenue), "revenue_usd_m")
+    extremes = register.register_target(_target_frame(targets))
+
+    assert {
+        "scores": scores[["robust_z", "hampel_z"]].round(12).to_dict("list"),
+        "extremes": extremes["robust_z"].round(12).tolist(),
+    } == snapshot

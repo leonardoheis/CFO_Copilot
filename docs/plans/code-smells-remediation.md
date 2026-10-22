@@ -286,6 +286,12 @@ on disk are unaffected.
   separate.
 - **Tests:** characterization of both callers on `make_panel` before the change.
 - **Rerun:** No.
+- **Status:** done. `_robust_scale(values, min_count)` returns the median and
+  robust sigma, or None when too few values or no spread; `_scores` and
+  `_target_extremes` both use it. It returns the scale, not z, because `_scores`
+  also needs sigma for the Hampel floor. A syrupy snapshot of both callers'
+  `robust_z`/`hampel_z` (built with the test file's own panel helpers, not
+  `make_panel`) was recorded before the change and replays unchanged.
 
 ### #15 Revenue-vs-signed target policy is scattered
 - **Smell:** Shotgun Surgery.
@@ -297,6 +303,22 @@ on disk are unaffected.
 - **Tests:** parametrized test over every `TargetVariable` pinning today's
   answers from each function.
 - **Rerun:** No.
+- **Status:** done. `features.transforms.target_family(variable)` is the one
+  rule (revenue is positive, every other column signed). It takes a plain
+  `str`, so a column that is not a target is still compared as signed, as
+  before. Each family has one record per layer:
+  - `TARGET_POLICIES` in `features/transforms.py`: allowed arms and default
+    arm, read by `arms_for` and `default_arm`; `target_growth` matches on the
+    family.
+  - `TRANSFORM_POLICIES` in `diagnostics/transform_comparison.py`: candidates
+    and baseline, read by `candidates_for` and `baseline_transform`.
+
+  Two records rather than one: a single record in `features/` would have to
+  import `LevelTransform` from `diagnostics/`, and the features layer does not
+  depend on diagnostics. Each record validates its own invariant (the default
+  arm is an allowed arm; the baseline is a candidate).
+  `tests/services/test_target_policy.py` pins all five answers per variable;
+  it was written and passed before the change.
 
 ### #16 Column-family classification is duplicated
 - **Smell:** Duplicate Code.
