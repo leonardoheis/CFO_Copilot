@@ -179,14 +179,14 @@ class SecEdgarSource:
         cached = self._company_facts_by_cik.get(padded_cik)
         if cached is not None:
             return cached
-        url = SEC_COMPANY_FACTS_URL.format(cik=padded_cik)
-        try:
-            company_facts = cast("JsonObject", self._get_json(url))
-        except requests.HTTPError as error:
-            if error.response is None or error.response.status_code != NOT_FOUND_STATUS:
-                msg = f"Failed to fetch SEC companyfacts CIK{padded_cik}: {error}"
-                raise DataSourceUnavailableError(msg) from error
-            company_facts = {}
+        payload = self._get_json(SEC_COMPANY_FACTS_URL.format(cik=padded_cik))
+        # 404 is SEC's answer for a CIK that has never filed XBRL.
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            msg = f"SEC companyfacts CIK{padded_cik} is not a JSON object"
+            raise MalformedPayloadError(msg)
+        company_facts = cast("JsonObject", payload)
         self._company_facts_by_cik[padded_cik] = company_facts
         return company_facts
 
@@ -402,23 +402,34 @@ class SecEdgarSource:
         if self._ticker_ciks is not None:
             return self._ticker_ciks
 
-        payload = cast("JsonObject", self._get_json(SEC_TICKERS_URL))
+        payload = self._get_json(SEC_TICKERS_URL)
+        if payload is None:
+            msg = f"SEC ticker file not found at {SEC_TICKERS_URL}"
+            raise DataSourceUnavailableError(msg)
+        if not isinstance(payload, dict):
+            msg = "SEC ticker file is not a JSON object"
+            raise MalformedPayloadError(msg)
         ticker_ciks: dict[str, str] = {}
         for entry in payload.values():
-            ticker_entry = cast("JsonObject", entry)
-            try:
-                ticker = str(ticker_entry["ticker"]).upper()
-                cik = str(ticker_entry["cik_str"]).zfill(10)
-            except KeyError as error:
-                msg = f"Malformed SEC ticker entry: {ticker_entry!r}"
-                raise MalformedPayloadError(
-                    msg,
-                ) from error
+            if not isinstance(entry, dict) or not {"ticker", "cik_str"} <= entry.keys():
+                msg = f"Malformed SEC ticker entry: {entry!r}"
+                raise MalformedPayloadError(msg)
+            ticker = str(entry["ticker"]).upper()
+            cik = str(entry["cik_str"]).zfill(10)
             ticker_ciks[ticker] = cik
         self._ticker_ciks = ticker_ciks
         return ticker_ciks
 
-    def _get_json(self, url: str) -> object:
+    def _get_json(self, url: str) -> object | None:
+        """Fetch one SEC document.
+
+        Returns:
+            The decoded JSON, or None when SEC has no document at ``url``.
+
+        Raises:
+            DataSourceUnavailableError: No user agent, any other HTTP failure,
+                or a body that is not JSON.
+        """
         if not self._user_agent:
             raise DataSourceUnavailableError(MISSING_USER_AGENT_MESSAGE)
         try:
@@ -427,14 +438,11 @@ class SecEdgarSource:
                 headers={"User-Agent": self._user_agent},
                 timeout=self._timeout,
             )
+            if response.status_code == NOT_FOUND_STATUS:
+                return None
             response.raise_for_status()
-            return response.json()
-        except DataSourceUnavailableError:
-            raise
-        except requests.HTTPError:
-            raise
+            payload: object = response.json()
         except (requests.RequestException, ValueError) as error:
-            msg = f"Failed to fetch SEC EDGAR data: {error}"
-            raise DataSourceUnavailableError(
-                msg,
-            ) from error
+            msg = f"Failed to fetch SEC EDGAR {url}: {error}"
+            raise DataSourceUnavailableError(msg) from error
+        return payload

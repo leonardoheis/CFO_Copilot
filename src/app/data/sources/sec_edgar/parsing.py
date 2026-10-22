@@ -19,6 +19,22 @@ logger = logging.getLogger(__name__)
 type JsonObject = dict[str, object]
 
 
+def _child_object(parent: JsonObject, key: str, tag: str) -> JsonObject:
+    """An absent level means "not filed"; a present one must be an object.
+
+    Returns:
+        The nested object, or an empty one when ``key`` is absent.
+
+    Raises:
+        MalformedPayloadError: ``key`` is present but is not an object.
+    """
+    child = parent.get(key, {})
+    if not isinstance(child, dict):
+        msg = f"SEC companyfacts {key!r} on the way to {tag} is not an object"
+        raise MalformedPayloadError(msg)
+    return cast("JsonObject", child)
+
+
 def concept_facts(company_facts: JsonObject, tag: str, unit: str) -> list[XbrlFact]:
     """Read one us-gaap tag's facts in one unit from a companyfacts payload.
 
@@ -26,12 +42,12 @@ def concept_facts(company_facts: JsonObject, tag: str, unit: str) -> list[XbrlFa
         The facts, or an empty list when the company never filed the tag or unit.
 
     Raises:
-        MalformedPayloadError: The unit is present but is not a list of facts.
+        MalformedPayloadError: A level is present but has the wrong shape.
     """
-    facts = cast("JsonObject", company_facts.get("facts", {}))
-    us_gaap = cast("JsonObject", facts.get("us-gaap", {}))
-    concept = cast("JsonObject", us_gaap.get(tag, {}))
-    units = cast("JsonObject", concept.get("units", {}))
+    facts = _child_object(company_facts, "facts", tag)
+    us_gaap = _child_object(facts, "us-gaap", tag)
+    concept = _child_object(us_gaap, tag, tag)
+    units = _child_object(concept, "units", tag)
     unit_facts = units.get(unit, [])
     if not isinstance(unit_facts, list):
         msg = f"SEC companyfacts {tag} [{unit}] is not a list of facts"

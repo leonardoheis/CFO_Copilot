@@ -199,6 +199,11 @@ on disk are unaffected.
 - **Tests:** 404 → company skipped with a warning; 500 → `DataSourceUnavailableError`;
   a non-dict `units` → `MalformedPayloadError`. Existing cassettes stay green.
 - **Rerun:** Only after re-ingestion.
+- **Status:** done. `_get_json` returns `None` for 404 and wraps every other
+  HTTP, network or JSON-decode failure in `DataSourceUnavailableError` naming
+  the URL. A companyfacts 404 still yields empty facts (the existing behaviour);
+  a 404 on the ticker file is `DataSourceUnavailableError`; a non-object body
+  or ticker entry is `MalformedPayloadError`.
 
 ### #12 Same SEC ticker lookup exists twice
 - **Smell:** Duplicate Code.

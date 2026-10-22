@@ -32,6 +32,7 @@ class FakeResponse:
     def __init__(self, payload: object, status: HTTPStatus = HTTPStatus.OK) -> None:
         self._payload = payload
         self._status = status
+        self.status_code = int(status)
 
     def raise_for_status(self) -> None:
         if self._status is not HTTPStatus.OK:
@@ -91,6 +92,22 @@ def test_concept_facts_rejects_a_unit_that_is_not_a_list() -> None:
         concept_facts(payload, "Revenues", "USD")
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"facts": []},
+        {"facts": {"us-gaap": "none"}},
+        {"facts": {"us-gaap": {"Revenues": None}}},
+        {"facts": {"us-gaap": {"Revenues": {"units": ["USD"]}}}},
+    ],
+)
+def test_concept_facts_rejects_a_level_that_is_not_an_object(
+    payload: dict[str, object],
+) -> None:
+    with pytest.raises(MalformedPayloadError, match="Revenues"):
+        concept_facts(payload, "Revenues", "USD")
+
+
 def test_one_company_facts_request_serves_every_tag(
     monkeypatch: pytest.MonkeyPatch,
     company_registry: CompanyRegistry,
@@ -130,3 +147,37 @@ def test_a_server_error_is_reported_as_unavailable(
 
     with pytest.raises(DataSourceUnavailableError, match="CIK0000001800"):
         source.fetch_concept("1800", "Revenues")
+
+
+def test_a_company_facts_body_that_is_not_an_object_is_malformed(
+    monkeypatch: pytest.MonkeyPatch,
+    company_registry: CompanyRegistry,
+) -> None:
+    source, _ = _source(monkeypatch, company_registry, FakeResponse(["facts"]))
+
+    with pytest.raises(MalformedPayloadError, match="CIK0000001800"):
+        source.fetch_concept("1800", "Revenues")
+
+
+def test_a_ticker_file_server_error_is_reported_as_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    company_registry: CompanyRegistry,
+) -> None:
+    source, _ = _source(
+        monkeypatch, company_registry, FakeResponse({}, HTTPStatus.SERVICE_UNAVAILABLE)
+    )
+
+    with pytest.raises(DataSourceUnavailableError, match="company_tickers"):
+        source.resolve_cik("QCOM")
+
+
+def test_a_malformed_ticker_entry_is_reported(
+    monkeypatch: pytest.MonkeyPatch,
+    company_registry: CompanyRegistry,
+) -> None:
+    source, _ = _source(
+        monkeypatch, company_registry, FakeResponse({"0": {"ticker": "QCOM"}})
+    )
+
+    with pytest.raises(MalformedPayloadError, match="Malformed SEC ticker entry"):
+        source.resolve_cik("QCOM")
