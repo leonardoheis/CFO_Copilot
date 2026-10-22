@@ -8,6 +8,7 @@ import pytest
 from app.data.exceptions import DataSourceError, MalformedPayloadError
 from app.data.sources.alpha_vantage import AlphaVantageSource
 from app.data.sources.alpha_vantage.source import MIN_REQUEST_INTERVAL_SECONDS
+from app.settings import Settings
 
 SLEEP_TARGET = "app.data.sources.alpha_vantage.source.time.sleep"
 GET_TARGET = "app.data.sources.alpha_vantage.source.requests.get"
@@ -81,7 +82,7 @@ def _source(
 
     monkeypatch.setattr(GET_TARGET, get)
     monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
-    return AlphaVantageSource("test-key", tmp_path)
+    return AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
 
 
 def test_fetch_financials_panel_maps_quarterly_values(
@@ -195,7 +196,7 @@ def test_cache_is_reused_without_second_http_request(
         raise AssertionError(msg)
 
     monkeypatch.setattr(GET_TARGET, fail_get)
-    cached = AlphaVantageSource("test-key", tmp_path)
+    cached = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     panel = cached.fetch_financials_panel(
         "AMZN",
         date(2006, 1, 1),
@@ -220,7 +221,7 @@ def test_api_quota_payload_raises_data_source_error(
 
     monkeypatch.setattr(GET_TARGET, get)
     monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
-    source = AlphaVantageSource("test-key", tmp_path)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(DataSourceError, match="Alpha Vantage Note"):
@@ -251,7 +252,7 @@ def test_rate_limit_information_retries_then_succeeds(
 
     monkeypatch.setattr(GET_TARGET, get)
     monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
-    source = AlphaVantageSource("test-key", tmp_path)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     panel = source.fetch_financials_panel(
         "AMZN",
         date(2006, 1, 1),
@@ -285,7 +286,7 @@ def test_throttle_waits_between_uncached_requests(
         clock["value"] += seconds
 
     monkeypatch.setattr(SLEEP_TARGET, fake_sleep)
-    source = AlphaVantageSource("test-key", tmp_path)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
 
     assert slept == pytest.approx(
@@ -300,11 +301,31 @@ def test_throttle_waits_between_uncached_requests(
 def test_missing_api_key_fails_before_http(
     tmp_path: Path,
 ) -> None:
-    source = AlphaVantageSource("", tmp_path)
+    source = AlphaVantageSource("", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(DataSourceError, match="ALPHA_VANTAGE_API_KEY"):
         source.fetch_financials_panel("AMZN", start, end)
+
+
+def test_every_request_uses_the_injected_timeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payloads = _payloads()
+    timeouts: list[int] = []
+
+    def get(_url: str, *, params: dict[str, str], timeout: int) -> FakeResponse:
+        timeouts.append(timeout)
+        return FakeResponse(payloads[params["function"]])
+
+    monkeypatch.setattr(GET_TARGET, get)
+    monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=7)
+
+    source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
+
+    assert timeouts == [7] * len(payloads)
 
 
 def test_reported_zero_diluted_eps_is_not_replaced_by_basic_eps(

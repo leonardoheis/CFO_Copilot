@@ -11,13 +11,18 @@ import pytest
 from app.data.companies import CompanyRegistry
 from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.xbrl import XbrlFact
+from app.settings import Settings
 
 TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 
 
 @pytest.fixture
 def sec_source(company_registry: CompanyRegistry) -> SecEdgarSource:
-    return SecEdgarSource(user_agent=TEST_USER_AGENT, registry=company_registry)
+    return SecEdgarSource(
+        user_agent=TEST_USER_AGENT,
+        registry=company_registry,
+        timeout=Settings.REQUEST_TIMEOUT,
+    )
 
 
 def _duration_fact(start: str, end: str, val: float, *, filed: str) -> XbrlFact:

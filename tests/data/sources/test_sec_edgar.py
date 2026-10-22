@@ -10,13 +10,18 @@ from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
 from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
 from app.data.sources.sec_edgar import SecEdgarSource, merge_raw_financial_frames
 from app.data.xbrl import XbrlFact
+from app.settings import Settings
 
 TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 
 
 @pytest.fixture
 def sec_source(company_registry: CompanyRegistry) -> SecEdgarSource:
-    return SecEdgarSource(user_agent=TEST_USER_AGENT, registry=company_registry)
+    return SecEdgarSource(
+        user_agent=TEST_USER_AGENT,
+        registry=company_registry,
+        timeout=Settings.REQUEST_TIMEOUT,
+    )
 
 
 def _duration_fact(start: str, end: str, val: float, *, filed: str) -> XbrlFact:
@@ -67,7 +72,9 @@ def test_resolve_cik_raises_for_unknown_ticker(
 def test_fetch_concept_raises_without_user_agent(
     company_registry: CompanyRegistry,
 ) -> None:
-    source = SecEdgarSource(user_agent="", registry=company_registry)
+    source = SecEdgarSource(
+        user_agent="", registry=company_registry, timeout=Settings.REQUEST_TIMEOUT
+    )
 
     with pytest.raises(DataSourceUnavailableError, match="SEC_USER_AGENT"):
         source.fetch_concept("0001018724", "NetIncomeLoss")

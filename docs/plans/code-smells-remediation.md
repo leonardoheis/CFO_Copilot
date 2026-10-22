@@ -168,10 +168,16 @@ Each item lists: **Smell**, **Where**, **Cost**, **Fix**, **Tests**, **Rerun**.
 - **Cost:** tests cannot vary the timeout or substitute the FRED client without
   patching globals.
 - **Fix:** constructor parameters `timeout: int` and (FRED) `client`, supplied by
-  `injections/production.py`. Defaults equal today's values.
+  `injections/production.py`. `timeout` is required, not defaulted, so the
+  30 seconds lives only in `Settings.REQUEST_TIMEOUT`. FRED's `**kwargs` became
+  an explicit `units` keyword. `add_company.lookup_ticker` takes `user_agent`
+  and `timeout` from its CLI command. The coverage runner builds its Alpha
+  Vantage source from the container, which also settles #13's duplicated cache
+  path.
 - **Tests:** a source constructed with an explicit timeout passes it to
   `requests.get` (assert on the mock call).
 - **Rerun:** No.
+- **Status:** done.
 
 ## Phase 3: Error boundaries
 
@@ -226,8 +232,8 @@ on disk are unaffected.
   (`pipeline.py`, `coverage.py`, tests); 20-year default range (`pipeline.py`,
   `coverage_runner.py`); margin calculation (SEC and Alpha Vantage parsing);
   company value columns (`schema.py`, `missing.py`); pre-listing cutoff
-  (`flags.py`, `missing.py`); Alpha Vantage cache path (`production.py:72`,
-  `coverage_runner.py:73`).
+  (`flags.py`, `missing.py`). The Alpha Vantage cache path pair was settled by
+  #27.
 - **Cost:** changing one business rule leaves its twin behind.
 - **Fix:** one constant or function per rule, in the module that owns the rule
   (`app/data/` for shared rules; vendor-specific ones stay in their package).

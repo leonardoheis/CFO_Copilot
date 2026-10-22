@@ -68,11 +68,7 @@ def _build_probe_context(start: date, end: date, *, refresh: bool) -> ProbeConte
     return ProbeContext(
         start=start,
         end=end,
-        client=AlphaVantageSource(
-            api_key=Settings.ALPHA_VANTAGE_API_KEY,
-            cache_directory=Settings.DATA_DIRECTORY / "raw" / "alpha_vantage",
-            refresh=refresh,
-        ),
+        client=container.alpha_vantage_source(refresh=refresh),
         sec_source=container.sec_edgar_source(),
         market_source=container.yfinance_source(),
     )

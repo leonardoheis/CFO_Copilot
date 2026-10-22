@@ -33,7 +33,7 @@ def registry(tmp_path: Path) -> Path:
 def stub_sec_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "app.data.add_company.lookup_ticker",
-        lambda ticker: {"INTC": ("0000050863", "INTEL CORP")}.get(ticker.upper()),
+        lambda ticker, **_: {"INTC": ("0000050863", "INTEL CORP")}.get(ticker.upper()),
     )
 
 

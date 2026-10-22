@@ -2,6 +2,7 @@ from datetime import date
 
 import pandas as pd
 import pytest
+from fredapi import Fred
 
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError
@@ -12,8 +13,7 @@ from app.settings import Settings
 
 @pytest.fixture
 def fred_source() -> FredSource:
-    api_key = Settings.FRED_API_KEY or "test-key"
-    return FredSource(api_key=api_key)
+    return FredSource(client=Fred(api_key=Settings.FRED_API_KEY or "test-key"))
 
 
 @pytest.mark.vcr
@@ -42,7 +42,7 @@ def test_fetch_macro_panel_has_macro_columns(fred_source: FredSource) -> None:
 
 
 def test_fetch_macro_series_raises_without_api_key() -> None:
-    source = FredSource(api_key="")
+    source = FredSource(client=Fred(api_key=""))
     start, end = date(2020, 1, 1), date(2020, 6, 30)
 
     with pytest.raises(DataSourceUnavailableError, match="FRED_API_KEY"):

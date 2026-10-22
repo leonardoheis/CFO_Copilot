@@ -28,7 +28,9 @@ ENTRY_TEMPLATE: Final = """
 """
 
 
-def lookup_ticker(ticker: str) -> tuple[str, str] | None:
+def lookup_ticker(
+    ticker: str, *, user_agent: str, timeout: int
+) -> tuple[str, str] | None:
     """Find a ticker in SEC's published ticker file.
 
     Returns:
@@ -37,8 +39,8 @@ def lookup_ticker(ticker: str) -> tuple[str, str] | None:
     """
     response = requests.get(
         SEC_TICKERS_URL,
-        headers={"User-Agent": Settings.SEC_USER_AGENT},
-        timeout=Settings.REQUEST_TIMEOUT,
+        headers={"User-Agent": user_agent},
+        timeout=timeout,
     )
     response.raise_for_status()
     payload = response.json()
@@ -74,7 +76,11 @@ def add_company(
         message = f"{normalized} is already in {path}"
         raise click.ClickException(message)
 
-    found = lookup_ticker(normalized)
+    found = lookup_ticker(
+        normalized,
+        user_agent=Settings.SEC_USER_AGENT,
+        timeout=Settings.REQUEST_TIMEOUT,
+    )
     if found is None:
         message = (
             f"SEC does not list {normalized}. Check the symbol — a ticker that "

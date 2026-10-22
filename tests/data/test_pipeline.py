@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from fredapi import Fred
 
 from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
@@ -424,10 +425,11 @@ def test_merge_panel_propagates_source_errors(
 def test_merge_panel_returns_panel_after_all_sources_are_implemented(
     company_registry: CompanyRegistry,
 ) -> None:
-    fred = FredSource(api_key=Settings.FRED_API_KEY or "test-key")
+    fred = FredSource(client=Fred(api_key=Settings.FRED_API_KEY or "test-key"))
     sec_edgar = SecEdgarSource(
         user_agent=Settings.SEC_USER_AGENT or TEST_USER_AGENT,
         registry=company_registry,
+        timeout=Settings.REQUEST_TIMEOUT,
     )
     panel = merge_panel(
         ticker="AMZN",

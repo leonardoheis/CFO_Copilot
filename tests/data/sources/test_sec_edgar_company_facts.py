@@ -8,6 +8,7 @@ from app.data.exceptions import DataSourceUnavailableError, MalformedPayloadErro
 from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.sources.sec_edgar.parsing import concept_facts
 from app.data.xbrl import XbrlFact
+from app.settings import Settings
 
 GET_TARGET = "app.data.sources.sec_edgar.source.requests.get"
 TEST_USER_AGENT = "CFO Copilot tests test@example.com"
@@ -55,7 +56,11 @@ def _source(
         return response
 
     monkeypatch.setattr(GET_TARGET, get)
-    source = SecEdgarSource(user_agent=TEST_USER_AGENT, registry=company_registry)
+    source = SecEdgarSource(
+        user_agent=TEST_USER_AGENT,
+        registry=company_registry,
+        timeout=Settings.REQUEST_TIMEOUT,
+    )
     return source, requested
 
 

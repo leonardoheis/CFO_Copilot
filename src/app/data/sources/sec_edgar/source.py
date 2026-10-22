@@ -24,7 +24,6 @@ from app.data.xbrl import (
     instant_series_from_facts,
     quarterly_facts_from_facts,
 )
-from app.settings import Settings
 
 from .concepts import (
     DILUTED_SHARES_FALLBACK,
@@ -141,9 +140,12 @@ def _none_where_missing(provenance: pd.Series) -> list[str | None]:
 
 
 class SecEdgarSource:
-    def __init__(self, user_agent: str, registry: CompanyRegistry) -> None:
+    def __init__(
+        self, user_agent: str, registry: CompanyRegistry, *, timeout: int
+    ) -> None:
         self._user_agent = user_agent
         self._registry = registry
+        self._timeout = timeout
         self._ticker_ciks: dict[str, str] | None = None
         self._company_facts_by_cik: dict[str, JsonObject] = {}
 
@@ -423,7 +425,7 @@ class SecEdgarSource:
             response = requests.get(
                 url,
                 headers={"User-Agent": self._user_agent},
-                timeout=Settings.REQUEST_TIMEOUT,
+                timeout=self._timeout,
             )
             response.raise_for_status()
             return response.json()

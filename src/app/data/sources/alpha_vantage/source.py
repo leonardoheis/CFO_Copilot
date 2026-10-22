@@ -21,7 +21,6 @@ from app.data.schema import (
     PROVENANCE_COLUMNS,
     FinancialQuarterValues,
 )
-from app.settings import Settings
 
 from .parsing import (
     JsonObject,
@@ -53,10 +52,12 @@ class AlphaVantageSource:
         api_key: str,
         cache_directory: Path,
         *,
+        timeout: int,
         refresh: bool = False,
     ) -> None:
         self._api_key = api_key
         self._cache_directory = cache_directory
+        self._timeout = timeout
         self._refresh = refresh
         self._last_request_at: float | None = None
 
@@ -140,7 +141,7 @@ class AlphaVantageSource:
                     "symbol": ticker,
                     "apikey": self._api_key,
                 },
-                timeout=Settings.REQUEST_TIMEOUT,
+                timeout=self._timeout,
             )
             response.raise_for_status()
             payload = response.json()
