@@ -117,19 +117,13 @@ Each item lists: **Smell**, **Where**, **Cost**, **Fix**, **Tests**, **Rerun**.
 
 ## Phase 2: Side effects and hidden dependencies
 
-### #2 Import-time bootstrap
-- **Smell:** Hidden Dependency, Side Effect.
-- **Where:** `src/app/__init__.py`, `src/app/_bootstrap.py`,
-  `src/app/injections/bootstrap.py`.
-- **Cost:** importing any `app` module (notebooks, tests, the CLI) configures and
-  wires the container as a side effect.
-- **Fix:** remove the import-time call. Call `configure_container()` explicitly
-  from `app.__main__`, the API factory, the Streamlit entrypoint, the ingestion
-  CLI entrypoints and `tests/conftest.py`. Notebooks already call it; their code
-  cells need no change.
-- **Tests:** a test that `import app.data.schema` leaves the container
-  unwired; the existing API tests prove the explicit path wires it.
-- **Rerun:** No.
+### #2 Import-time bootstrap — already resolved
+- **Status:** fixed before this plan ran, in commit `5c689f7`
+  ("remove unused bootstrap import and file"). `src/app/__init__.py` holds only
+  `__version__`; `create_app()`, the three ingestion CLIs (`runner`, `batch`,
+  `coverage_runner`), `tests/conftest.py`, `tests/api/conftest.py` and the
+  notebooks call `configure_container()` explicitly. The Streamlit pages use no
+  container. No change made.
 
 ### #3 Path getters create directories
 - **Smell:** Side Effect.
