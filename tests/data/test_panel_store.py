@@ -137,8 +137,14 @@ def test_projected_rows_are_left_out(nb00_outputs: Nb00Outputs) -> None:
     assert len(nb00_outputs.load()["BBB"]) == QUARTERS - 1
 
 
-def test_missing_nb00_output_is_named(tmp_path: Path) -> None:
-    with pytest.raises(PanelNotFoundError, match="panel_long"):
+def test_a_missing_consolidated_file_is_named(tmp_path: Path) -> None:
+    with pytest.raises(
+        PanelNotFoundError,
+        match=(
+            r"^Consolidated panel files missing: "
+            r".*panel_long\.parquet, .*macro_q\.parquet$"
+        ),
+    ):
         PanelStore(tmp_path).load_consolidated()
 
 

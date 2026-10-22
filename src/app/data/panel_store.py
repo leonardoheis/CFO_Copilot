@@ -105,13 +105,13 @@ class PanelStore:
         return self._directory / _MACRO_Q_FILE
 
     def load_consolidated(self) -> dict[str, pd.DataFrame]:
-        """Load NB00's outputs per ticker, refusing macro gaps in dates or values.
+        """Load panel_long and macro_q per ticker, refusing macro gaps.
 
         Returns:
             Per-ticker frames with macro columns and flags; projected rows dropped.
 
         Raises:
-            PanelNotFoundError: An NB00 output file is absent.
+            PanelNotFoundError: ``panel_long.parquet`` or ``macro_q.parquet`` is absent.
         """
         absent = [
             str(path)
@@ -120,7 +120,7 @@ class PanelStore:
         ]
         if absent:
             absent_list = ", ".join(absent)
-            message = f"NB00 outputs missing: {absent_list}"
+            message = f"Consolidated panel files missing: {absent_list}"
             raise PanelNotFoundError(message)
         panel_long = pd.read_parquet(self.panel_long_path)
         macro_q = pd.read_parquet(self.macro_q_path)
