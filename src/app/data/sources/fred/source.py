@@ -84,11 +84,3 @@ class FredSource:
             panel_data[column] = aligned.tolist()
 
         return pd.DataFrame(panel_data)
-
-    @property
-    def macro_columns(self) -> tuple[str, ...]:
-        return FRED_MACRO_COLUMNS
-
-    @property
-    def series_by_column(self) -> dict[str, str]:
-        return FRED_SERIES_BY_COLUMN

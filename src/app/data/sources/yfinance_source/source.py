@@ -14,7 +14,7 @@ from app.data.dates import (
     quarter_end_dates,
 )
 from app.data.exceptions import TickerNotFoundError
-from app.data.schema import INDEX_COLUMNS, MARKET_COLUMNS
+from app.data.schema import INDEX_COLUMNS
 
 from .fetching import quarterly_dividend_yield, try_splits, try_stock_history
 
@@ -140,7 +140,3 @@ class YfinanceSource:
             message = f"No Yahoo Finance history found for ticker {ticker}"
             raise TickerNotFoundError(message)
         return combined
-
-    @property
-    def market_columns(self) -> tuple[str, ...]:
-        return MARKET_COLUMNS
