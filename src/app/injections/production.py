@@ -20,7 +20,6 @@ from app.services.diagnostics import (
     AutoProfiler,
     CorrelationAnalyzer,
     CorrelationSettings,
-    DataDictionary,
     DecisionSettings,
     DecisionTableBuilder,
     DiagnosticsService,
@@ -115,7 +114,6 @@ class Container(containers.DeclarativeContainer):
         ),
         correlator=providers.Factory(MacroCorrelator, macro_columns=MACRO_COLUMNS),
         outlier_register=providers.Factory(OutlierRegister, settings=OutlierSettings()),
-        data_dictionary=providers.Factory(DataDictionary, settings=OutlierSettings()),
     )
     feature_service = providers.Factory(
         FeatureService,

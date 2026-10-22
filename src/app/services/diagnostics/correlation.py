@@ -1,10 +1,10 @@
 from collections.abc import Mapping, Sequence
-from typing import Final
+from typing import Final, assert_never
 
 import numpy as np
 import pandas as pd
 
-from app.data.schema import MACRO_COLUMNS, POSITIVE_COLUMNS, RATIO_COLUMNS
+from app.data.schema import ColumnFamily, column_family
 from app.services.diagnostics.models import CorrelationSettings
 from app.services.features.transforms import (
     SEASONAL_LAG,
@@ -19,14 +19,18 @@ _METHOD: Final = "spearman"
 
 def _yoy_change(panel: pd.DataFrame, column: str) -> pd.Series:
     values = panel[column]
-    if column in POSITIVE_COLUMNS:
-        # A defective non-positive value has no log; it becomes missing here.
-        return pd.Series(np.log(values.where(values > 0)), index=panel.index).diff(
-            SEASONAL_LAG
-        )
-    if column in RATIO_COLUMNS or column in MACRO_COLUMNS:
-        return values.diff(SEASONAL_LAG)
-    return values.diff(SEASONAL_LAG) / trailing_revenue(panel[TargetVariable.REVENUE])
+    match column_family(column):
+        case ColumnFamily.POSITIVE:
+            # A defective non-positive value has no log; it becomes missing here.
+            log_values = pd.Series(np.log(values.where(values > 0)), index=panel.index)
+            return log_values.diff(SEASONAL_LAG)
+        case ColumnFamily.RATIO:
+            return values.diff(SEASONAL_LAG)
+        case ColumnFamily.SIGNED:
+            revenue = panel[TargetVariable.REVENUE]
+            return values.diff(SEASONAL_LAG) / trailing_revenue(revenue)
+        case _ as unreachable:
+            assert_never(unreachable)
 
 
 def yoy_changes(panel: pd.DataFrame, columns: Sequence[str]) -> pd.DataFrame:

@@ -1,4 +1,4 @@
-from .audit import DataDictionary, OutlierRegister
+from .audit import OutlierRegister, describe_columns
 from .correlation import (
     CorrelationAnalyzer,
     correlation_matrix,
@@ -51,7 +51,6 @@ __all__ = [
     "CompanyMacroSensitivity",
     "CorrelationAnalyzer",
     "CorrelationSettings",
-    "DataDictionary",
     "DecisionInputs",
     "DecisionRow",
     "DecisionSettings",
@@ -83,6 +82,7 @@ __all__ = [
     "box_cox",
     "candidates_for",
     "correlation_matrix",
+    "describe_columns",
     "median_timeline",
     "observed_since_last_gap",
     "pooled_yoy_changes",

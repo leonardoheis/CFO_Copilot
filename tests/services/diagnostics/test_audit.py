@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 from syrupy.assertion import SnapshotAssertion
 
-from app.services.diagnostics import DataDictionary, OutlierRegister, OutlierSettings
+from app.services.diagnostics import OutlierRegister, OutlierSettings, describe_columns
 
 QUARTERS = 32
 NEGATIVE_REVENUE = -50.0
@@ -143,9 +143,7 @@ def test_dictionary_describes_every_requested_column() -> None:
         {"AAA": pooled}, ["revenue_usd_m", "eps"]
     )
 
-    table = DataDictionary(settings=OutlierSettings()).describe(
-        pooled, ["revenue_usd_m", "eps"], register=register
-    )
+    table = describe_columns(pooled, ["revenue_usd_m", "eps"], register=register)
 
     assert list(table.columns) == [
         "column",
@@ -266,4 +264,22 @@ def test_scores_and_target_extremes_keep_their_values(
     assert {
         "scores": scores[["robust_z", "hampel_z"]].round(12).to_dict("list"),
         "extremes": extremes["robust_z"].round(12).tolist(),
+    } == snapshot
+
+
+def test_each_column_family_keeps_its_quarterly_change(
+    register: OutlierRegister, snapshot: SnapshotAssertion
+) -> None:
+    rng = np.random.default_rng(2)
+    revenue = _growing_revenue()
+    revenue[12] = 0.0
+    revenue[20] = -5.0
+    panel = _panel("AAA", revenue).assign(
+        ebitda_usd_m=20.0 * np.sin(np.arange(QUARTERS)) - 5.0,
+        eps=1.0 + 0.1 * rng.normal(size=QUARTERS),
+    )
+
+    assert {
+        column: register.scores_for(panel, column)["change"].round(12).tolist()
+        for column in ("revenue_usd_m", "eps", "ebitda_usd_m")
     } == snapshot

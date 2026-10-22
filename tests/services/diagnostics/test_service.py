@@ -3,7 +3,6 @@ import pandas as pd
 import pytest
 
 from app.services.diagnostics import (
-    DataDictionary,
     DiagnosticsService,
     DiagnosticsSettings,
     MacroCorrelator,
@@ -27,7 +26,6 @@ def service() -> DiagnosticsService:
         clusterer=SeasonalityRegimeClusterer(settings=RegimeSettings(n_regimes=2)),
         correlator=MacroCorrelator(macro_columns=("vix", "fed_funds")),
         outlier_register=OutlierRegister(settings=OutlierSettings()),
-        data_dictionary=DataDictionary(settings=OutlierSettings()),
     )
 
 
@@ -76,14 +74,11 @@ def test_correlations_use_the_injected_macro_columns(
     assert list(table.index) == list(panels)
 
 
-def test_the_audit_registers_and_describes_through_the_service(
+def test_the_audit_registers_through_the_service(
     service: DiagnosticsService, panels: dict[str, pd.DataFrame]
 ) -> None:
     columns = ["revenue_usd_m", "eps"]
-    pooled = pd.concat(panels.values(), ignore_index=True)
 
     register = service.register_outliers(panels, columns)
-    dictionary = service.describe_columns(pooled, columns, register=register)
 
     assert set(register["column"]) <= set(columns)
-    assert dictionary["column"].tolist() == columns

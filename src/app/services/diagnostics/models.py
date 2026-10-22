@@ -2,7 +2,6 @@ from typing import Literal, NamedTuple, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.data.schema import POSITIVE_COLUMNS, RATIO_COLUMNS
 from app.settings import RANDOM_SEED
 
 _STL_MINIMUM_CYCLES = 2
@@ -111,11 +110,9 @@ class OutlierSettings(BaseModel):
     hampel_mad_floor: float = Field(default=0.25, gt=0.0, le=1.0)
     # Fewer changes than two years give a median and MAD too unstable to judge by.
     min_changes: int = Field(default=8, ge=4)
-    positive_columns: tuple[str, ...] = POSITIVE_COLUMNS
     # P/E is stock price over EPS, and both are registered themselves; EPS near
     # zero (2 cents) makes it explode to five digits, repeating one event as noise.
     derived_columns: tuple[str, ...] = ("pe_ratio",)
-    ratio_columns: tuple[str, ...] = RATIO_COLUMNS
 
 
 class CorrelationSettings(BaseModel):

@@ -74,9 +74,7 @@ def test_a_policy_refuses_a_default_outside_its_arms() -> None:
 
 def test_a_policy_refuses_a_baseline_outside_its_candidates() -> None:
     with pytest.raises(ValidationError, match="baseline"):
-        TransformPolicy(
-            candidates=(LevelTransform.NONE,), baseline=LevelTransform.LOG
-        )
+        TransformPolicy(candidates=(LevelTransform.NONE,), baseline=LevelTransform.LOG)
 
 
 def test_a_column_that_is_not_a_target_is_compared_as_signed() -> None:

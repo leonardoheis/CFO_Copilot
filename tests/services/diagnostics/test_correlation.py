@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pydantic import ValidationError
+from syrupy.assertion import SnapshotAssertion
 
 from app.services.diagnostics import (
     CorrelationAnalyzer,
@@ -92,3 +93,12 @@ def test_only_pairs_above_the_threshold_are_redundant() -> None:
 def test_settings_refuse_a_threshold_outside_zero_and_one() -> None:
     with pytest.raises(ValidationError):
         CorrelationSettings(redundancy_threshold=1.5)
+
+
+def test_each_column_family_keeps_its_yoy_change(snapshot: SnapshotAssertion) -> None:
+    panel = _panel()
+    panel.loc[9, "revenue_usd_m"] = -1.0
+    panel["fed_funds"] = np.linspace(0.25, 5.0, QUARTERS)
+    columns = ["revenue_usd_m", "gross_margin", "ebitda_usd_m", "fed_funds"]
+
+    assert yoy_changes(panel, columns).round(12).to_dict("list") == snapshot

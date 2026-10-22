@@ -1,4 +1,5 @@
 from datetime import date
+from enum import StrEnum
 from typing import Final
 
 from pydantic import BaseModel, ConfigDict
@@ -135,6 +136,29 @@ RATIO_COLUMNS: Final[tuple[str, ...]] = (
     "pe_ratio",
     "eps",
 )
+
+
+class ColumnFamily(StrEnum):
+    POSITIVE = "positive"
+    RATIO = "ratio"
+    SIGNED = "signed"
+
+
+def column_family(column: str) -> ColumnFamily:
+    """Classify a column by how a change in it is judged.
+
+    Returns:
+        Positive for values that cannot be zero or negative; ratio for ratios,
+        per-share figures and macro series, whose change is their plain
+        difference; signed for amounts that can be negative, judged against
+        revenue.
+    """
+    if column in POSITIVE_COLUMNS:
+        return ColumnFamily.POSITIVE
+    if column in RATIO_COLUMNS or column in MACRO_COLUMNS:
+        return ColumnFamily.RATIO
+    return ColumnFamily.SIGNED
+
 
 # Values that differ by company; macro columns are the same for every company.
 COMPANY_VALUE_COLUMNS: Final[tuple[str, ...]] = (

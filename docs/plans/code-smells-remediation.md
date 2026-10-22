@@ -328,6 +328,26 @@ on disk are unaffected.
   as a parameter. The different lags are intentional and stay.
 - **Tests:** characterization of both change computations.
 - **Rerun:** No.
+- **Status:** done, classification only. The plan assumed only the lag
+  differed; positive columns also change by percent in the register and by log
+  difference in correlations. That split is output-sensitive and is catalogued
+  as 16b.
+  - `schema.column_family(column)` sorts a column into positive, ratio (which
+    includes macro series) or signed. `audit._quarterly_change` and
+    `correlation._yoy_change` match on it exhaustively and keep their own
+    measure and lag per family.
+  - `OutlierSettings.positive_columns` and `ratio_columns` were never
+    overridden and are removed. The register's sign check and the data
+    dictionary's invalid-sign count read the classifier.
+  - Cascade: without settings, `DataDictionary` became the module-level
+    `describe_columns`, and `DiagnosticsService.describe_columns` was removed
+    (it would no longer read `self`). NB01 calls `describe_columns` directly:
+    two code lines, no outputs.
+  - Macro series now classify as ratio for the register too, but neither the
+    register nor the data dictionary ever receives a macro column.
+  - Syrupy snapshots of both modules' change values (every family, plus a zero
+    and a negative revenue) were recorded before the change and replay
+    unchanged.
 
 ### #19 Boxplot workaround copied three times
 - **Smell:** Duplicate Code, Incomplete Library Class.
@@ -495,6 +515,7 @@ any code change. No fix is proposed here.
 | 25 | XBRL equality tolerance scales on one operand only; a second helper uses a different symmetric tolerance | `data/xbrl_facts.py:149-162`, `data/xbrl.py:207` | Which SEC fact wins near the threshold | Re-ingest, then NB00 onward |
 | 26 | Invalid report dates: SEC logs and skips, Alpha Vantage raises `MalformedPayloadError` | `data/xbrl.py:409-422`, `alpha_vantage/parsing.py` | Which rows survive ingestion | Re-ingest, then NB00 onward |
 | 28 | Deterministic flags and the fitted Isolation Forest share `flags.py` | `data/flags.py` | Moving the code alone is safe; it is listed because whether the algorithm should stay is the open question | NB00 onward, if the algorithm changes |
+| 16b | Positive columns change by percent in the outlier register but by log difference in correlations; only the register maps infinities to missing (found during #16) | `diagnostics/audit.py` `_quarterly_change`, `diagnostics/correlation.py` `_yoy_change` | Outlier register scores and every NB01 table built on them | NB01 |
 
 ## Not smells
 

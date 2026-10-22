@@ -1,9 +1,10 @@
 from collections.abc import Mapping, Sequence
-from typing import Final, NamedTuple
+from typing import Final, NamedTuple, assert_never
 
 import numpy as np
 import pandas as pd
 
+from app.data.schema import ColumnFamily, column_family
 from app.services.diagnostics.models import OutlierSettings
 from app.services.features.transforms import TargetVariable, trailing_revenue
 
@@ -94,6 +95,21 @@ def _entries(
     })
 
 
+def _quarterly_change(series: _CompanySeries) -> pd.Series:
+    values = series.panel[series.column]
+    match column_family(series.column):
+        case ColumnFamily.RATIO:
+            change = values.diff()
+        case ColumnFamily.POSITIVE:
+            change = values.pct_change(fill_method=None)
+        case ColumnFamily.SIGNED:
+            revenue = series.panel[TargetVariable.REVENUE]
+            change = values.diff() / trailing_revenue(revenue)
+        case _ as unreachable:
+            assert_never(unreachable)
+    return change.replace([np.inf, -np.inf], np.nan)
+
+
 def _empty_register() -> pd.DataFrame:
     return pd.DataFrame(columns=list(REGISTER_COLUMNS))
 
@@ -137,19 +153,8 @@ class OutlierRegister:
             "hampel_z": scores.hampel_z,
         })
 
-    def _relative_change(self, series: _CompanySeries) -> pd.Series:
-        values = series.panel[series.column]
-        if series.column in self._settings.ratio_columns:
-            change = values.diff()
-        elif series.column in self._settings.positive_columns:
-            change = values.pct_change(fill_method=None)
-        else:
-            revenue = series.panel[TargetVariable.REVENUE]
-            change = values.diff() / trailing_revenue(revenue)
-        return change.replace([np.inf, -np.inf], np.nan)
-
     def _scores(self, series: _CompanySeries) -> _Scores | None:
-        change = self._relative_change(series)
+        change = _quarterly_change(series)
         scale = _robust_scale(change, self._settings.min_changes)
         if scale is None:
             return None
@@ -179,7 +184,7 @@ class OutlierRegister:
             _entries(series, scores.robust_z > threshold, scores, "up"),
             _entries(series, scores.robust_z < -threshold, scores, "down"),
         ]
-        if series.column in self._settings.positive_columns:
+        if column_family(series.column) is ColumnFamily.POSITIVE:
             non_positive = series.panel[series.column] <= 0
             findings.append(_entries(series, non_positive, scores, "non_positive"))
         return [finding for finding in findings if not finding.empty]
@@ -245,41 +250,30 @@ class OutlierRegister:
         )
 
 
-class DataDictionary:
-    """Describe each column by what can be computed from the data.
+def _invalid_sign_count(values: pd.Series, column: str) -> int:
+    if column_family(column) is not ColumnFamily.POSITIVE:
+        return 0
+    return int((values <= 0).sum())
 
-    Usage::
 
-        dictionary = DataDictionary(settings=OutlierSettings())
-        table = dictionary.describe(pooled, COMPANY_VALUE_COLUMNS, register=register)
+def describe_columns(
+    pooled: pd.DataFrame, columns: Sequence[str], *, register: pd.DataFrame
+) -> pd.DataFrame:
+    """Tabulate type, completeness, range, sign and outlier count per column.
+
+    Returns:
+        One row per column in the given order.
     """
-
-    def __init__(self, settings: OutlierSettings) -> None:
-        self._settings = settings
-
-    def _invalid_sign(self, values: pd.Series, column: str) -> int:
-        if column not in self._settings.positive_columns:
-            return 0
-        return int((values <= 0).sum())
-
-    def describe(
-        self, pooled: pd.DataFrame, columns: Sequence[str], *, register: pd.DataFrame
-    ) -> pd.DataFrame:
-        """Tabulate type, completeness, range, sign and outlier count per column.
-
-        Returns:
-            One row per column in the given order.
-        """
-        return pd.DataFrame([
-            {
-                "column": column,
-                "dtype": str(pooled[column].dtype),
-                "missing_share": float(pooled[column].isna().mean()),
-                "unique": int(pooled[column].nunique()),
-                "min": pooled[column].min(),
-                "max": pooled[column].max(),
-                "invalid_sign": self._invalid_sign(pooled[column], column),
-                "register_count": int((register["column"] == column).sum()),
-            }
-            for column in columns
-        ])
+    return pd.DataFrame([
+        {
+            "column": column,
+            "dtype": str(pooled[column].dtype),
+            "missing_share": float(pooled[column].isna().mean()),
+            "unique": int(pooled[column].nunique()),
+            "min": pooled[column].min(),
+            "max": pooled[column].max(),
+            "invalid_sign": _invalid_sign_count(pooled[column], column),
+            "register_count": int((register["column"] == column).sum()),
+        }
+        for column in columns
+    ])
