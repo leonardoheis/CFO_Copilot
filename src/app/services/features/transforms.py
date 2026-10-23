@@ -192,11 +192,15 @@ class TargetTransformer(BaseModel):
         log_values = log_level(values)
         future = log_values.shift(-self.horizon)
         year_earlier = log_values.shift(SEASONAL_LAG - self.horizon)
-        if self.arm is TargetArm.LOG_DIFF1:
-            return future - log_values
-        if self.arm is TargetArm.LOG_DIFF4:
-            return future - year_earlier
-        return future - year_earlier - log_values.diff(SEASONAL_LAG)
+        match self.arm:
+            case TargetArm.LOG_DIFF1:
+                return future - log_values
+            case TargetArm.LOG_DIFF4:
+                return future - year_earlier
+            case TargetArm.SEASNAIVE_RESIDUAL:
+                return future - year_earlier - log_values.diff(SEASONAL_LAG)
+            case _ as unreachable:
+                assert_never(unreachable)
 
     def reconstruct(
         self,
@@ -218,12 +222,17 @@ class TargetTransformer(BaseModel):
             return year_earlier_level + prediction * self._trailing_revenue(revenue)
         log_values = log_level(values)
         year_earlier = log_values.shift(SEASONAL_LAG - self.horizon)
-        if self.arm is TargetArm.LOG_DIFF1:
-            predicted_log = log_values + prediction
-        elif self.arm is TargetArm.LOG_DIFF4:
-            predicted_log = year_earlier + prediction
-        else:
-            predicted_log = (
-                year_earlier + log_values.diff(SEASONAL_LAG) + shrinkage * prediction
-            )
+        match self.arm:
+            case TargetArm.LOG_DIFF1:
+                predicted_log = log_values + prediction
+            case TargetArm.LOG_DIFF4:
+                predicted_log = year_earlier + prediction
+            case TargetArm.SEASNAIVE_RESIDUAL:
+                predicted_log = (
+                    year_earlier
+                    + log_values.diff(SEASONAL_LAG)
+                    + shrinkage * prediction
+                )
+            case _ as unreachable:
+                assert_never(unreachable)
         return pd.Series(np.exp(predicted_log), index=values.index)

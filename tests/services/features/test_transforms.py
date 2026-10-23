@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from app.data.schema import FINANCIAL_COLUMNS
 from app.services.features import (
@@ -228,3 +229,24 @@ def test_each_variables_default_arm_is_one_of_its_own() -> None:
     assert default_arm(TargetVariable.REVENUE) is TargetArm.SEASNAIVE_RESIDUAL
     for variable in TargetVariable:
         assert default_arm(variable) in arms_for(variable)
+
+
+def test_every_arm_keeps_its_exact_target_and_level(
+    seasonal_revenue: pd.Series, signed_ebitda: pd.Series, snapshot: SnapshotAssertion
+) -> None:
+    prediction = pd.Series(0.01, index=seasonal_revenue.index)
+    exact: dict[str, dict[str, list[float]]] = {}
+    for arm in TargetArm:
+        values = (
+            signed_ebitda if arm is TargetArm.REVENUE_SCALED_YOY else seasonal_revenue
+        )
+        for horizon in range(1, SEASONAL_LAG + 1):
+            transformer = TargetTransformer(arm=arm, horizon=horizon)
+            exact[f"{arm}_h{horizon}"] = {
+                "target": transformer.make(values, revenue=seasonal_revenue).tolist(),
+                "level": transformer.reconstruct(
+                    values, prediction, shrinkage=0.5, revenue=seasonal_revenue
+                ).tolist(),
+            }
+
+    assert exact == snapshot

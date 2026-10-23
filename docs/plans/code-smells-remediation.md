@@ -372,6 +372,17 @@ on disk are unaffected.
 - **Tests:** round-trip test per arm (`reconstruct(make(x)) == x`) plus
   characterization of `make` output.
 - **Rerun:** No.
+- **Status:** done, with exhaustive matches instead of the planned pair table
+  (user's choice). The real risk was that the seasonal-naive residual was each
+  method's fall-through branch, so a new arm would silently be treated as it.
+  Both methods now `match self.arm` and end in `assert_never`; a scratch run
+  with one case removed confirmed mypy rejects it. Each arm keeps its exact
+  expression, because `make()` feeds the feature parquets and reassociating,
+  e.g. `a - b - c` as `a - (b + c)`, can change the last bit. A pair table
+  would have needed eight five-argument functions for the same guarantee. The
+  round-trip tests already existed; an unrounded syrupy snapshot of `make` and
+  `reconstruct` for every arm and horizon was recorded first and replays
+  unchanged.
 
 ### #21 DI reconstructs identical settings
 - **Smell:** Duplicate Construction.
