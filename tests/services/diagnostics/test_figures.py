@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
 from pydantic import ValidationError
+from syrupy.assertion import SnapshotAssertion
 
 from app.services.diagnostics import (
     EdaFigures,
@@ -230,3 +232,43 @@ def test_a_title_added_by_the_caller_clears_the_panel_titles(
     assert all(
         title_bottom >= axes.title.get_window_extent().y1 for axes in figure.axes
     )
+
+
+def _boxes(figure: Figure) -> list[dict[str, list[object]]]:
+    return [
+        {
+            "labels": [label.get_text() for label in axes.get_yticklabels()],
+            "colours": [to_hex(patch.get_facecolor()) for patch in axes.patches],
+            "heights": [
+                round(float(patch.get_path().get_extents().height), 6)
+                for patch in axes.patches
+            ],
+        }
+        for axes in figure.axes
+    ]
+
+
+def test_every_boxplot_keeps_its_boxes(
+    figures: EdaFigures, snapshot: SnapshotAssertion
+) -> None:
+    rng = np.random.default_rng(5)
+    changes = pd.DataFrame({
+        "revenue_usd_m": rng.normal(size=60),
+        "ebitda_usd_m": rng.normal(size=60),
+    })
+    segments = pd.DataFrame({
+        "y": rng.normal(size=40),
+        "sector": ["Energy", "Technology"] * 20,
+        "regime": [0, 1, 2, 2] * 10,
+    })
+    comparison = pd.DataFrame({
+        "transform": ["none", "log", "none", "log"],
+        "level_dependence": [0.8, 0.2, 0.7, 0.1],
+        "jarque_bera": [40.0, 5.0, 30.0, 4.0],
+    })
+
+    assert {
+        "change": _boxes(figures.change_boxplots(changes)),
+        "segment": _boxes(figures.segment_boxplots(segments, ["sector", "regime"])),
+        "transform": _boxes(figures.transform_comparison(comparison)),
+    } == snapshot

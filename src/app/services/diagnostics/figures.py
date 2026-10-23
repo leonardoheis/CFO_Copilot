@@ -4,10 +4,30 @@ from contextlib import contextmanager
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from app.services.diagnostics.audit import OutlierRegister
 from app.services.diagnostics.models import FigureSettings
+
+
+def _horizontal_boxplot(
+    axes: Axes,
+    groups: Mapping[str, pd.Series],
+    *,
+    colour: str,
+    width: float | None = None,
+) -> None:
+    # matplotlib directly: seaborn 0.13's boxplot still passes matplotlib 3.10
+    # the deprecated ``vert`` argument.
+    axes.boxplot(
+        list(groups.values()),
+        orientation="horizontal",
+        tick_labels=list(groups),
+        patch_artist=True,
+        boxprops={"facecolor": colour},
+        widths=width,
+    )
 
 
 class EdaFigures:
@@ -151,15 +171,11 @@ class EdaFigures:
                 len(columns), 1, figsize=(10, 0.6 * len(columns) + 0.8), squeeze=False
             )
             for axes, column in zip(panels[:, 0], columns, strict=True):
-                # Drawn with matplotlib directly: seaborn 0.13's boxplot still
-                # passes matplotlib 3.10 the deprecated ``vert`` argument.
-                axes.boxplot(
-                    clipped.loc[clipped["column"] == column, "yoy_change"],
-                    orientation="horizontal",
-                    tick_labels=[column],
-                    patch_artist=True,
-                    boxprops={"facecolor": "lightcoral"},
-                    widths=0.6,
+                _horizontal_boxplot(
+                    axes,
+                    {column: clipped.loc[clipped["column"] == column, "yoy_change"]},
+                    colour="lightcoral",
+                    width=0.6,
                 )
             panels[0, 0].set_title("Spread and outliers of each column's change")
             figure.set_layout_engine("tight")
@@ -234,13 +250,13 @@ class EdaFigures:
             )
             for axes, segment in zip(panels[0], segments, strict=True):
                 values = sorted(clipped[segment].dropna().unique(), key=str)
-                # matplotlib directly: seaborn 0.13 passes a deprecated ``vert``.
-                axes.boxplot(
-                    [clipped.loc[clipped[segment] == value, "y"] for value in values],
-                    orientation="horizontal",
-                    tick_labels=[str(value) for value in values],
-                    patch_artist=True,
-                    boxprops={"facecolor": "lightsteelblue"},
+                _horizontal_boxplot(
+                    axes,
+                    {
+                        str(value): clipped.loc[clipped[segment] == value, "y"]
+                        for value in values
+                    },
+                    colour="lightsteelblue",
                 )
                 axes.set(title=f"Target by {segment}", xlabel="target")
             figure.set_layout_engine("tight")
@@ -313,16 +329,13 @@ class EdaFigures:
         with self._styled():
             figure, panels = plt.subplots(1, len(criteria), figsize=(12, 4))
             for axes, (column, title) in zip(panels, criteria.items(), strict=True):
-                # matplotlib directly: seaborn 0.13 passes a deprecated ``vert``.
-                axes.boxplot(
-                    [
-                        table.loc[table["transform"] == name, column]
+                _horizontal_boxplot(
+                    axes,
+                    {
+                        name: table.loc[table["transform"] == name, column]
                         for name in transforms
-                    ],
-                    orientation="horizontal",
-                    tick_labels=transforms,
-                    patch_artist=True,
-                    boxprops={"facecolor": "lightsteelblue"},
+                    },
+                    colour="lightsteelblue",
                 )
                 axes.set(title=title, xlabel=column)
             panels[1].set_xscale("log")

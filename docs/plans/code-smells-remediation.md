@@ -355,6 +355,13 @@ on disk are unaffected.
 - **Fix:** one private boxplot adapter used by the three figures.
 - **Tests:** existing figure tests (axes, labels, artist counts).
 - **Rerun:** No.
+- **Status:** done. `_horizontal_boxplot(axes, groups, *, colour, width=None)`
+  holds the matplotlib call and the seaborn `vert` workaround comment; each
+  figure passes a label-to-series mapping. `width` defaults to None because
+  matplotlib's default box width depends on the number of boxes; only
+  `change_boxplots` sets 0.6. The existing figure tests checked only titles, so
+  a syrupy snapshot of every panel's tick labels, box colours and box heights
+  was recorded first; it replays unchanged.
 
 ### #20 Target forward and inverse dispatch are parallel
 - **Smell:** Duplicate Conditional Logic.
