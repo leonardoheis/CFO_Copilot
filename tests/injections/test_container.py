@@ -75,6 +75,28 @@ def test_the_default_feature_service_builds_every_group(
     assert {"growth_yoy_lag1", "real_rate", "sector", "covid"} <= set(dataset.columns)
 
 
+def test_settings_built_once_are_shared_by_every_consumer() -> None:
+    # pylint: disable=unsubscriptable-object  # dependency-injector providers are compiled; pylint cannot see that kwargs is a dict
+    container = Container()
+    diagnostician = container.diagnostics_service.kwargs["diagnostician"]
+
+    assert container.outlier_settings() is container.outlier_settings()
+    assert container.outlier_register.kwargs["settings"] is container.outlier_settings
+    assert (
+        container.diagnostics_service.kwargs["outlier_register"]
+        is container.outlier_register
+    )
+    assert (
+        container.eda_figures.kwargs["outlier_register"] is container.outlier_register
+    )
+    assert container.diagnostics_settings() is container.diagnostics_settings()
+    assert diagnostician.kwargs["settings"] is container.diagnostics_settings
+    assert (
+        container.transform_comparer.kwargs["settings"]
+        is container.diagnostics_settings
+    )
+
+
 def test_ingestion_defects_load_from_the_project_registry() -> None:
     defects = Container().ingestion_defects()
 

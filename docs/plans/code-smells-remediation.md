@@ -392,6 +392,16 @@ on disk are unaffected.
 - **Tests:** the providers that consume `OutlierSettings` receive the same
   instance.
 - **Rerun:** No.
+- **Status:** done. After #16 removed `DataDictionary`, `OutlierSettings()` was
+  built twice, by two separately declared `OutlierRegister` providers.
+  `production.py` now has `diagnostics_settings` and `outlier_settings`
+  `Singleton` providers and one `outlier_register` provider shared by the
+  diagnostics service and the EDA figures; `SeriesDiagnostician` and
+  `TransformComparer` read `diagnostics_settings`. Settings models used once
+  stay inline. `test_settings_built_once_are_shared_by_every_consumer` checks
+  the wiring through the providers' `kwargs`; it carries one function-scoped
+  `unsubscriptable-object` suppression, because pylint cannot introspect
+  dependency-injector's compiled providers.
 
 ### #31 Notebook bootstrap is duplicated
 - **Smell:** Duplicate Code.

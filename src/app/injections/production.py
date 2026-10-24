@@ -104,16 +104,20 @@ class Container(containers.DeclarativeContainer):
         load_ingestion_defects, Settings.INGESTION_DEFECTS_PATH
     )
 
+    diagnostics_settings = providers.Singleton(DiagnosticsSettings)
+    outlier_settings = providers.Singleton(OutlierSettings)
+    outlier_register = providers.Factory(OutlierRegister, settings=outlier_settings)
+
     diagnostics_service = providers.Factory(
         DiagnosticsService,
         diagnostician=providers.Factory(
-            SeriesDiagnostician, settings=DiagnosticsSettings()
+            SeriesDiagnostician, settings=diagnostics_settings
         ),
         clusterer=providers.Factory(
             SeasonalityRegimeClusterer, settings=RegimeSettings()
         ),
         correlator=providers.Factory(MacroCorrelator, macro_columns=MACRO_COLUMNS),
-        outlier_register=providers.Factory(OutlierRegister, settings=OutlierSettings()),
+        outlier_register=outlier_register,
     )
     feature_service = providers.Factory(
         FeatureService,
@@ -129,11 +133,11 @@ class Container(containers.DeclarativeContainer):
     eda_figures = providers.Factory(
         EdaFigures,
         settings=FigureSettings(),
-        outlier_register=providers.Factory(OutlierRegister, settings=OutlierSettings()),
+        outlier_register=outlier_register,
     )
     segment_profiler = providers.Factory(SegmentProfiler, settings=SegmentSettings())
     transform_comparer = providers.Factory(
-        TransformComparer, settings=DiagnosticsSettings()
+        TransformComparer, settings=diagnostics_settings
     )
     decision_table_builder = providers.Factory(
         DecisionTableBuilder, settings=DecisionSettings()
