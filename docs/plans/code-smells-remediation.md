@@ -467,6 +467,19 @@ on disk are unaffected.
 - **Tests:** before switching, a test that the old and new implementations agree
   for every day from 2006-01-01 to 2026-12-31.
 - **Rerun:** No.
+- **Status:** done. There were two quarter-end predicates
+  (`Timestamp.is_quarter_end` in `structural_breaks.py`,
+  `quarter_end_dates(day, day) == [day]` in `companies.py`) and one
+  latest-completed-quarter rule (a month ladder in `pipeline.py`).
+  `dates.py` now holds `is_quarter_end` and `most_recent_completed_quarter`
+  (the previous `Period("Q")`'s end); the two validators and
+  `resolve_date_range` call them, and the `Q*_END_MONTH` constants are gone.
+  Before switching, a run over all 7,670 days from 2006-01-01 to 2026-12-31
+  found 84 quarter ends and no disagreement between the three old and two new
+  implementations. The permanent `tests/data/test_dates.py` checks every day
+  in that range against `quarter_end_dates`, plus boundary cases (a quarter's
+  own last day, 1 January, 29 February); it replaces the single August case
+  in `test_pipeline.py`. No notebook calls these helpers.
 
 ### #40 Repeated SEC test fixtures
 - **Smell:** Duplicate Test Code.

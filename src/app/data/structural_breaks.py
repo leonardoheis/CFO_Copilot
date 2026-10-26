@@ -2,9 +2,10 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated
 
-import pandas as pd
 import yaml
 from pydantic import AfterValidator, BaseModel, ConfigDict
+
+from app.data.dates import is_quarter_end
 
 
 def _require_quarter_ends(
@@ -14,7 +15,7 @@ def _require_quarter_ends(
         f"{ticker} {quarter}"
         for ticker, quarters in breaks.items()
         for quarter in quarters
-        if not pd.Timestamp(quarter).is_quarter_end
+        if not is_quarter_end(quarter)
     ]
     if off_calendar:
         off_calendar_list = ", ".join(off_calendar)

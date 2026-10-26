@@ -8,7 +8,7 @@ from typing import Literal, assert_never
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.data.dates import quarter_end_dates
+from app.data.dates import is_quarter_end
 
 CIK_LENGTH = 10
 
@@ -80,7 +80,7 @@ class _PanelConfig(BaseModel):
             ValueError: If a date is not a calendar quarter end.
         """
         for day in withheld:
-            if quarter_end_dates(day, day) != [day]:
+            if not is_quarter_end(day):
                 msg = f"withheld quarter {day} is not a quarter end"
                 raise ValueError(msg)
         return withheld

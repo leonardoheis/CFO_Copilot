@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.data.companies import CompanyRegistry
-from app.data.dates import quarter_end_dates
+from app.data.dates import most_recent_completed_quarter, quarter_end_dates
 from app.data.schema import (
     COST_OF_REVENUE_COLUMNS,
     FINANCIAL_COLUMNS,
@@ -20,19 +20,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_HISTORY_YEARS = 20
 XBRL_HISTORY_START = date(2008, 4, 1)
-Q1_END_MONTH = 3
-Q2_END_MONTH = 6
-Q3_END_MONTH = 9
-
-
-def most_recent_completed_quarter(as_of: date) -> date:
-    if as_of.month <= Q1_END_MONTH:
-        return date(as_of.year - 1, 12, 31)
-    if as_of.month <= Q2_END_MONTH:
-        return date(as_of.year, 3, 31)
-    if as_of.month <= Q3_END_MONTH:
-        return date(as_of.year, 6, 30)
-    return date(as_of.year, 9, 30)
 
 
 def resolve_date_range(

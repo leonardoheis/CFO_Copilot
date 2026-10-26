@@ -13,7 +13,6 @@ from app.data.exceptions import DataSourceUnavailableError
 from app.data.pipeline import (
     build_panel_skeleton,
     merge_panel,
-    most_recent_completed_quarter,
     resolve_date_range,
     write_panel,
 )
@@ -147,10 +146,6 @@ def fake_fallback_financials(
 def failing_macro_panel(_start: date, _end: date) -> pd.DataFrame:
     msg = "macro source unavailable"
     raise DataSourceUnavailableError(msg)
-
-
-def test_most_recent_completed_quarter_for_august() -> None:
-    assert most_recent_completed_quarter(date(2026, 8, 9)) == date(2026, 6, 30)
 
 
 def test_resolve_date_range_defaults_to_twenty_years() -> None:
