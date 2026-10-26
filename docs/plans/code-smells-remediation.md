@@ -433,6 +433,11 @@ on disk are unaffected.
 - **Fix:** a frozen `NamedTuple` with those three field names.
 - **Tests:** existing transform-comparison tests.
 - **Rerun:** No.
+- **Status:** done. `_FITTED` is now a tuple of `_FittedFamily`, a frozen
+  `NamedTuple` with fields `own`, `sector` and `estimator`, following the
+  `_RobustScale` precedent in `audit.py`. The loop in `_fitted_lambdas` reads
+  the fields by name; the two families and their estimators are unchanged, so
+  the existing transform-comparison tests cover it.
 
 ### #36 Quantile-pair validation is duplicated
 - **Smell:** Duplicate Code.

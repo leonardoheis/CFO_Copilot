@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Mapping
 from enum import StrEnum
-from typing import Final, Literal, Self, assert_never
+from typing import Final, Literal, NamedTuple, Self, assert_never
 
 import numpy as np
 import numpy.typing as npt
@@ -134,12 +134,19 @@ def _yeo_johnson_lambda(series: pd.Series) -> float:
     return float(yeojohnson_normmax(_unit_free(series)))
 
 
-# Each fitted family: its own-lambda transform, its sector variant, the estimator.
-_FITTED: Final[
-    tuple[tuple[LevelTransform, LevelTransform, Callable[[pd.Series], float]], ...]
-] = (
-    (LevelTransform.BOX_COX, LevelTransform.BOX_COX_SECTOR, _box_cox_lambda),
-    (
+class _FittedFamily(NamedTuple):
+    """One fitted transform family: its own lambda, its sector lambda, the estimator."""
+
+    own: LevelTransform
+    sector: LevelTransform
+    estimator: Callable[[pd.Series], float]
+
+
+_FITTED: Final = (
+    _FittedFamily(
+        LevelTransform.BOX_COX, LevelTransform.BOX_COX_SECTOR, _box_cox_lambda
+    ),
+    _FittedFamily(
         LevelTransform.YEO_JOHNSON,
         LevelTransform.YEO_JOHNSON_SECTOR,
         _yeo_johnson_lambda,
@@ -199,11 +206,14 @@ class TransformComparer:
     def _scores(self, values: pd.Series, revenue: pd.Series) -> dict[str, float]:
         remainder = stl_remainder(values, self._settings.seasonal_period)
         normality = jarque_bera(remainder)
+        # The stubs describe SciPy 1.17, which wants method="interpolate"; the
+        # installed 1.16 (ydata-profiling caps it) has no such parameter.
+        anderson_darling = anderson(remainder, dist="norm")  # pyright: ignore[reportDeprecated]
         return {
             "level_dependence": self._level_dependence(values, revenue),
             "jarque_bera": float(normality.statistic),
             "jarque_bera_p": float(normality.pvalue),
-            "anderson_darling": float(anderson(remainder, dist="norm").statistic),
+            "anderson_darling": float(anderson_darling.statistic),
             "skewness": float(skew(remainder)),
             "excess_kurtosis": float(kurtosis(remainder)),
         }
@@ -286,10 +296,14 @@ def _fitted_lambdas(
         Per ticker, the lambda of every fitted candidate of ``variable``.
     """
     lambdas = pd.DataFrame(index=sectors.index)
-    for own, sector, estimator in _FITTED:
-        if own in candidates_for(variable):
-            lambdas[own] = [estimator(observed[ticker]) for ticker in sectors.index]
-            lambdas[sector] = lambdas[own].groupby(sectors).transform("median")
+    for family in _FITTED:
+        if family.own in candidates_for(variable):
+            lambdas[family.own] = [
+                family.estimator(observed[ticker]) for ticker in sectors.index
+            ]
+            lambdas[family.sector] = (
+                lambdas[family.own].groupby(sectors).transform("median")
+            )
     return {
         str(ticker): {
             LevelTransform(str(name)): float(value) for name, value in row.items()
