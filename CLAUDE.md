@@ -55,7 +55,7 @@ CFO_Copilot/
 │   │   └── sources/         # One package per external source
 │   │       ├── alpha_vantage/   # source.py, parsing.py
 │   │       ├── fred/            # source.py
-│   │       ├── sec_edgar/       # source.py, parsing.py, concepts.py
+│   │       ├── sec_edgar/       # source.py, chains.py, parsing.py, concepts.py
 │   │       └── yfinance_source/ # source.py, fetching.py
 │   ├── utils/               # ExamplerMixIn (OpenAPI example generation)
 │   ├── ml_binaries/         # Runtime model artifacts (model.joblib)
@@ -197,6 +197,7 @@ single module. The split separates the stateful adapter from pure translation:
 |------|-------|-----------|
 | `source.py` | The `*Source` class | HTTP, cache, credentials, instance state |
 | `parsing.py` | Pure payload → panel translation | Only its arguments |
+| `chains.py` | Accounting rules over an injected fact lookup (`sec_edgar`) | The lookup it is given |
 | `concepts.py` | Vendor tag/field declarations (`sec_edgar`) | Nothing |
 | `fetching.py` | Calls against an injected client (`yfinance_source`) | The injected object only |
 | `__init__.py` | Re-exports the public names | — |

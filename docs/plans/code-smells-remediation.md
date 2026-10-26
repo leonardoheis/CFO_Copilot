@@ -520,6 +520,26 @@ on disk are unaffected.
 - **Tests:** before the move, pin the full panel frame produced from each SEC
   cassette; the frames must be identical afterwards.
 - **Rerun:** No.
+- **Status:** done. The accounting rules (tag-chain precedence, sign-error
+  correction, cost and D&A assembly, share-count recovery and the diluted
+  fallback) moved to the new `sec_edgar/chains.py`; `source.py` keeps
+  transport, the companyfacts and ticker caches, and CIK resolution (455 to
+  ~170 lines). `chains.quarterly_financials` reads facts through a
+  `facts_for(tag, unit)` lookup rather than a prefetched dict, so a chain still
+  stops reading once full and the diluted fallback is still read only when
+  gaps remain: a malformed tag that is never read today cannot start raising.
+  Imports run `source.py → chains.py → parsing.py, concepts.py`. The
+  one-expression `_fetch_tag_chain` wrapper was inlined. Before the move,
+  `tests/data/sources/test_sec_edgar_frames.py` pinned the raw quarterly frame
+  (every chain value plus provenance, 2006-2021) for AMZN and GOOGL, each with
+  and without splits; the three AMZN cassettes carry an identical body, so one
+  serves. All four frames replay identically afterwards. The sign-error
+  warning now logs from `chains` instead of `source`; no test reads that
+  logger. `CLAUDE.md` and `AGENTS.md` list `chains.py`. After the move was verified,
+  the frame test was narrowed to keep `poe check` fast: AMZN and GOOGL with
+  their splits only (the no-split factor is a constant 1.0, exercised by the
+  existing cassette tests), over 2008-2011 and 2019-2021. It now adds ~27 s;
+  the cost is the frame derivation itself, not the test.
 
 ### #7 Financial schema requires shotgun edits
 - **Smell:** Shotgun Surgery.

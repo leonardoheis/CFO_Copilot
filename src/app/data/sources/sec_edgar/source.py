@@ -1,8 +1,7 @@
 """SEC EDGAR HTTP client: CIK resolution and us-gaap fact retrieval."""
 
-import logging
-import math
 from datetime import date
+from functools import partial
 from typing import Final, cast
 
 import pandas as pd
@@ -15,39 +14,18 @@ from app.data.exceptions import (
     MalformedPayloadError,
     TickerNotFoundError,
 )
-from app.data.xbrl import (
-    FactProvenance,
-    InstantXbrlFact,
-    PeriodMeasure,
-    XbrlFact,
-    annual_totals_by_end,
-    instant_series_from_facts,
-    quarterly_facts_from_facts,
-)
+from app.data.xbrl import XbrlFact
 
-from .concepts import (
-    DILUTED_SHARES_FALLBACK,
-    PER_SHARE_UNIT,
-    SHARES_UNIT,
-    TAG_CHAINS,
-    USD_UNIT,
-    ConceptSpec,
-)
+from .chains import quarterly_financials
+from .concepts import USD_UNIT
 from .parsing import (
     JsonObject,
     SecTicker,
     concept_facts,
-    cost_of_revenue,
-    depreciation_and_amortization,
     financial_panel_from_raw,
-    implied_shares_from_earnings,
     merge_raw_financial_frames,
     sec_tickers,
-    split_factors_for_filing_dates,
-    without_implausible_counts,
 )
-
-logger = logging.getLogger(__name__)
 
 SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
 # Not the per-concept endpoint: for some filers (ABT, F, KO) it answers 200 with
@@ -103,86 +81,6 @@ def fetch_sec_tickers(*, user_agent: str, timeout: int) -> dict[str, SecTicker]:
         msg = f"SEC ticker file not found at {SEC_TICKERS_URL}"
         raise DataSourceUnavailableError(msg)
     return sec_tickers(payload)
-
-
-def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
-    """Treat a superseded tag's 0 as not-reported rather than as data.
-
-    Returns:
-        The series with zeros replaced by NaN.
-    """
-    return values.where(values != 0)
-
-
-def _with_sign_errors_corrected(
-    facts: list[XbrlFact], cik: str, tag: str
-) -> list[XbrlFact]:
-    """Read a negative filing of a never-negative cost as its magnitude.
-
-    Returns:
-        The facts, each negative value replaced by its absolute value.
-    """
-    negative = [fact for fact in facts if fact["val"] < 0]
-    if negative:
-        logger.warning(
-            "Reading %d negative %s facts for CIK %s as sign errors",
-            len(negative),
-            tag,
-            cik,
-        )
-    return [fact | {"val": abs(fact["val"])} for fact in facts]
-
-
-def _empty_chain_records(quarter_dates: list[date]) -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "value": math.nan,
-            "filed": "",
-            "period_end": None,
-            "provenance": FactProvenance.MISSING,
-        },
-        index=quarter_dates,
-    )
-
-
-def _take_winning_rows(
-    combined: pd.DataFrame,
-    candidate: pd.DataFrame,
-    *,
-    prefer_largest: bool,
-) -> pd.DataFrame:
-    """Replace whole rows, so a value never outlives the origin it came from.
-
-    Returns:
-        ``combined`` with the candidate's rows wherever the candidate wins.
-    """
-    if prefer_largest:
-        wins = candidate["value"].notna() & (
-            combined["value"].isna() | candidate["value"].gt(combined["value"])
-        )
-    else:
-        wins = combined["value"].isna() & candidate["value"].notna()
-    return combined.mask(wins, candidate)
-
-
-def _none_where_blank(filed: pd.Series) -> list[date | None]:
-    """Turn the no-fact placeholder into a null, and a filing date into a date.
-
-    Returns:
-        One entry per quarter, null where nothing was filed.
-    """
-    return [date.fromisoformat(value) if value else None for value in filed]
-
-
-def _none_where_missing(provenance: pd.Series) -> list[str | None]:
-    """Turn the missing marker into a null the fallback can overwrite.
-
-    Returns:
-        One entry per quarter, null where no rule produced a value.
-    """
-    return [
-        None if value is FactProvenance.MISSING else str(value) for value in provenance
-    ]
 
 
 class SecEdgarSource:
@@ -249,77 +147,14 @@ class SecEdgarSource:
         quarter_dates = quarter_end_dates(start, end)
         merged: pd.DataFrame | None = None
         for cik in self.resolve_ciks(ticker):
-            raw = self._fetch_quarterly_financials_for_cik(
-                cik,
-                quarter_dates,
-                splits,
+            raw = quarterly_financials(
+                cik, partial(self.fetch_concept, cik), quarter_dates, splits
             )
             merged = raw if merged is None else merge_raw_financial_frames(raw, merged)
         if merged is None:
             msg = f"No SEC EDGAR CIKs resolved for ticker {ticker.upper()}"
             raise TickerNotFoundError(msg)
         return merged
-
-    def _fetch_quarterly_financials_for_cik(
-        self,
-        cik: str,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.DataFrame:
-        # Revenue anchors the row: it is the figure whose filing defines which
-        # period the row actually describes, so its origin is the row's origin.
-        revenue_records = self._fetch_tag_chain_records(
-            cik,
-            TAG_CHAINS["revenue"],
-            quarter_dates,
-            splits,
-        )
-        series_by_name = {
-            name: self._fetch_tag_chain(cik, spec, quarter_dates, splits)
-            for name, spec in TAG_CHAINS.items()
-            if name not in {"shares_outstanding", "revenue"}
-        }
-        series_by_name["revenue"] = revenue_records["value"]
-        series_by_name["cogs"] = cost_of_revenue(
-            series_by_name["cogs"],
-            series_by_name.pop("cogs_total"),
-            series_by_name.pop("cost_of_products"),
-            series_by_name.pop("cost_of_services"),
-        )
-        series_by_name["dep_amort"] = depreciation_and_amortization(
-            series_by_name["dep_amort"],
-            series_by_name.pop("depreciation"),
-            series_by_name.pop("intangible_amortization"),
-        )
-        shares = self._fetch_shares_chain(cik, quarter_dates, splits)
-        if not shares.notna().all():
-            # Some filers (e.g. Google's legacy CIK) report no share-count fact
-            # of any kind for their earliest quarters, but do report net income
-            # and diluted EPS. Recover the implied share count for those gaps.
-            implied = implied_shares_from_earnings(
-                series_by_name["net_income"],
-                series_by_name["eps"],
-            )
-            # A split-restated EPS can disagree in sign with its own net income
-            # (see _fill_missing_financials), and the quotient of the two is then
-            # a negative share count.
-            shares = shares.combine_first(
-                without_implausible_counts(implied, cik),
-            )
-        series_by_name["shares_outstanding"] = shares
-        return pd.DataFrame(
-            {
-                "date": quarter_dates,
-                **{name: series.tolist() for name, series in series_by_name.items()},
-                # Null, not a "missing" marker: a null is what lets the vendor
-                # fallback overlay its own provenance where SEC found nothing.
-                "period_end": revenue_records["period_end"].tolist(),
-                "financials_filed": _none_where_blank(revenue_records["filed"]),
-                "financials_provenance": _none_where_missing(
-                    revenue_records["provenance"],
-                ),
-            },
-        )
 
     def fetch_financials_panel(
         self,
@@ -330,122 +165,6 @@ class SecEdgarSource:
     ) -> pd.DataFrame:
         raw = self.fetch_quarterly_financials(ticker, start, end, splits)
         return financial_panel_from_raw(raw)
-
-    def _fetch_tag_chain(
-        self,
-        cik: str,
-        spec: ConceptSpec,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.Series:
-        return self._fetch_tag_chain_records(cik, spec, quarter_dates, splits)["value"]
-
-    def _fetch_tag_chain_records(
-        self,
-        cik: str,
-        spec: ConceptSpec,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.DataFrame:
-        """Resolve a concept across its tag chain, keeping each value's origin.
-
-        Returns:
-            A frame of ``value``, ``filed``, ``period_end`` and ``provenance``,
-            each row taken from whichever tag supplied the winning value.
-        """
-        combined = _empty_chain_records(quarter_dates)
-        facts_by_tag = {
-            tag: self.fetch_concept(cik, tag, spec.unit) for tag in spec.tags
-        }
-        if spec.never_negative:
-            facts_by_tag = {
-                tag: _with_sign_errors_corrected(facts, cik, tag)
-                for tag, facts in facts_by_tag.items()
-            }
-        # A quarter equal to another tag's full year is that year (ORCL FY2020).
-        annual_totals = (
-            annual_totals_by_end(facts_by_tag.values())
-            if spec.unit == USD_UNIT
-            else None
-        )
-        for tag in spec.tags:
-            facts = facts_by_tag[tag]
-            if facts:
-                records = quarterly_facts_from_facts(
-                    facts, quarter_dates, annual_totals=annual_totals
-                )
-                values = records["value"]
-                if spec.unit == PER_SHARE_UNIT:
-                    values /= split_factors_for_filing_dates(
-                        records["filed"],
-                        splits,
-                    )
-                records = records.assign(
-                    value=_without_placeholder_zeros(values),
-                )
-                combined = _take_winning_rows(
-                    combined,
-                    records,
-                    prefer_largest=spec.prefer_largest,
-                )
-            if not spec.prefer_largest and combined["value"].notna().all():
-                break
-        return combined
-
-    def _fetch_shares_chain(
-        self,
-        cik: str,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.Series:
-        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
-        for tag in TAG_CHAINS["shares_outstanding"].tags:
-            facts = self.fetch_concept(cik, tag, SHARES_UNIT)
-            if facts:
-                records = instant_series_from_facts(
-                    cast("list[InstantXbrlFact]", facts),
-                    quarter_dates,
-                )
-                values = records["value"] * split_factors_for_filing_dates(
-                    records["filed"],
-                    splits,
-                )
-                combined = combined.combine_first(
-                    without_implausible_counts(values, cik),
-                )
-
-        if combined.notna().all():
-            return combined
-
-        # Instant shares-outstanding tags cover fewer early quarters than the
-        # weighted-average diluted-share duration facts, so fill any remaining
-        # gaps rather than only falling back when the primary is wholly empty.
-        fallback = self._fetch_diluted_shares_fallback(cik, quarter_dates, splits)
-        return combined.combine_first(fallback)
-
-    def _fetch_diluted_shares_fallback(
-        self,
-        cik: str,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.Series:
-        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
-        for tag in DILUTED_SHARES_FALLBACK.tags:
-            facts = self.fetch_concept(cik, tag, DILUTED_SHARES_FALLBACK.unit)
-            if facts:
-                records = quarterly_facts_from_facts(
-                    facts,
-                    quarter_dates,
-                    PeriodMeasure.PERIOD_AVERAGE,
-                )
-                values = records["value"] * split_factors_for_filing_dates(
-                    records["filed"],
-                    splits,
-                )
-                combined = combined.combine_first(
-                    without_implausible_counts(values, cik),
-                )
-        return combined
 
     def _load_tickers(self) -> dict[str, SecTicker]:
         if self._tickers is None:
