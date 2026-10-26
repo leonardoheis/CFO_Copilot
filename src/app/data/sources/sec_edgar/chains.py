@@ -247,9 +247,7 @@ def quarterly_financials(
         splits,
     )
     series_by_name = {
-        name: _tag_chain_records(cik, spec, facts_for, quarter_dates, splits)[
-            "value"
-        ]
+        name: _tag_chain_records(cik, spec, facts_for, quarter_dates, splits)["value"]
         for name, spec in TAG_CHAINS.items()
         if name not in {"shares_outstanding", "revenue"}
     }

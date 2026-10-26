@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 from fredapi import Fred
+from syrupy.assertion import SnapshotAssertion
 
 from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
@@ -204,6 +205,30 @@ def test_merge_panel_fills_columns_from_every_source(
     assert panel.loc[0, "fed_funds"] == pytest.approx(EXPECTED_FED_FUNDS)
     assert panel.loc[0, "sp500_return_lag1"] == pytest.approx(EXPECTED_SP500)
     assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
+
+
+def test_a_written_panel_keeps_its_columns_and_dtypes_in_order(
+    company_registry: CompanyRegistry,
+    tmp_path: Path,
+    snapshot: SnapshotAssertion,
+) -> None:
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=IngestionSources(
+            fetch_macro_panel=fake_macro_panel,
+            yfinance=FakeMarketSource(),
+            fetch_sec_financials=fake_sec_financials,
+            registry=company_registry,
+        ),
+    )
+
+    written = pd.read_parquet(write_panel(panel, tmp_path / "AMZN_panel.parquet"))
+
+    assert [(column, str(dtype)) for column, dtype in written.dtypes.items()] == (
+        snapshot
+    )
 
 
 def test_merge_panel_derives_pe_ratio_from_price_and_earnings(

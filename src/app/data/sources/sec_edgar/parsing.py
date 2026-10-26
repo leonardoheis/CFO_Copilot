@@ -11,7 +11,11 @@ from pydantic import BaseModel, ConfigDict
 
 from app.data.companies import CIK_LENGTH, is_valid_cik
 from app.data.exceptions import MalformedPayloadError
-from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
+from app.data.schema import (
+    FINANCIALS_FRAME_COLUMNS,
+    MILLIONS_DIVISOR,
+    PROVENANCE_COLUMNS,
+)
 from app.data.splits import cumulative_split_factors
 from app.data.xbrl import XbrlFact
 
@@ -246,5 +250,5 @@ def financial_panel_from_raw(raw: pd.DataFrame) -> pd.DataFrame:
     )
     return panel.loc[
         :,
-        ["date", *FINANCIAL_COLUMNS, "shares_outstanding", *PROVENANCE_COLUMNS],
+        list(FINANCIALS_FRAME_COLUMNS),
     ]

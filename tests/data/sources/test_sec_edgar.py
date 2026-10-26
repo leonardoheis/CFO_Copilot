@@ -6,7 +6,7 @@ import pytest
 from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
-from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
+from app.data.schema import FINANCIALS_FRAME_COLUMNS, MILLIONS_DIVISOR
 from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.xbrl import XbrlFact
 from app.settings import Settings
@@ -62,12 +62,7 @@ def test_fetch_financials_panel_has_financial_columns(
 
     panel = sec_source.fetch_financials_panel("AMZN", start, end)
 
-    assert list(panel.columns) == [
-        "date",
-        *FINANCIAL_COLUMNS,
-        "shares_outstanding",
-        *PROVENANCE_COLUMNS,
-    ]
+    assert list(panel.columns) == list(FINANCIALS_FRAME_COLUMNS)
     assert len(panel) == len(quarter_end_dates(start, end))
     assert panel["revenue_usd_m"].notna().all()
     assert panel["operating_margin"].between(0, 1).all()

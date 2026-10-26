@@ -550,6 +550,18 @@ on disk are unaffected.
   allows. Column order in written panels stays the same.
 - **Tests:** written panel columns and dtypes equal today's, in order.
 - **Rerun:** No.
+- **Status:** done, with `FinancialsRow` as the authority. Its fields are the
+  one declaration: `schema.FINANCIALS_FRAME_COLUMNS` is `tuple(FinancialsRow.model_fields)`,
+  and `FINANCIAL_COLUMNS` and `PROVENANCE_COLUMNS` are the slices on either
+  side of `shares_outstanding`. The SEC and Alpha Vantage frames select
+  `FINANCIALS_FRAME_COLUMNS` instead of re-spelling the order.
+  `FinancialQuarterValues` stays a separate declaration: Pydantic inheritance
+  would move the shared fields to the front, and `create_model` loses mypy's
+  attribute typing. A test guards that its fields are a subset of
+  `FinancialsRow`'s. Before the change, two snapshots were recorded: every
+  column tuple and both models' field order (`test_schema.py`), and the
+  columns and dtypes of a merged panel written to parquet and read back
+  (`test_pipeline.py`). Both still match. No notebook references these tuples.
 
 ### #10 DiagnosticsService is mostly a middle man
 - **Smell:** Middle Man.

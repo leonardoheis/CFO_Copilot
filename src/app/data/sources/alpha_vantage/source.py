@@ -16,11 +16,7 @@ from app.data.exceptions import (
     DataSourceUnavailableError,
     RateLimitedError,
 )
-from app.data.schema import (
-    FINANCIAL_COLUMNS,
-    PROVENANCE_COLUMNS,
-    FinancialQuarterValues,
-)
+from app.data.schema import FINANCIALS_FRAME_COLUMNS, FinancialQuarterValues
 
 from .parsing import (
     JsonObject,
@@ -88,7 +84,7 @@ class AlphaVantageSource:
         ]
         return pd.DataFrame(rows).loc[
             :,
-            ["date", *FINANCIAL_COLUMNS, "shares_outstanding", *PROVENANCE_COLUMNS],
+            list(FINANCIALS_FRAME_COLUMNS),
         ]
 
     def fetch_payload(self, function: str, ticker: str) -> JsonObject:

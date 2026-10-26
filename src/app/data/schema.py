@@ -34,19 +34,6 @@ INDEX_COLUMNS: Final[tuple[str, ...]] = ("sp500_return_lag1",)
 
 MACRO_COLUMNS: Final[tuple[str, ...]] = (*FRED_MACRO_COLUMNS, *INDEX_COLUMNS)
 
-FINANCIAL_COLUMNS: Final[tuple[str, ...]] = (
-    "revenue_usd_m",
-    "gross_profit_usd_m",
-    "opex_usd_m",
-    "operating_income_usd_m",
-    "ebitda_usd_m",
-    "net_income_usd_m",
-    "free_cash_flow_usd_m",
-    "gross_margin",
-    "operating_margin",
-    "net_margin",
-    "eps",
-)
 # Undefined for a company without cost of revenue (an insurer, a railroad).
 COST_OF_REVENUE_COLUMNS: Final[tuple[str, ...]] = (
     "gross_profit_usd_m",
@@ -79,9 +66,8 @@ class FinancialQuarterValues(BaseModel):
 class FinancialsRow(BaseModel):
     """One row of the financial panel, before macro and market columns are merged.
 
-    Field order matches
-    ``["date", *FINANCIAL_COLUMNS, "shares_outstanding", *PROVENANCE_COLUMNS]``
-    so ``model_dump()`` can be handed straight to ``pandas.DataFrame``.
+    The single declaration of the financial columns: their names and their order
+    in every written panel derive from these fields.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -104,13 +90,17 @@ class FinancialsRow(BaseModel):
     financials_provenance: str | None = None
 
 
+FINANCIALS_FRAME_COLUMNS: Final[tuple[str, ...]] = tuple(FinancialsRow.model_fields)
+
+_SHARES_POSITION: Final = FINANCIALS_FRAME_COLUMNS.index("shares_outstanding")
+
+FINANCIAL_COLUMNS: Final[tuple[str, ...]] = FINANCIALS_FRAME_COLUMNS[1:_SHARES_POSITION]
+
 # Where a row's financials came from. Anchored on revenue: it is the figure
 # whose filing decides which period the row actually describes.
-PROVENANCE_COLUMNS: Final[tuple[str, ...]] = (
-    "period_end",
-    "financials_filed",
-    "financials_provenance",
-)
+PROVENANCE_COLUMNS: Final[tuple[str, ...]] = FINANCIALS_FRAME_COLUMNS[
+    _SHARES_POSITION + 1 :
+]
 
 MARKET_COLUMNS: Final[tuple[str, ...]] = (
     "stock_price_usd",

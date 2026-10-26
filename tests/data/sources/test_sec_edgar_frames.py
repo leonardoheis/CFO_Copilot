@@ -22,7 +22,9 @@ WINDOWS = (
             "AMZN",
             pd.Series([20.0], index=pd.DatetimeIndex(["2022-06-06"])),
             marks=pytest.mark.vcr(
-                str(CASSETTES / "test_fetch_financials_panel_has_financial_columns.yaml")
+                str(
+                    CASSETTES / "test_fetch_financials_panel_has_financial_columns.yaml"
+                )
             ),
             id="AMZN",
         ),
