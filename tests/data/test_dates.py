@@ -24,9 +24,7 @@ def test_a_quarter_end_is_a_day_the_quarterly_calendar_lists() -> None:
 
 def test_the_completed_quarter_is_the_last_one_closed_before_todays() -> None:
     for day in EVERY_DAY:
-        closed = [
-            end for end in quarter_end_dates(date(2005, 1, 1), day) if end != day
-        ]
+        closed = [end for end in quarter_end_dates(date(2005, 1, 1), day) if end != day]
 
         assert most_recent_completed_quarter(day) == closed[-1], day
 

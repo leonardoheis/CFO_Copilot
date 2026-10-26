@@ -27,7 +27,6 @@ from app.data.sources import FredSource, SecEdgarSource, YfinanceSource
 from app.data.sources_bundle import IngestionSources
 from app.settings import Settings
 
-TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 TEST_QUARTER_DATES = quarter_end_dates(date(2020, 1, 1), date(2020, 6, 30))
 EXPECTED_REVENUE = 1_000.0
 FISCAL_OFFSET_DAYS = 31
@@ -419,13 +418,9 @@ def test_merge_panel_propagates_source_errors(
 @pytest.mark.vcr
 def test_merge_panel_returns_panel_after_all_sources_are_implemented(
     company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
 ) -> None:
     fred = FredSource(client=Fred(api_key=Settings.FRED_API_KEY or "test-key"))
-    sec_edgar = SecEdgarSource(
-        user_agent=Settings.SEC_USER_AGENT or TEST_USER_AGENT,
-        registry=company_registry,
-        timeout=Settings.REQUEST_TIMEOUT,
-    )
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
@@ -433,7 +428,7 @@ def test_merge_panel_returns_panel_after_all_sources_are_implemented(
         sources=IngestionSources(
             fetch_macro_panel=fred.fetch_macro_panel,
             yfinance=YfinanceSource(registry=company_registry),
-            fetch_sec_financials=sec_edgar.fetch_financials_panel,
+            fetch_sec_financials=sec_source.fetch_financials_panel,
             registry=company_registry,
         ),
     )

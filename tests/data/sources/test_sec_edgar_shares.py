@@ -8,25 +8,8 @@ from typing import cast
 
 import pytest
 
-from app.data.companies import CompanyRegistry
 from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.xbrl import XbrlFact
-from app.settings import Settings
-
-TEST_USER_AGENT = "CFO Copilot tests test@example.com"
-
-
-@pytest.fixture
-def sec_source(company_registry: CompanyRegistry) -> SecEdgarSource:
-    return SecEdgarSource(
-        user_agent=TEST_USER_AGENT,
-        registry=company_registry,
-        timeout=Settings.REQUEST_TIMEOUT,
-    )
-
-
-def _duration_fact(start: str, end: str, val: float, *, filed: str) -> XbrlFact:
-    return {"start": start, "end": end, "val": val, "filed": filed}
 
 
 def test_diluted_shares_fallback_weights_a_fiscal_q4_average(
@@ -44,8 +27,12 @@ def test_diluted_shares_fallback_weights_a_fiscal_q4_average(
         if tag != "WeightedAverageNumberOfDilutedSharesOutstanding":
             return []
         return [
-            _duration_fact("2025-07-01", "2026-03-31", 2_425.8e6, filed="2026-04-20"),
-            _duration_fact("2025-07-01", "2026-06-30", 2_422.5e6, filed="2026-08-04"),
+            XbrlFact(
+                start="2025-07-01", end="2026-03-31", val=2_425.8e6, filed="2026-04-20"
+            ),
+            XbrlFact(
+                start="2025-07-01", end="2026-06-30", val=2_422.5e6, filed="2026-08-04"
+            ),
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
@@ -96,9 +83,15 @@ def test_share_count_tagged_at_the_wrong_scale_is_discarded(
         if tag != "WeightedAverageNumberOfDilutedSharesOutstanding":
             return []
         return [
-            _duration_fact("2009-04-01", "2009-06-30", 1_272e6, filed="2009-07-29"),
-            _duration_fact("2009-07-01", "2009-09-30", 1_268, filed="2010-11-04"),
-            _duration_fact("2009-10-01", "2009-12-31", 1_265e6, filed="2010-02-20"),
+            XbrlFact(
+                start="2009-04-01", end="2009-06-30", val=1_272e6, filed="2009-07-29"
+            ),
+            XbrlFact(
+                start="2009-07-01", end="2009-09-30", val=1_268, filed="2010-11-04"
+            ),
+            XbrlFact(
+                start="2009-10-01", end="2009-12-31", val=1_265e6, filed="2010-02-20"
+            ),
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
@@ -124,11 +117,18 @@ def test_implied_shares_from_inconsistent_eps_are_discarded(
     ) -> list[XbrlFact]:
         if tag == "NetIncomeLoss":
             return [
-                _duration_fact("2009-04-01", "2009-06-30", 358.8e6, filed="2009-08-01"),
+                XbrlFact(
+                    start="2009-04-01",
+                    end="2009-06-30",
+                    val=358.8e6,
+                    filed="2009-08-01",
+                ),
             ]
         if tag == "EarningsPerShareDiluted":
             return [
-                _duration_fact("2009-04-01", "2009-06-30", -0.83, filed="2009-08-01"),
+                XbrlFact(
+                    start="2009-04-01", end="2009-06-30", val=-0.83, filed="2009-08-01"
+                ),
             ]
         return []
 

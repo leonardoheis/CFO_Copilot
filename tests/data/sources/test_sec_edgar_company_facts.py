@@ -3,15 +3,12 @@ from http import HTTPStatus
 import pytest
 import requests
 
-from app.data.companies import CompanyRegistry
 from app.data.exceptions import DataSourceUnavailableError, MalformedPayloadError
 from app.data.sources.sec_edgar import SecEdgarSource, SecTicker, fetch_sec_tickers
 from app.data.sources.sec_edgar.parsing import concept_facts, sec_tickers
 from app.data.xbrl import XbrlFact
-from app.settings import Settings
 
 GET_TARGET = "app.data.sources.sec_edgar.source.requests.get"
-TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 REVENUE_FACT: XbrlFact = {
     "start": "2024-01-01",
     "end": "2024-03-31",
@@ -44,11 +41,12 @@ class FakeResponse:
         return self._payload
 
 
-def _source(
-    monkeypatch: pytest.MonkeyPatch,
-    company_registry: CompanyRegistry,
-    response: FakeResponse,
-) -> tuple[SecEdgarSource, list[str]]:
+def _fake_get(monkeypatch: pytest.MonkeyPatch, response: FakeResponse) -> list[str]:
+    """Answer every SEC request with ``response``.
+
+    Returns:
+        The URLs requested, in order, filled as the test runs.
+    """
     requested: list[str] = []
 
     def get(url: str, *, headers: dict[str, str], timeout: int) -> FakeResponse:
@@ -57,12 +55,7 @@ def _source(
         return response
 
     monkeypatch.setattr(GET_TARGET, get)
-    source = SecEdgarSource(
-        user_agent=TEST_USER_AGENT,
-        registry=company_registry,
-        timeout=Settings.REQUEST_TIMEOUT,
-    )
-    return source, requested
+    return requested
 
 
 def test_concept_facts_returns_the_unit_list() -> None:
@@ -110,12 +103,12 @@ def test_concept_facts_rejects_a_level_that_is_not_an_object(
 
 def test_one_company_facts_request_serves_every_tag(
     monkeypatch: pytest.MonkeyPatch,
-    company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
 ) -> None:
-    source, requested = _source(monkeypatch, company_registry, FakeResponse(PAYLOAD))
+    requested = _fake_get(monkeypatch, FakeResponse(PAYLOAD))
 
-    revenue = source.fetch_concept("1800", "Revenues")
-    net_income = source.fetch_concept("1800", "NetIncomeLoss")
+    revenue = sec_source.fetch_concept("1800", "Revenues")
+    net_income = sec_source.fetch_concept("1800", "NetIncomeLoss")
 
     assert revenue == [REVENUE_FACT]
     assert net_income == [REVENUE_FACT]
@@ -126,61 +119,53 @@ def test_one_company_facts_request_serves_every_tag(
 
 def test_a_cik_without_xbrl_filings_has_no_facts(
     monkeypatch: pytest.MonkeyPatch,
-    company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
 ) -> None:
-    source, requested = _source(
-        monkeypatch, company_registry, FakeResponse({}, HTTPStatus.NOT_FOUND)
-    )
+    requested = _fake_get(monkeypatch, FakeResponse({}, HTTPStatus.NOT_FOUND))
 
-    assert source.fetch_concept("1800", "Revenues") == []
-    assert source.fetch_concept("1800", "NetIncomeLoss") == []
+    assert sec_source.fetch_concept("1800", "Revenues") == []
+    assert sec_source.fetch_concept("1800", "NetIncomeLoss") == []
     assert len(requested) == 1
 
 
 def test_a_server_error_is_reported_as_unavailable(
     monkeypatch: pytest.MonkeyPatch,
-    company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
 ) -> None:
-    source, _ = _source(
-        monkeypatch, company_registry, FakeResponse({}, HTTPStatus.SERVICE_UNAVAILABLE)
-    )
+    _fake_get(monkeypatch, FakeResponse({}, HTTPStatus.SERVICE_UNAVAILABLE))
 
     with pytest.raises(DataSourceUnavailableError, match="CIK0000001800"):
-        source.fetch_concept("1800", "Revenues")
+        sec_source.fetch_concept("1800", "Revenues")
 
 
 def test_a_company_facts_body_that_is_not_an_object_is_malformed(
     monkeypatch: pytest.MonkeyPatch,
-    company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
 ) -> None:
-    source, _ = _source(monkeypatch, company_registry, FakeResponse(["facts"]))
+    _fake_get(monkeypatch, FakeResponse(["facts"]))
 
     with pytest.raises(MalformedPayloadError, match="CIK0000001800"):
-        source.fetch_concept("1800", "Revenues")
+        sec_source.fetch_concept("1800", "Revenues")
 
 
 def test_a_ticker_file_server_error_is_reported_as_unavailable(
     monkeypatch: pytest.MonkeyPatch,
-    company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
 ) -> None:
-    source, _ = _source(
-        monkeypatch, company_registry, FakeResponse({}, HTTPStatus.SERVICE_UNAVAILABLE)
-    )
+    _fake_get(monkeypatch, FakeResponse({}, HTTPStatus.SERVICE_UNAVAILABLE))
 
     with pytest.raises(DataSourceUnavailableError, match="company_tickers"):
-        source.resolve_cik("QCOM")
+        sec_source.resolve_cik("QCOM")
 
 
 def test_a_malformed_ticker_entry_is_reported(
     monkeypatch: pytest.MonkeyPatch,
-    company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
 ) -> None:
-    source, _ = _source(
-        monkeypatch, company_registry, FakeResponse({"0": {"ticker": "QCOM"}})
-    )
+    _fake_get(monkeypatch, FakeResponse({"0": {"ticker": "QCOM"}}))
 
     with pytest.raises(MalformedPayloadError, match="Malformed SEC ticker entry"):
-        source.resolve_cik("QCOM")
+        sec_source.resolve_cik("QCOM")
 
 
 def test_sec_tickers_pads_the_cik_and_upper_cases_the_ticker() -> None:
@@ -213,14 +198,14 @@ def test_sec_tickers_rejects_a_malformed_file(payload: object, message: str) -> 
 
 
 def test_a_missing_ticker_file_is_reported_as_unavailable(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, sec_user_agent: str
 ) -> None:
     monkeypatch.setattr(
         GET_TARGET, lambda *_, **__: FakeResponse({}, HTTPStatus.NOT_FOUND)
     )
 
     with pytest.raises(DataSourceUnavailableError, match="company_tickers"):
-        fetch_sec_tickers(user_agent=TEST_USER_AGENT, timeout=1)
+        fetch_sec_tickers(user_agent=sec_user_agent, timeout=1)
 
 
 def test_fetching_tickers_without_a_user_agent_is_refused() -> None:

@@ -1,4 +1,3 @@
-import math
 from datetime import date
 
 import pandas as pd
@@ -8,24 +7,9 @@ from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
 from app.data.schema import FINANCIAL_COLUMNS, MILLIONS_DIVISOR, PROVENANCE_COLUMNS
-from app.data.sources.sec_edgar import SecEdgarSource, merge_raw_financial_frames
+from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.xbrl import XbrlFact
 from app.settings import Settings
-
-TEST_USER_AGENT = "CFO Copilot tests test@example.com"
-
-
-@pytest.fixture
-def sec_source(company_registry: CompanyRegistry) -> SecEdgarSource:
-    return SecEdgarSource(
-        user_agent=TEST_USER_AGENT,
-        registry=company_registry,
-        timeout=Settings.REQUEST_TIMEOUT,
-    )
-
-
-def _duration_fact(start: str, end: str, val: float, *, filed: str) -> XbrlFact:
-    return {"start": start, "end": end, "val": val, "filed": filed}
 
 
 def test_resolve_cik_for_amazon(sec_source: SecEdgarSource) -> None:
@@ -35,30 +19,6 @@ def test_resolve_cik_for_amazon(sec_source: SecEdgarSource) -> None:
 def test_resolve_ciks_for_alphabet(sec_source: SecEdgarSource) -> None:
     assert sec_source.resolve_ciks("GOOGL") == ("0001288776", "0001652044")
     assert sec_source.resolve_cik("GOOGL") == "0001652044"
-
-
-def test_merge_raw_financial_frames_prefers_primary_values() -> None:
-    preferred = pd.DataFrame(
-        {
-            "date": [date(2020, 3, 31), date(2020, 6, 30)],
-            "revenue": [100.0, math.nan],
-            "cogs": [10.0, 20.0],
-        },
-    )
-    fallback = pd.DataFrame(
-        {
-            "date": [date(2020, 3, 31), date(2020, 6, 30)],
-            "revenue": [90.0, 200.0],
-            "cogs": [math.nan, 15.0],
-        },
-    )
-
-    merged = merge_raw_financial_frames(preferred, fallback)
-
-    assert merged.loc[0, "revenue"] == pytest.approx(100.0)
-    assert merged.loc[1, "revenue"] == pytest.approx(200.0)
-    assert merged.loc[0, "cogs"] == pytest.approx(10.0)
-    assert merged.loc[1, "cogs"] == pytest.approx(20.0)
 
 
 @pytest.mark.vcr
@@ -159,18 +119,21 @@ def test_dep_amort_chain_uses_later_tag_when_earlier_tags_are_empty(
         requested_tags.append(tag)
         if tag == "OperatingIncomeLoss":
             return [
-                _duration_fact(
-                    "2020-01-01",
-                    "2020-03-31",
-                    operating_income_value,
+                XbrlFact(
+                    start="2020-01-01",
+                    end="2020-03-31",
+                    val=operating_income_value,
                     filed="2020-05-01",
                 ),
             ]
         if tag != "DepreciationAmortizationAndOther":
             return []
         return [
-            _duration_fact(
-                "2020-01-01", "2020-03-31", dep_amort_value, filed="2020-05-01"
+            XbrlFact(
+                start="2020-01-01",
+                end="2020-03-31",
+                val=dep_amort_value,
+                filed="2020-05-01",
             ),
         ]
 
@@ -203,13 +166,17 @@ def test_tag_chain_skips_zero_from_earlier_tag_and_uses_real_value(
         _unit: str = "USD",
     ) -> list[XbrlFact]:
         if tag == "SalesRevenueNet":
-            return [_duration_fact("2008-12-01", "2009-02-28", 0.0, filed="2009-04-01")]
+            return [
+                XbrlFact(
+                    start="2008-12-01", end="2009-02-28", val=0.0, filed="2009-04-01"
+                )
+            ]
         if tag == "Revenues":
             return [
-                _duration_fact(
-                    "2008-12-01",
-                    "2009-02-28",
-                    expected_value,
+                XbrlFact(
+                    start="2008-12-01",
+                    end="2009-02-28",
+                    val=expected_value,
                     filed="2009-04-01",
                 ),
             ]
@@ -242,7 +209,12 @@ def test_tag_chain_prefers_largest_when_a_superseded_tag_reports_a_subtotal(
         if tag not in values:
             return []
         return [
-            _duration_fact("2009-12-01", "2010-02-28", values[tag], filed="2010-04-01")
+            XbrlFact(
+                start="2009-12-01",
+                end="2010-02-28",
+                val=values[tag],
+                filed="2010-04-01",
+            )
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
@@ -271,7 +243,12 @@ def _gross_profit_from_cost_tags(
         if tag not in in_usd:
             return []
         return [
-            _duration_fact("2016-04-01", "2016-06-30", in_usd[tag], filed="2016-07-27")
+            XbrlFact(
+                start="2016-04-01",
+                end="2016-06-30",
+                val=in_usd[tag],
+                filed="2016-07-27",
+            )
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
@@ -374,7 +351,12 @@ def _depreciation_and_amortization_from_tags(
         if tag not in in_usd:
             return []
         return [
-            _duration_fact("2026-01-01", "2026-03-31", in_usd[tag], filed="2026-04-30")
+            XbrlFact(
+                start="2026-01-01",
+                end="2026-03-31",
+                val=in_usd[tag],
+                filed="2026-04-30",
+            )
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
@@ -459,7 +441,12 @@ def test_tag_chain_keeps_first_tag_when_concept_is_not_a_total(
         if tag not in values:
             return []
         return [
-            _duration_fact("2023-01-01", "2023-03-31", values[tag], filed="2023-04-25")
+            XbrlFact(
+                start="2023-01-01",
+                end="2023-03-31",
+                val=values[tag],
+                filed="2023-04-25",
+            )
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
@@ -485,8 +472,11 @@ def test_tag_chain_reads_goods_net_when_it_is_the_only_revenue_tag(
         if tag != "SalesRevenueGoodsNet":
             return []
         return [
-            _duration_fact(
-                "2015-01-01", "2015-03-31", expected_value, filed="2015-04-23"
+            XbrlFact(
+                start="2015-01-01",
+                end="2015-03-31",
+                val=expected_value,
+                filed="2015-04-23",
             )
         ]
 
@@ -517,7 +507,12 @@ def test_tag_chain_keeps_the_total_when_goods_net_is_a_component(
         if tag not in values:
             return []
         return [
-            _duration_fact("2015-01-01", "2015-03-31", values[tag], filed="2015-04-22")
+            XbrlFact(
+                start="2015-01-01",
+                end="2015-03-31",
+                val=values[tag],
+                filed="2015-04-22",
+            )
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
@@ -542,7 +537,11 @@ def test_tag_chain_reads_regulated_operating_revenue_for_a_utility(
     ) -> list[XbrlFact]:
         if tag != "RegulatedAndUnregulatedOperatingRevenue":
             return []
-        return [_duration_fact("2015-01-01", "2015-03-31", total, filed="2015-05-05")]
+        return [
+            XbrlFact(
+                start="2015-01-01", end="2015-03-31", val=total, filed="2015-05-05"
+            )
+        ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)
 
@@ -572,7 +571,12 @@ def test_regulated_operating_revenue_wins_over_contract_revenue_it_contains(
         if tag not in values:
             return []
         return [
-            _duration_fact("2018-01-01", "2018-03-31", values[tag], filed="2018-05-08")
+            XbrlFact(
+                start="2018-01-01",
+                end="2018-03-31",
+                val=values[tag],
+                filed="2018-05-08",
+            )
         ]
 
     monkeypatch.setattr(sec_source, "fetch_concept", fake_fetch_concept)

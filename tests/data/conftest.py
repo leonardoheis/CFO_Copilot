@@ -3,6 +3,7 @@ import json
 import pytest
 
 from app.data.companies import CompanyRegistry
+from app.data.sources.sec_edgar import SecEdgarSource
 from app.data.sources.sec_edgar.concepts import DILUTED_SHARES_FALLBACK, TAG_CHAINS
 from app.settings import Settings
 
@@ -47,3 +48,20 @@ def vcr_config() -> dict[str, object]:
 @pytest.fixture
 def company_registry() -> CompanyRegistry:
     return CompanyRegistry.from_path(Settings.COMPANY_REGISTRY_PATH)
+
+
+@pytest.fixture
+def sec_user_agent() -> str:
+    # Never Settings.SEC_USER_AGENT: the .env value carries a personal email.
+    return "CFO Copilot tests test@example.com"
+
+
+@pytest.fixture
+def sec_source(
+    company_registry: CompanyRegistry, sec_user_agent: str
+) -> SecEdgarSource:
+    return SecEdgarSource(
+        user_agent=sec_user_agent,
+        registry=company_registry,
+        timeout=Settings.REQUEST_TIMEOUT,
+    )

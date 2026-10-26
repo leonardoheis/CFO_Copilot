@@ -490,6 +490,22 @@ on disk are unaffected.
   placeholder user agent, never the `.env` value.
 - **Tests:** test count unchanged; cassettes untouched.
 - **Rerun:** No.
+- **Status:** done. `tests/data/conftest.py` now provides `sec_user_agent`
+  (the placeholder, never `Settings.SEC_USER_AGENT`) and `sec_source`; the
+  four `TEST_USER_AGENT` constants, the two identical `sec_source` fixtures and
+  the construction inside the company-facts `_source` are gone.
+  `test_pipeline`'s recorded merge test used `Settings.SEC_USER_AGENT or ...`
+  and now takes the fixture; it replays unchanged because `vcr_config` filters
+  `User-Agent`, and the SEC cassettes in `test_sec_edgar.py` were already
+  recorded with the placeholder. The company-facts helper keeps only its real
+  logic, as `_fake_get` returning the requested URLs. Deviation from the
+  plan's fix: `_duration_fact` did not move to `conftest`; its body was one
+  `XbrlFact` constructor, which `CLAUDE.md` says not to wrap, so its 19 call
+  sites build `XbrlFact(start=..., end=..., val=..., filed=...)` directly.
+  That pushed `test_sec_edgar.py` past pylint's 600 lines, so
+  `test_merge_raw_financial_frames_prefers_primary_values` (pure parsing, no
+  fixture) moved to `test_sec_edgar_parsing.py`, as in #13. 549 tests before
+  and after; no cassette changed.
 
 ## Phase 5: Structure
 

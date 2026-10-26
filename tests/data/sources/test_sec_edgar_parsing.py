@@ -1,9 +1,38 @@
+import math
 from datetime import date
 
 import pandas as pd
+import pytest
 
 from app.data.schema import PROVENANCE_COLUMNS
-from app.data.sources.sec_edgar.parsing import financial_panel_from_raw
+from app.data.sources.sec_edgar.parsing import (
+    financial_panel_from_raw,
+    merge_raw_financial_frames,
+)
+
+
+def test_merge_raw_financial_frames_prefers_primary_values() -> None:
+    preferred = pd.DataFrame(
+        {
+            "date": [date(2020, 3, 31), date(2020, 6, 30)],
+            "revenue": [100.0, math.nan],
+            "cogs": [10.0, 20.0],
+        },
+    )
+    fallback = pd.DataFrame(
+        {
+            "date": [date(2020, 3, 31), date(2020, 6, 30)],
+            "revenue": [90.0, 200.0],
+            "cogs": [math.nan, 15.0],
+        },
+    )
+
+    merged = merge_raw_financial_frames(preferred, fallback)
+
+    assert merged.loc[0, "revenue"] == pytest.approx(100.0)
+    assert merged.loc[1, "revenue"] == pytest.approx(200.0)
+    assert merged.loc[0, "cogs"] == pytest.approx(10.0)
+    assert merged.loc[1, "cogs"] == pytest.approx(20.0)
 
 
 def test_zero_revenue_quarter_yields_no_margins_instead_of_dividing() -> None:
