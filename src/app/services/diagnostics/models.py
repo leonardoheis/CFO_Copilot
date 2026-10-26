@@ -1,10 +1,21 @@
-from typing import Literal, NamedTuple, Self
+from typing import Annotated, Literal, NamedTuple, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 from app.settings import RANDOM_SEED
 
 _STL_MINIMUM_CYCLES = 2
+
+
+def _ordered_in_unit_interval(pair: tuple[float, float]) -> tuple[float, float]:
+    lower, upper = pair
+    if not 0.0 <= lower < upper <= 1.0:
+        message = f"must satisfy 0 <= lower < upper <= 1, got {pair}"
+        raise ValueError(message)
+    return pair
+
+
+QuantilePair = Annotated[tuple[float, float], AfterValidator(_ordered_in_unit_interval)]
 
 
 class SeriesDiagnostics(BaseModel):
@@ -129,19 +140,8 @@ class FigureSettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     style: Literal["whitegrid", "white", "darkgrid", "ticks"] = "whitegrid"
-    clip_quantiles: tuple[float, float] = (0.01, 0.99)
+    clip_quantiles: QuantilePair = (0.01, 0.99)
     top_series: int = Field(default=4, ge=1)
-
-    @model_validator(mode="after")
-    def _clip_range_is_ordered(self) -> Self:
-        lower, upper = self.clip_quantiles
-        if not 0.0 <= lower < upper <= 1.0:
-            message = (
-                "clip_quantiles must satisfy 0 <= lower < upper <= 1, "
-                f"got {self.clip_quantiles}"
-            )
-            raise ValueError(message)
-        return self
 
 
 class SegmentSettings(BaseModel):
@@ -149,18 +149,7 @@ class SegmentSettings(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    spread_quantiles: tuple[float, float] = (0.25, 0.75)
-
-    @model_validator(mode="after")
-    def _spread_is_ordered(self) -> Self:
-        lower, upper = self.spread_quantiles
-        if not 0.0 <= lower < upper <= 1.0:
-            message = (
-                "spread_quantiles must satisfy 0 <= lower < upper <= 1, "
-                f"got {self.spread_quantiles}"
-            )
-            raise ValueError(message)
-        return self
+    spread_quantiles: QuantilePair = (0.25, 0.75)
 
 
 class DecisionSettings(BaseModel):

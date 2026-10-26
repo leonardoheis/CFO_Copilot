@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import pytest
-from pydantic import ValidationError
 
 from app.services.diagnostics import (
     SegmentProfiler,
@@ -115,11 +114,6 @@ def test_timeline_marks_covid_and_break_quarters(
     assert len(timeline) == QUARTERS
     assert timeline["covid"].sum() == len(COVID_QUARTERS)
     assert timeline.loc[12, "breaks"] == 1
-
-
-def test_settings_refuse_an_inverted_spread() -> None:
-    with pytest.raises(ValidationError):
-        SegmentSettings(spread_quantiles=(0.75, 0.25))
 
 
 def test_segment_values_are_labels_of_one_type(

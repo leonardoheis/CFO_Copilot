@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
-from pydantic import ValidationError
 from syrupy.assertion import SnapshotAssertion
 
 from app.services.diagnostics import (
@@ -143,11 +142,6 @@ def test_seasonal_strength_histogram_is_titled(figures: EdaFigures) -> None:
     figure = figures.seasonal_strength(diagnostics)
 
     assert _titles(figure) == ["Seasonal strength (STL, period 4)"]
-
-
-def test_settings_refuse_an_inverted_clip_range() -> None:
-    with pytest.raises(ValidationError):
-        FigureSettings(clip_quantiles=(0.99, 0.01))
 
 
 def test_segment_figures_are_titled(figures: EdaFigures) -> None:

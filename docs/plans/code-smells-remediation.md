@@ -447,6 +447,16 @@ on disk are unaffected.
   `0 <= lower < upper <= 1`.
 - **Tests:** existing validator tests run against both models.
 - **Rerun:** No.
+- **Status:** done. `models.py` declares `QuantilePair`, an `Annotated`
+  `tuple[float, float]` whose `AfterValidator` enforces
+  `0 <= lower < upper <= 1`; `FigureSettings.clip_quantiles` and
+  `SegmentSettings.spread_quantiles` use it, and both model validators are
+  gone. The rule and the defaults are unchanged. One behaviour moved: the
+  error is now attributed to the offending field (`loc` was `()` under the
+  model validator). The two single-case tests in `test_figures.py` and
+  `test_segments.py` were replaced by parametrized tests in `test_models.py`
+  that run both models through an inverted pair, an empty range, and each
+  bound exceeded, and accept the full `(0.0, 1.0)` interval.
 
 ### #37 Quarter-end rules have several implementations
 - **Smell:** Oddball Solution.

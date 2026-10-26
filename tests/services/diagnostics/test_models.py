@@ -1,12 +1,14 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from app.services.diagnostics import (
     CompanyMacroSensitivity,
     DiagnosticsError,
     DiagnosticsSettings,
+    FigureSettings,
     MacroCorrelation,
     RegimeSettings,
+    SegmentSettings,
     SeriesDiagnostics,
     TooFewCompaniesError,
 )
@@ -88,3 +90,27 @@ def test_sensitivity_row_has_one_column_per_macro_series_then_sector() -> None:
         "vix": -0.3,
         "sector": "Energy",
     }
+
+
+QUANTILE_PAIR_FIELDS = pytest.mark.parametrize(
+    ("settings_type", "field"),
+    [(FigureSettings, "clip_quantiles"), (SegmentSettings, "spread_quantiles")],
+)
+
+
+@QUANTILE_PAIR_FIELDS
+@pytest.mark.parametrize("pair", [(0.75, 0.25), (0.5, 0.5), (-0.01, 0.5), (0.5, 1.01)])
+def test_a_quantile_pair_must_be_ordered_inside_the_unit_interval(
+    settings_type: type[BaseModel], field: str, pair: tuple[float, float]
+) -> None:
+    with pytest.raises(ValidationError) as error:
+        settings_type(**{field: pair})
+
+    assert error.value.errors()[0]["loc"] == (field,)
+
+
+@QUANTILE_PAIR_FIELDS
+def test_a_quantile_pair_may_span_the_whole_unit_interval(
+    settings_type: type[BaseModel], field: str
+) -> None:
+    assert getattr(settings_type(**{field: (0.0, 1.0)}), field) == (0.0, 1.0)
