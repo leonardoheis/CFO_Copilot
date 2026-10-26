@@ -6,6 +6,9 @@ from app.services.diagnostics import (
     DecisionTableBuilder,
     DiagnosticsService,
     FeatureAuditor,
+    MacroCorrelator,
+    OutlierRegister,
+    SeasonalityRegimeClusterer,
 )
 from app.services.features import (
     FeatureGroup,
@@ -24,6 +27,9 @@ def test_services_resolve_to_their_types() -> None:
     container = Container()
 
     assert isinstance(container.diagnostics_service(), DiagnosticsService)
+    assert isinstance(container.seasonality_clusterer(), SeasonalityRegimeClusterer)
+    assert isinstance(container.macro_correlator(), MacroCorrelator)
+    assert isinstance(container.outlier_register(), OutlierRegister)
     assert isinstance(container.feature_service(), FeatureService)
     assert isinstance(container.feature_store(), FeatureStore)
     assert isinstance(container.feature_auditor(), FeatureAuditor)
@@ -83,14 +89,14 @@ def test_settings_built_once_are_shared_by_every_consumer() -> None:
     assert container.outlier_settings() is container.outlier_settings()
     assert container.outlier_register.kwargs["settings"] is container.outlier_settings
     assert (
-        container.diagnostics_service.kwargs["outlier_register"]
-        is container.outlier_register
-    )
-    assert (
         container.eda_figures.kwargs["outlier_register"] is container.outlier_register
     )
     assert container.diagnostics_settings() is container.diagnostics_settings()
     assert diagnostician.kwargs["settings"] is container.diagnostics_settings
+    assert (
+        container.eda_figures.kwargs["diagnostics_settings"]
+        is container.diagnostics_settings
+    )
     assert (
         container.transform_comparer.kwargs["settings"]
         is container.diagnostics_settings

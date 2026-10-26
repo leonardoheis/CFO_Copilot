@@ -1,5 +1,6 @@
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
+from typing import Final
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -8,7 +9,10 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 from app.services.diagnostics.audit import OutlierRegister
-from app.services.diagnostics.models import FigureSettings
+from app.services.diagnostics.models import DiagnosticsSettings, FigureSettings
+
+_ORDINAL_SUFFIXES: Final = {1: "st", 2: "nd", 3: "rd"}
+_TEEN_PERCENTILES: Final = (11, 12, 13)
 
 
 def _horizontal_boxplot(
@@ -30,6 +34,19 @@ def _horizontal_boxplot(
     )
 
 
+def _ordinal_percentile(quantile: float) -> str:
+    """Spell a quantile as an ordinal percentile: 0.01 is "1st", 0.99 "99th".
+
+    Returns:
+        The percentile with its English ordinal suffix.
+    """
+    percentile = round(quantile * 100, 6)
+    if not percentile.is_integer() or int(percentile) in _TEEN_PERCENTILES:
+        return f"{percentile:g}th"
+    suffix = _ORDINAL_SUFFIXES.get(int(percentile) % 10, "th")
+    return f"{percentile:g}{suffix}"
+
+
 class EdaFigures:
     """Build the EDA's figures; the notebook only calls, shows and logs them.
 
@@ -43,10 +60,21 @@ class EdaFigures:
     """
 
     def __init__(
-        self, settings: FigureSettings, outlier_register: OutlierRegister
+        self,
+        settings: FigureSettings,
+        outlier_register: OutlierRegister,
+        diagnostics_settings: DiagnosticsSettings,
     ) -> None:
         self._settings = settings
         self._outlier_register = outlier_register
+        self._seasonal_period = diagnostics_settings.seasonal_period
+        self._hampel_label = (
+            f"Hampel z ({outlier_register.hampel_window}-quarter window)"
+        )
+        lower, upper = settings.clip_quantiles
+        self._clip_label = (
+            f"{_ordinal_percentile(lower)}-{_ordinal_percentile(upper)} percentile"
+        )
 
     @contextmanager
     def _styled(self) -> Generator[None]:
@@ -109,7 +137,7 @@ class EdaFigures:
                     scores["hampel_z"].abs(),
                     color="purple",
                     alpha=0.8,
-                    label="Hampel z (8-quarter window)",
+                    label=self._hampel_label,
                 )
                 score_axes.axhline(
                     self._outlier_register.z_threshold,
@@ -139,7 +167,7 @@ class EdaFigures:
                 facet_kws={"sharex": False, "sharey": False},
             )
             grid.figure.suptitle(
-                f"{title}: target per arm and horizon (1st-99th percentile)", y=1.02
+                f"{title}: target per arm and horizon ({self._clip_label})", y=1.02
             )
         return grid.figure
 
@@ -157,7 +185,7 @@ class EdaFigures:
                 facet_kws={"sharex": False, "sharey": False},
             )
             grid.figure.suptitle(
-                "Year-over-year change per column (1st-99th percentile)", y=1.02
+                f"Year-over-year change per column ({self._clip_label})", y=1.02
             )
         return grid.figure
 
@@ -234,7 +262,7 @@ class EdaFigures:
             figure, axes = plt.subplots(figsize=(8, 4))
             sns.histplot(diagnostics, x="seasonal_strength", bins=20, ax=axes)
             axes.set(
-                title="Seasonal strength (STL, period 4)",
+                title=f"Seasonal strength (STL, period {self._seasonal_period})",
                 xlabel="seasonal strength",
                 ylabel="companies",
             )

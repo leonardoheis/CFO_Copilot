@@ -40,6 +40,11 @@ def make_panel() -> PanelFactory:
         other_columns = [*FINANCIAL_COLUMNS[1:], *market_columns, *MACRO_COLUMNS]
         for offset, column in enumerate(other_columns):
             panel[column] = np.cos(steps / 3) + offset
-        return panel
+        return panel.assign(
+            period_end=panel["date"].dt.date,
+            financials_filed=(panel["date"] + pd.Timedelta(days=30)).dt.date,
+            financials_provenance="native",
+            period_end_offset_days=pd.array([0] * quarters, dtype="Int64"),
+        )
 
     return _make

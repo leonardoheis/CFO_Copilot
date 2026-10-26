@@ -46,6 +46,19 @@ def test_missing_column_is_named(tmp_path: Path, make_panel: PanelFactory) -> No
         store.load("AAA")
 
 
+@pytest.mark.parametrize(
+    "column", ["stock_price_usd", "market_cap_usd_m", "period_end_offset_days"]
+)
+def test_a_missing_market_derived_or_provenance_column_is_named(
+    tmp_path: Path, make_panel: PanelFactory, column: str
+) -> None:
+    store = PanelStore(tmp_path)
+    _write(store, make_panel(ticker="AAA").drop(columns=[column]))
+
+    with pytest.raises(MalformedPanelError, match=column):
+        store.load("AAA")
+
+
 def test_gap_in_quarters_is_rejected(tmp_path: Path, make_panel: PanelFactory) -> None:
     store = PanelStore(tmp_path)
     _write(store, make_panel(ticker="AAA").drop(index=5))

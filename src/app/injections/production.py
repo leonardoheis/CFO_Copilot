@@ -113,12 +113,11 @@ class Container(containers.DeclarativeContainer):
         diagnostician=providers.Factory(
             SeriesDiagnostician, settings=diagnostics_settings
         ),
-        clusterer=providers.Factory(
-            SeasonalityRegimeClusterer, settings=RegimeSettings()
-        ),
-        correlator=providers.Factory(MacroCorrelator, macro_columns=MACRO_COLUMNS),
-        outlier_register=outlier_register,
     )
+    seasonality_clusterer = providers.Factory(
+        SeasonalityRegimeClusterer, settings=RegimeSettings()
+    )
+    macro_correlator = providers.Factory(MacroCorrelator, macro_columns=MACRO_COLUMNS)
     feature_service = providers.Factory(
         FeatureService,
         builder=providers.Factory(FeatureBuilder, spec=FeatureSpec()),
@@ -134,6 +133,7 @@ class Container(containers.DeclarativeContainer):
         EdaFigures,
         settings=FigureSettings(),
         outlier_register=outlier_register,
+        diagnostics_settings=diagnostics_settings,
     )
     segment_profiler = providers.Factory(SegmentProfiler, settings=SegmentSettings())
     transform_comparer = providers.Factory(

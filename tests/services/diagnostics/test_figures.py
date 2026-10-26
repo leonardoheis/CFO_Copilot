@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from syrupy.assertion import SnapshotAssertion
 
 from app.services.diagnostics import (
+    DiagnosticsSettings,
     EdaFigures,
     FigureSettings,
     OutlierRegister,
@@ -36,6 +37,7 @@ def figures() -> Iterator[EdaFigures]:
     yield EdaFigures(
         settings=FigureSettings(),
         outlier_register=OutlierRegister(settings=OutlierSettings()),
+        diagnostics_settings=DiagnosticsSettings(),
     )
     plt.close("all")
 
@@ -142,6 +144,84 @@ def test_seasonal_strength_histogram_is_titled(figures: EdaFigures) -> None:
     figure = figures.seasonal_strength(diagnostics)
 
     assert _titles(figure) == ["Seasonal strength (STL, period 4)"]
+
+
+def test_default_settings_keep_the_published_labels(
+    figures: EdaFigures, panels: dict[str, pd.DataFrame]
+) -> None:
+    register = OutlierRegister(settings=OutlierSettings()).register(
+        panels, ["revenue_usd_m"]
+    )
+    target_frame = pd.DataFrame({
+        "arm": "log_diff1",
+        "horizon": 1,
+        "y": np.linspace(0.0, 1.0, 50),
+    })
+    changes = pd.DataFrame({"revenue_usd_m": [0.1, 0.2, 0.3]})
+
+    scores = figures.top_series_scores(register, panels)
+    target = figures.target_distribution(target_frame, title="revenue_usd_m")
+    change = figures.change_distributions(changes)
+    seasonal = figures.seasonal_strength(pd.DataFrame({"seasonal_strength": [0.5]}))
+
+    assert "Hampel z (8-quarter window)" in [
+        line.get_label() for line in scores.axes[1].get_lines()
+    ]
+    assert target.texts[0].get_text() == (
+        "revenue_usd_m: target per arm and horizon (1st-99th percentile)"
+    )
+    assert change.texts[0].get_text() == (
+        "Year-over-year change per column (1st-99th percentile)"
+    )
+    assert _titles(seasonal) == ["Seasonal strength (STL, period 4)"]
+
+
+@pytest.mark.parametrize(
+    ("clip_quantiles", "label"),
+    [
+        ((0.05, 0.95), "5th-95th percentile"),
+        ((0.02, 0.83), "2nd-83rd percentile"),
+        ((0.21, 0.92), "21st-92nd percentile"),
+        ((0.025, 0.11), "2.5th-11th percentile"),
+    ],
+)
+def test_the_clipping_label_follows_the_quantile_setting(
+    clip_quantiles: tuple[float, float], label: str
+) -> None:
+    figures = EdaFigures(
+        settings=FigureSettings(clip_quantiles=clip_quantiles),
+        outlier_register=OutlierRegister(settings=OutlierSettings()),
+        diagnostics_settings=DiagnosticsSettings(),
+    )
+
+    change = figures.change_distributions(pd.DataFrame({"eps": [0.1, 0.2, 0.3]}))
+    plt.close("all")
+
+    assert change.texts[0].get_text() == f"Year-over-year change per column ({label})"
+
+
+def test_window_and_period_labels_follow_their_settings(
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    outlier_register = OutlierRegister(settings=OutlierSettings(hampel_window=6))
+    figures = EdaFigures(
+        settings=FigureSettings(),
+        outlier_register=outlier_register,
+        diagnostics_settings=DiagnosticsSettings(
+            seasonal_period=12, min_observations=32
+        ),
+    )
+
+    scores = figures.top_series_scores(
+        outlier_register.register(panels, ["revenue_usd_m"]), panels
+    )
+    seasonal = figures.seasonal_strength(pd.DataFrame({"seasonal_strength": [0.5]}))
+    plt.close("all")
+
+    assert "Hampel z (6-quarter window)" in [
+        line.get_label() for line in scores.axes[1].get_lines()
+    ]
+    assert _titles(seasonal) == ["Seasonal strength (STL, period 12)"]
 
 
 def test_segment_figures_are_titled(figures: EdaFigures) -> None:

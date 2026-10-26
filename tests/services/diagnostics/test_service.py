@@ -5,11 +5,6 @@ import pytest
 from app.services.diagnostics import (
     DiagnosticsService,
     DiagnosticsSettings,
-    MacroCorrelator,
-    OutlierRegister,
-    OutlierSettings,
-    RegimeSettings,
-    SeasonalityRegimeClusterer,
     SeriesDiagnostician,
     SeriesDiagnostics,
 )
@@ -22,10 +17,7 @@ VARIABLES = ["revenue_usd_m", "eps"]
 @pytest.fixture
 def service() -> DiagnosticsService:
     return DiagnosticsService(
-        diagnostician=SeriesDiagnostician(settings=DiagnosticsSettings()),
-        clusterer=SeasonalityRegimeClusterer(settings=RegimeSettings(n_regimes=2)),
-        correlator=MacroCorrelator(macro_columns=("vix", "fed_funds")),
-        outlier_register=OutlierRegister(settings=OutlierSettings()),
+        diagnostician=SeriesDiagnostician(settings=DiagnosticsSettings())
     )
 
 
@@ -52,33 +44,3 @@ def test_panel_diagnostics_yield_one_row_per_company_and_variable(
 
     assert len(table) == len(panels) * len(VARIABLES)
     assert set(table.columns) == set(SeriesDiagnostics.model_fields)
-
-
-def test_regimes_come_from_the_injected_clusterer(
-    service: DiagnosticsService, panels: dict[str, pd.DataFrame]
-) -> None:
-    diagnostics = service.diagnose_panel(panels, VARIABLES)
-
-    regimes = service.seasonality_regimes(diagnostics, variable="revenue_usd_m")
-
-    assert set(regimes.index) == set(panels)
-    assert set(regimes) <= {0, 1}
-
-
-def test_correlations_use_the_injected_macro_columns(
-    service: DiagnosticsService, panels: dict[str, pd.DataFrame]
-) -> None:
-    table = service.growth_macro_correlations(panels, variable="revenue_usd_m")
-
-    assert list(table.columns) == ["vix", "fed_funds", "sector"]
-    assert list(table.index) == list(panels)
-
-
-def test_the_audit_registers_through_the_service(
-    service: DiagnosticsService, panels: dict[str, pd.DataFrame]
-) -> None:
-    columns = ["revenue_usd_m", "eps"]
-
-    register = service.register_outliers(panels, columns)
-
-    assert set(register["column"]) <= set(columns)

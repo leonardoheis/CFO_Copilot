@@ -136,6 +136,10 @@ class OutlierRegister:
     def z_threshold(self) -> float:
         return self._settings.z_threshold
 
+    @property
+    def hampel_window(self) -> int:
+        return self._settings.hampel_window
+
     def scores_for(self, panel: pd.DataFrame, column: str) -> pd.DataFrame:
         """Score every quarter of one company's column, flagged or not.
 

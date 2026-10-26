@@ -572,6 +572,18 @@ on disk are unaffected.
   outputs stay valid.
 - **Tests:** facade tests for deleted methods move to the collaborators' tests.
 - **Rerun:** No.
+- **Status:** done. Six of the seven methods only forwarded a call:
+  `seasonality_regimes`, `growth_macro_correlations`, `register_outliers`,
+  `register_target_extremes`, `outlier_threshold` and `outlier_scores`. All six
+  are deleted, and `DiagnosticsService` keeps `diagnose_panel` and its one
+  collaborator, the `SeriesDiagnostician`. The container gains
+  `seasonality_clusterer` and `macro_correlator` providers beside the existing
+  `outlier_register`. NB01 is the only caller: its setup cell takes the three
+  collaborators from the container, and three code cells call `assign`,
+  `correlate`, `register` and `register_target` directly. Saved outputs are
+  untouched. The three facade tests are deleted rather than moved: `test_panel.py`
+  and `test_audit.py` already test every collaborator method directly.
+  `test_container.py` checks that the new providers resolve.
 
 ### #18 Figure labels hardcode configurable values
 - **Smell:** Fallacious Label.
@@ -582,6 +594,20 @@ on disk are unaffected.
 - **Tests:** labels equal today's strings with default settings and follow a
   changed setting.
 - **Rerun:** Optional (labels change only if someone changes the settings).
+- **Status:** done. Each label now comes from the setting that drives its
+  computation:
+  - the Hampel window from `OutlierSettings.hampel_window`, through a new
+    `OutlierRegister.hampel_window` property;
+  - the clipping range from `FigureSettings.clip_quantiles`, spelled as ordinals
+    (`0.01` is "1st", `0.025` is "2.5th", `0.11` is "11th");
+  - the STL period from `DiagnosticsSettings.seasonal_period`.
+
+  `EdaFigures` now takes the container's `diagnostics_settings` singleton, so
+  the figures and the diagnosis read one value. Passing only
+  `.provided.seasonal_period` would have needed a pylint suppression for
+  dependency-injector's compiled providers. Before the change, a test pinned
+  today's four strings under default settings, and it still passes. Two new
+  tests show that each label follows a changed setting.
 
 ### #23 PanelStore validates only part of the panel schema
 - **Smell:** Incomplete Validation.
@@ -594,6 +620,15 @@ on disk are unaffected.
   and the item needs a decision first.
 - **Tests:** a panel missing `stock_price` raises the validation error.
 - **Rerun:** No.
+- **Status:** done. The pre-check passed: all 60 `data/processed/*_panel.parquet`
+  files contain every column in `PANEL_COLUMNS` (checked by reading only the
+  parquet schemas). `PanelStore` now validates against `PANEL_COLUMNS`, and
+  `REQUIRED_COLUMNS` is gone. Nothing outside `panel_store.py` imported it.
+  The shared `make_panel` test fixture gains the provenance columns and
+  `period_end_offset_days`, with the types a real panel has, so it now builds
+  a complete panel. Every consumer of the fixture still passes. A new
+  parametrized test shows that a missing `stock_price_usd`,
+  `market_cap_usd_m` or `period_end_offset_days` is named in the error.
 
 ### #32 Committed notebook outputs obscure source
 - **Smell:** Obscured Intent / Repository Bloat.
@@ -602,6 +637,16 @@ on disk are unaffected.
   commits. Existing saved outputs are not cleared by this plan.
 - **Tests:** `uv run poe format` runs the hook cleanly.
 - **Rerun:** No.
+- **Status:** already in place; nothing changed. `nbstripout` 0.9.1 has been a
+  pre-commit hook since the scaffold commit (`e1c81d3`). `poe lint` skips it
+  (`SKIP=pre-commit-update,nbstripout`) so that a check keeps the outputs.
+  The planned test was not run: `poe format` runs every hook on every file and
+  would strip the saved outputs of NB00, NB01 and NB01b, which is exactly what
+  this plan promises not to do. Open point for the owner: commit `6c9c2ad`
+  (#31) saved NB01 and NB01b with their outputs, so the hook does not run in
+  the current commit flow. A commit through the hook would strip any notebook
+  it stages. The `pyproject.toml` note beside the `SKIP` already marks this
+  as a pending decision.
 
 ## Dormant scaffold: recorded, not fixed
 

@@ -4,16 +4,15 @@ from typing import Final
 import pandas as pd
 
 from app.data.exceptions import MalformedPanelError, PanelNotFoundError
-from app.data.schema import FINANCIAL_COLUMNS, MACRO_COLUMNS, METADATA_COLUMNS
+from app.data.schema import MACRO_COLUMNS, PANEL_COLUMNS
 
-REQUIRED_COLUMNS: Final = (*METADATA_COLUMNS, *FINANCIAL_COLUMNS, *MACRO_COLUMNS)
 _PANEL_SUFFIX: Final = "_panel.parquet"
 _PANEL_LONG_FILE: Final = "panel_long.parquet"
 _MACRO_Q_FILE: Final = "macro_q.parquet"
 
 
 def _require_columns(ticker: str, panel: pd.DataFrame) -> None:
-    missing = [column for column in REQUIRED_COLUMNS if column not in panel.columns]
+    missing = [column for column in PANEL_COLUMNS if column not in panel.columns]
     if missing:
         missing_list = ", ".join(missing)
         message = f"Panel for {ticker} is missing columns: {missing_list}"
