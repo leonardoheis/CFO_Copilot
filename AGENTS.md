@@ -33,6 +33,7 @@ CFO_Copilot/
 │   │       └── train/       # POST /prediction/train
 │   ├── domain/              # Business entities (no HTTP concerns)
 │   │   ├── base.py          # BaseEntity
+│   │   ├── forecast_target.py  # TargetVariable, TARGET_VARIABLES
 │   │   ├── ml_model.py      # MLModel protocol (fit, predict)
 │   │   ├── prediction_input.py
 │   │   └── prediction_output.py

@@ -5,8 +5,9 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict
 from scipy.stats import kruskal
 
+from app.domain import TargetVariable
 from app.services.diagnostics.models import DecisionSettings
-from app.services.features.transforms import TargetVariable, arms_for, default_arm
+from app.services.features.transforms import arms_for, default_arm
 
 DecisionType = Literal[
     "target_transform",

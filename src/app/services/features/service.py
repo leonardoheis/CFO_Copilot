@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 
 import pandas as pd
 
+from app.domain import TargetVariable
 from app.services.features.builder import (
     FeatureBuilder,
     FeatureGroup,
@@ -12,7 +13,6 @@ from app.services.features.leakage import LookaheadGuard
 from app.services.features.transforms import (
     TargetArm,
     TargetTransformer,
-    TargetVariable,
     arms_for,
 )
 

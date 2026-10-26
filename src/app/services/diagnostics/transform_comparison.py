@@ -19,6 +19,7 @@ from scipy.stats import (
     yeojohnson_normmax,
 )
 
+from app.domain import TargetVariable
 from app.services.diagnostics.models import DiagnosticsSettings
 from app.services.diagnostics.series import (
     observed_since_last_gap,
@@ -27,7 +28,6 @@ from app.services.diagnostics.series import (
 )
 from app.services.features.transforms import (
     TargetFamily,
-    TargetVariable,
     target_family,
     trailing_revenue,
 )

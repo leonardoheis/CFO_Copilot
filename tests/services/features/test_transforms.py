@@ -4,6 +4,7 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 
 from app.data.schema import FINANCIAL_COLUMNS
+from app.domain import TargetVariable
 from app.services.features import (
     SEASONAL_LAG,
     InvalidHorizonError,
@@ -11,7 +12,6 @@ from app.services.features import (
     NonPositiveValueError,
     TargetArm,
     TargetTransformer,
-    TargetVariable,
     arms_for,
     default_arm,
     log_level,

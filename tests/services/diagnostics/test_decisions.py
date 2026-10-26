@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from app.domain import TargetVariable
 from app.services.diagnostics import (
     DecisionInputs,
     DecisionSettings,
     DecisionTableBuilder,
 )
-from app.services.features import TargetVariable
 
 ROWS_PER_REGIME = 60
 COMPANIES = 4

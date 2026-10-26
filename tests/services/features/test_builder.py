@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from app.data.schema import MACRO_COLUMNS
+from app.domain import TargetVariable
 from app.services.features import (
     SEASONAL_LAG,
     FeatureBuilder,
@@ -11,7 +12,6 @@ from app.services.features import (
     MissingFlagsError,
     MissingRegimeError,
     MixedTickerPanelError,
-    TargetVariable,
     feature_groups_by_column,
     revenue_scaled_yoy_change,
 )

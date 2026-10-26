@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 
 from app.data.schema import ColumnFamily, column_family
+from app.domain import TargetVariable
 from app.services.diagnostics.models import OutlierSettings
-from app.services.features.transforms import TargetVariable, trailing_revenue
+from app.services.features.transforms import trailing_revenue
 
 REGISTER_COLUMNS: Final = (
     "ticker",

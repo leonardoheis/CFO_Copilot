@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 from pydantic import ValidationError
 
+from app.domain import TargetVariable
 from app.services.diagnostics.transform_comparison import (
     LevelTransform,
     TransformPolicy,
@@ -11,7 +12,6 @@ from app.services.diagnostics.transform_comparison import (
 from app.services.features.transforms import (
     TargetArm,
     TargetPolicy,
-    TargetVariable,
     arms_for,
     default_arm,
     revenue_scaled_yoy_change,

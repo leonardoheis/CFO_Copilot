@@ -412,6 +412,19 @@ on disk are unaffected.
   notebook is executed.
 - **Tests:** a test that the constant equals today's notebook list.
 - **Rerun:** No.
+- **Status:** done. Only NB01 and NB01b duplicated the list; NB00 has no
+  target list, and its shared start-up (`configure_container()` plus
+  `experiment_tracker()`) is two calls, left inline under the
+  no-needless-indirection rule. The forecast targets are business vocabulary
+  rather than transform mechanics, so `TargetVariable` moved out of
+  `features/transforms.py` into `domain/forecast_target.py` together with the
+  new `TARGET_VARIABLES` tuple, both exported from `app.domain` only (no
+  re-export from `app.services.features`). Every importer was repointed:
+  seven service modules, five test modules, and the import lines of NB01,
+  NB01b and NB02. The tuple keeps the notebooks' name, so each notebook only
+  swaps the literal for an import and every later reference is untouched; no
+  outputs are touched. `tests/domain/test_forecast_target.py` pins the four
+  targets.
 
 ### #35 Transform-family tuple is positional
 - **Smell:** Data Clump.

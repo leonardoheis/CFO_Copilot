@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
+from app.domain import TargetVariable
 from app.services.features.exceptions import (
     InvalidHorizonError,
     MissingRevenueError,
@@ -14,17 +15,6 @@ from app.services.features.exceptions import (
 
 SEASONAL_LAG: Final = 4
 MAX_HORIZON: Final = SEASONAL_LAG
-
-
-class TargetVariable(StrEnum):
-    """The variables NB01 can forecast; values are the panel's column names."""
-
-    REVENUE = "revenue_usd_m"
-    GROSS_PROFIT = "gross_profit_usd_m"
-    OPEX = "opex_usd_m"
-    OPERATING_INCOME = "operating_income_usd_m"
-    EBITDA = "ebitda_usd_m"
-    FREE_CASH_FLOW = "free_cash_flow_usd_m"
 
 
 class TargetArm(StrEnum):

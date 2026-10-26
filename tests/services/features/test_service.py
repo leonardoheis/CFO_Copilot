@@ -3,6 +3,7 @@ from typing import cast
 import pandas as pd
 import pytest
 
+from app.domain import TargetVariable
 from app.services.features import (
     FeatureBuilder,
     FeatureGroup,
@@ -12,7 +13,6 @@ from app.services.features import (
     LookaheadGuard,
     TargetArm,
     TargetTransformer,
-    TargetVariable,
     UnsupportedArmError,
     arms_for,
     training_rows,

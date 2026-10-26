@@ -5,12 +5,13 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict
 
 from app.data.schema import MACRO_COLUMNS
+from app.domain import TargetVariable
 from app.services.features.exceptions import (
     MissingFlagsError,
     MissingRegimeError,
     MixedTickerPanelError,
 )
-from app.services.features.transforms import TargetVariable, target_growth
+from app.services.features.transforms import target_growth
 
 GROWTH_LAGS: Final = (1, 2, 3, 4, 5, 8)
 ROLLING_WINDOWS: Final = (4, 8)
