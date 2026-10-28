@@ -9,11 +9,11 @@ from app.data.exceptions import DataSourceUnavailableError
 from app.data.schema import FRED_MACRO_COLUMNS
 
 FRED_SERIES_BY_COLUMN: Final[dict[str, str]] = {
-    "gdp_yoy": "A191RL1Q225SBEA",
+    "gdp_yoy": "A191RO1Q156NBEA",
     "fed_funds": "FEDFUNDS",
     "unemployment_rate": "UNRATE",
     "cpi_yoy": "CPIAUCSL",
-    "dxy": "DTWEXBGS",
+    "usd_broad_index": "DTWEXBGS",
     "vix": "VIXCLS",
     "wti_oil": "DCOILWTICO",
     "yield_spread_10y2y": "T10Y2Y",

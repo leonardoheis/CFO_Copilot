@@ -193,12 +193,16 @@ Same as [wave 1](code-smells-remediation.md):
 
 ## Phase 3: Output-sensitive defects (spec only)
 
-| # | Defect | Spec |
-|---|---|---|
-| O1 | EPS repair skipped when a panel has no gaps | `docs/specs/eps-split-restatement-repair.md` |
-| O2 | Dividend yield excludes quarter-end days | `docs/specs/dividend-yield-window.md` |
-| O3 | FRED columns `gdp_yoy` and `dxy` misnamed | `docs/specs/fred-series-naming.md` |
-| O4 | Ljung-Box uses a lag-d difference | `docs/specs/ljung-box-differencing.md` |
+| # | Defect | Spec | Measured (2026-10-27) |
+|---|---|---|---|
+| O1 | EPS repair skipped when a panel has no gaps | `docs/specs/eps-split-restatement-repair.md` | Latent: 0 stored rows affected; every panel ran the fallback. No rerun. |
+| O2 | Dividend yield excludes quarter-end days | `docs/specs/dividend-yield-window.md` | 49 of 60 first-quarter yields wrongly 0; 57 of 81 quarters use the previous day's close; TSLA's 16 pre-listing yields 0.0, not missing. Re-ingest, NB00 onward. |
+| O3 | FRED columns `gdp_yoy` and `dxy` misnamed | `docs/specs/fred-series-naming.md` | Confirmed (2020 Q2 = −28.0). Needs a decision: rename or switch series. |
+| O4 | Ljung-Box uses a lag-d difference | `docs/specs/ljung-box-differencing.md` | 47 d = 2 series change p-value; no forecastable verdict flips. NB01 rerun. |
+
+Status: all four implemented (2026-10-27) per
+`docs/plans/output-sensitive-fixes.md`; O3 took the mixed option. The re-ingest
+(O2, O3) and the NB00/NB01 reruns (O2, O3, O4) are still to run by hand.
 
 Also catalogued: segment columns named `lower_quartile` / `upper_quartile`
 while the quantiles are configurable, and the regime column named both

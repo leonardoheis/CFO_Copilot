@@ -156,7 +156,7 @@ def _strength(component: _FloatArray, remainder: _FloatArray) -> float:
 
 
 def _ljung_box_p(series: pd.Series, order: int, lag: int) -> float:
-    differenced = series.diff(order).dropna() if order else series
+    differenced = pd.Series(np.diff(series.to_numpy(dtype=np.float64), n=order))
     result = _acorr_ljungbox(differenced, lags=[lag], return_df=True)
     return float(result["lb_pvalue"].iloc[0])
 

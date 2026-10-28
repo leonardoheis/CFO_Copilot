@@ -62,7 +62,7 @@ class YfinanceSource:
         yahoo_ticker = yf.Ticker(normalized_ticker)
 
         stock_price = align_series_to_quarters(close, quarter_dates)
-        dividend_yield = quarterly_dividend_yield(yahoo_ticker, close, quarter_dates)
+        dividend_yield = quarterly_dividend_yield(yahoo_ticker, stock_price)
 
         return pd.DataFrame(
             {

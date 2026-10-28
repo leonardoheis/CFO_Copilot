@@ -98,7 +98,7 @@
       'float64',
     ),
     tuple(
-      'dxy',
+      'usd_broad_index',
       'float64',
     ),
     tuple(

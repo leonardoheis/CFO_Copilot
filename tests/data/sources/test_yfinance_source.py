@@ -75,6 +75,54 @@ def test_fetch_market_panel_divides_trailing_dividends_by_price(
     assert panel["dividend_yield"].tolist() == pytest.approx([0.5 / 50.0, 1.0 / 40.0])
 
 
+def test_a_quarter_end_dividend_and_close_count_for_that_quarter(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Yahoo stamps days at New York midnight, after midnight UTC's cut-off."""
+    history = pd.DataFrame(
+        {"Close": [45.0, 50.0]},
+        index=pd.DatetimeIndex(["2020-06-29", "2020-06-30"], tz="America/New_York"),
+    )
+    dividends = pd.Series(
+        [0.5, 0.5],
+        index=pd.DatetimeIndex(["2020-03-31", "2020-06-30"], tz="America/New_York"),
+    )
+    monkeypatch.setattr(
+        TICKER_TARGET,
+        lambda _ticker: FakeYahooTicker(history=history, dividends=dividends),
+    )
+
+    panel = yfinance_source.fetch_market_panel(
+        "KO", date(2020, 4, 1), date(2020, 6, 30)
+    )
+
+    assert panel["stock_price_usd"].tolist() == [50.0]
+    assert panel["dividend_yield"].tolist() == pytest.approx([1.0 / 50.0])
+
+
+def test_a_quarter_without_a_price_has_no_dividend_yield(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    history = pd.DataFrame(
+        {"Close": [40.0]},
+        index=pd.DatetimeIndex(["2020-06-30"], tz="America/New_York"),
+    )
+    dividends = pd.Series(
+        [0.5], index=pd.DatetimeIndex(["2020-02-14"], tz="America/New_York")
+    )
+    monkeypatch.setattr(
+        TICKER_TARGET,
+        lambda _ticker: FakeYahooTicker(history=history, dividends=dividends),
+    )
+
+    panel = yfinance_source.fetch_market_panel(
+        "KO", date(2020, 1, 1), date(2020, 6, 30)
+    )
+
+    assert pd.isna(panel.loc[0, "dividend_yield"])
+    assert panel.loc[1, "dividend_yield"] == pytest.approx(0.5 / 40.0)
+
+
 def test_fetch_splits_returns_the_tickers_split_history(
     yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -23,7 +23,7 @@ FRED_MACRO_COLUMNS: Final[tuple[str, ...]] = (
     "fed_funds",
     "unemployment_rate",
     "cpi_yoy",
-    "dxy",
+    "usd_broad_index",
     "vix",
     "wti_oil",
     "yield_spread_10y2y",

@@ -25,7 +25,7 @@ from app.data.schema import (
     PANEL_COLUMNS,
 )
 from app.data.sources import FredSource, SecEdgarSource, YfinanceSource
-from app.data.sources_bundle import IngestionSources
+from app.data.sources_bundle import FinancialsFetcher, IngestionSources
 from tests.data.conftest import FakeYahooTicker
 
 TEST_QUARTER_DATES = quarter_end_dates(date(2020, 1, 1), date(2020, 6, 30))
@@ -362,6 +362,82 @@ def test_merge_panel_keeps_fallback_gross_profit_for_other_companies(
     )
 
     assert panel["gross_profit_usd_m"].tolist() == [880.0, 930.0]
+
+
+def complete_sec_financials_with_eps(eps: list[float]) -> FinancialsFetcher:
+    def fetch(ticker: str, start: date, end: date, splits: pd.Series) -> pd.DataFrame:
+        frame = fake_sec_financials(ticker, start, end, splits)
+        return frame.fillna(dict.fromkeys(FINANCIAL_COLUMNS, 1.0)).assign(eps=eps)
+
+    return fetch
+
+
+def test_a_gap_free_panel_still_repairs_a_split_restated_eps(
+    fake_sources: IngestionSources,
+) -> None:
+    """Positive net income with negative EPS is the GIS fiscal-2009 defect."""
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources,
+            fetch_sec_financials=complete_sec_financials_with_eps([0.25, -1.0]),
+            fetch_fallback_financials=fake_fallback_financials,
+        ),
+    )
+
+    assert panel["eps"].tolist() == [0.25, 2.0]
+    assert panel["ebitda_usd_m"].tolist() == [1.0, 1.0]
+
+
+def test_a_gap_free_consistent_panel_never_asks_the_fallback(
+    fake_sources: IngestionSources,
+) -> None:
+    calls: list[str] = []
+
+    def recording_fallback(ticker: str, start: date, end: date) -> pd.DataFrame:
+        calls.append(ticker)
+        return fake_fallback_financials(ticker, start, end)
+
+    merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources,
+            fetch_sec_financials=complete_sec_financials_with_eps([0.25, 0.3]),
+            fetch_fallback_financials=recording_fallback,
+        ),
+    )
+
+    assert not calls
+
+
+def test_an_unrepairable_inconsistent_eps_is_kept_and_reported(
+    caplog: pytest.LogCaptureFixture,
+    fake_sources: IngestionSources,
+) -> None:
+    def fallback_without_positive_eps(
+        ticker: str, start: date, end: date
+    ) -> pd.DataFrame:
+        return fake_fallback_financials(ticker, start, end).assign(eps=[10.0, -2.0])
+
+    with caplog.at_level(logging.WARNING):
+        panel = merge_panel(
+            ticker="AMZN",
+            start=date(2020, 1, 1),
+            end=date(2020, 6, 30),
+            sources=replace(
+                fake_sources,
+                fetch_sec_financials=complete_sec_financials_with_eps([0.25, -1.0]),
+                fetch_fallback_financials=fallback_without_positive_eps,
+            ),
+        )
+
+    assert panel["eps"].tolist() == [0.25, -1.0]
+    assert "Keeping 1 inconsistent SEC EPS for AMZN" in caplog.text
+    assert "2020-06-30" in caplog.text
 
 
 def test_merge_panel_warns_when_gaps_remain_without_a_fallback(

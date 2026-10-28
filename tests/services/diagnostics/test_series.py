@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+from statsmodels.stats.diagnostic import acorr_ljungbox
 
 from app.services.diagnostics import (
     DiagnosticsSettings,
@@ -66,6 +67,25 @@ def test_differencing_order_matches_integration_order(
         series = series.cumsum()
 
     assert diagnostician.differencing_order(series) == expected
+
+
+def test_ljung_box_tests_the_series_the_differencing_order_accepted(
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
+) -> None:
+    twice_integrated = pd.Series(rng.normal(size=300)).cumsum().cumsum()
+    second_difference = twice_integrated.diff().diff().dropna()
+    lag_two_difference = twice_integrated.diff(2).dropna()
+    lag = SETTINGS.ljung_box_lag
+
+    record = diagnostician.diagnose("AAA", "revenue_usd_m", twice_integrated)
+
+    assert record.d_levels == SETTINGS.max_differencing_order
+    assert record.ljung_box_p == pytest.approx(
+        acorr_ljungbox(second_difference, lags=[lag])["lb_pvalue"].iloc[0]
+    )
+    assert record.ljung_box_p != pytest.approx(
+        acorr_ljungbox(lag_two_difference, lags=[lag])["lb_pvalue"].iloc[0]
+    )
 
 
 def test_seasonal_series_scores_high_and_noise_scores_low(
