@@ -12,6 +12,7 @@ from app.services.diagnostics.models import (
     CompanyMacroSensitivity,
     MacroCorrelation,
     RegimeSettings,
+    SeriesStatus,
 )
 
 _CLUSTERING_COLUMNS: Final = ["seasonal_strength", "trend_strength"]
@@ -58,7 +59,8 @@ class SeasonalityRegimeClusterer:
             TooFewCompaniesError: Fewer fully diagnosed companies than regimes.
         """
         fully_diagnosed = diagnostics.loc[
-            (diagnostics["variable"] == variable) & (diagnostics["status"] == "ok")
+            (diagnostics["variable"] == variable)
+            & (diagnostics["status"] == SeriesStatus.OK)
         ].set_index("ticker")
         n_regimes, seed = self._settings.n_regimes, self._settings.seed
         if len(fully_diagnosed) < n_regimes:

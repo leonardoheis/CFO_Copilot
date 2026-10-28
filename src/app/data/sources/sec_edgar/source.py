@@ -14,7 +14,6 @@ from app.data.exceptions import (
     MalformedPayloadError,
     TickerNotFoundError,
 )
-from app.data.xbrl import XbrlFact
 
 from .chains import quarterly_financials
 from .concepts import USD_UNIT
@@ -26,6 +25,7 @@ from .parsing import (
     merge_raw_financial_frames,
     sec_tickers,
 )
+from .xbrl import XbrlFact
 
 SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
 # Not the per-concept endpoint: for some filers (ABT, F, KO) it answers 200 with
@@ -92,9 +92,6 @@ class SecEdgarSource:
         self._timeout = timeout
         self._tickers: dict[str, SecTicker] | None = None
         self._company_facts_by_cik: dict[str, JsonObject] = {}
-
-    def resolve_cik(self, ticker: str) -> str:
-        return self._registry.primary_sec_cik(ticker, self._lookup_ticker_cik)
 
     def resolve_ciks(self, ticker: str) -> tuple[str, ...]:
         return self._registry.sec_ciks(ticker, self._lookup_ticker_cik)

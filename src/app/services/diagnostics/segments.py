@@ -3,6 +3,7 @@ from typing import Final
 
 import pandas as pd
 
+from app.data.dates import QUARTERS_PER_YEAR
 from app.services.diagnostics.models import SegmentSettings
 
 _BY_SEGMENT_COLUMNS: Final = (
@@ -61,10 +62,9 @@ def seasonal_profile(frame: pd.DataFrame) -> pd.DataFrame:
     Returns:
         ``regime, target_quarter, mean_y``.
     """
-    quarters_in_year = 4
     target_quarter = (
         frame["date"].dt.quarter - 1 + frame["horizon"]
-    ) % quarters_in_year + 1
+    ) % QUARTERS_PER_YEAR + 1
     return (
         frame
         .assign(target_quarter=target_quarter)

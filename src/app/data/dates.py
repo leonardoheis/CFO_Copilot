@@ -1,8 +1,10 @@
 import math
 from datetime import date, timedelta
+from typing import Final
 
 import pandas as pd
 
+QUARTERS_PER_YEAR: Final = 4
 QUARTER_END_TOLERANCE_DAYS = 46
 
 

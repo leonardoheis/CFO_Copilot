@@ -18,6 +18,7 @@ from app.services.features import (
 from tests.conftest import PanelFactory
 
 KEYS = ["ticker", "origin_date", "target_date"]
+REGIMES = pd.Series({"AAA": 0})
 LONGEST_LAG = 8
 THIRD_QUARTER = 3
 
@@ -57,7 +58,7 @@ def test_each_group_adds_its_columns(
     make_panel: PanelFactory, group: FeatureGroup, columns: list[str]
 ) -> None:
     features = FeatureBuilder(spec=_spec(group)).build(
-        _with_flags(make_panel()), horizon=1
+        _with_flags(make_panel()), horizon=1, regimes=REGIMES
     )
 
     assert list(features.columns) == KEYS + columns
@@ -66,14 +67,18 @@ def test_each_group_adds_its_columns(
 def test_every_row_is_kept_and_indexed_like_the_panel(make_panel: PanelFactory) -> None:
     panel = make_panel()
 
-    features = FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(panel, horizon=2)
+    features = FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(
+        panel, horizon=2, regimes=REGIMES
+    )
 
     assert features.index.equals(panel.index)
 
 
 def test_lag_one_is_the_origin_quarters_own_growth(make_panel: PanelFactory) -> None:
     panel = make_panel()
-    features = FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(panel, horizon=1)
+    features = FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(
+        panel, horizon=1, regimes=REGIMES
+    )
 
     expected = np.log(panel["revenue_usd_m"].iloc[9] / panel["revenue_usd_m"].iloc[5])
     assert features["growth_yoy_lag1"].iloc[9] == pytest.approx(expected)
@@ -82,7 +87,7 @@ def test_lag_one_is_the_origin_quarters_own_growth(make_panel: PanelFactory) -> 
 
 def test_short_history_is_nan_never_filled(make_panel: PanelFactory) -> None:
     features = FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(
-        make_panel(), horizon=1
+        make_panel(), horizon=1, regimes=REGIMES
     )
 
     assert features["growth_yoy_lag1"].isna().sum() == SEASONAL_LAG
@@ -98,7 +103,9 @@ def test_an_interior_gap_leaves_nan_where_it_touches_the_growth(
     panel = make_panel()
     panel.loc[10, "revenue_usd_m"] = np.nan
 
-    features = FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(panel, horizon=1)
+    features = FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(
+        panel, horizon=1, regimes=REGIMES
+    )
 
     missing = set(features.index[features["growth_yoy_lag1"].isna()])
     assert missing == {0, 1, 2, 3, 10, 14}
@@ -108,7 +115,7 @@ def test_target_quarter_is_the_calendar_quarter_of_origin_plus_horizon(
     make_panel: PanelFactory,
 ) -> None:
     features = FeatureBuilder(spec=_spec(FeatureGroup.CALENDAR)).build(
-        make_panel(), horizon=2
+        make_panel(), horizon=2, regimes=REGIMES
     )
 
     assert features["origin_date"].iloc[0] == pd.Timestamp("2015-03-31")
@@ -120,7 +127,7 @@ def test_real_rate_is_fed_funds_minus_cpi(make_panel: PanelFactory) -> None:
     panel = make_panel()
 
     features = FeatureBuilder(spec=_spec(FeatureGroup.MACRO_DERIVED)).build(
-        panel, horizon=1
+        panel, horizon=1, regimes=REGIMES
     )
 
     pd.testing.assert_series_equal(
@@ -131,8 +138,6 @@ def test_real_rate_is_fed_funds_minus_cpi(make_panel: PanelFactory) -> None:
 def test_static_group_needs_a_regime_for_the_company(make_panel: PanelFactory) -> None:
     panel = make_panel(ticker="AAA")
 
-    with pytest.raises(MissingRegimeError):
-        FeatureBuilder(spec=_spec(FeatureGroup.STATIC)).build(panel, horizon=1)
     with pytest.raises(MissingRegimeError, match="AAA"):
         FeatureBuilder(spec=_spec(FeatureGroup.STATIC)).build(
             panel, horizon=1, regimes=pd.Series({"BBB": 1})
@@ -154,14 +159,18 @@ def test_flags_are_copied_from_the_origin_row(make_panel: PanelFactory) -> None:
     panel = _with_flags(make_panel())
     panel.loc[6, "covid"] = True
 
-    features = FeatureBuilder(spec=_spec(FeatureGroup.FLAGS)).build(panel, horizon=1)
+    features = FeatureBuilder(spec=_spec(FeatureGroup.FLAGS)).build(
+        panel, horizon=1, regimes=REGIMES
+    )
 
     assert features["covid"].tolist() == panel["covid"].tolist()
 
 
 def test_group_f_without_flag_columns_is_refused(make_panel: PanelFactory) -> None:
     with pytest.raises(MissingFlagsError, match="covid"):
-        FeatureBuilder(spec=_spec(FeatureGroup.FLAGS)).build(make_panel(), horizon=1)
+        FeatureBuilder(spec=_spec(FeatureGroup.FLAGS)).build(
+            make_panel(), horizon=1, regimes=REGIMES
+        )
 
 
 def test_a_panel_of_two_companies_is_refused(make_panel: PanelFactory) -> None:
@@ -170,7 +179,9 @@ def test_a_panel_of_two_companies_is_refused(make_panel: PanelFactory) -> None:
     )
 
     with pytest.raises(MixedTickerPanelError):
-        FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(mixed, horizon=1)
+        FeatureBuilder(spec=_spec(FeatureGroup.LAGS)).build(
+            mixed, horizon=1, regimes=REGIMES
+        )
 
 
 def test_default_spec_builds_every_group() -> None:
@@ -212,7 +223,7 @@ def test_growth_features_follow_the_target_variables_transform(
         groups=frozenset({FeatureGroup.LAGS}),
     )
 
-    features = FeatureBuilder(spec=spec).build(panel, horizon=1)
+    features = FeatureBuilder(spec=spec).build(panel, horizon=1, regimes=REGIMES)
 
     expected = revenue_scaled_yoy_change(panel["ebitda_usd_m"], panel["revenue_usd_m"])
     pd.testing.assert_series_equal(

@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.data import BlockedTargetError, IngestionDefects, load_ingestion_defects
+from app.data.exceptions import ConfigError
 from app.settings import Settings
 
 SPEC = "docs/specs/ingestion-defects-cop-ge.md"
@@ -81,5 +82,5 @@ def test_a_registry_that_is_not_a_mapping_is_refused(tmp_path: Path) -> None:
     path = tmp_path / "defects.yaml"
     path.write_text("- COP\n", encoding="utf-8")
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(ConfigError, match="Invalid ingestion defects"):
         load_ingestion_defects(path)

@@ -10,12 +10,7 @@ def test_reading_data_paths_creates_no_directory(
 ) -> None:
     monkeypatch.setattr(type(Settings), "ROOT_PATH", property(lambda _: tmp_path))
 
-    paths = (
-        Settings.DATA_DIRECTORY,
-        Settings.PANEL_LONG_PATH,
-        Settings.MACRO_Q_PATH,
-        Settings.panel_output_path("aapl"),
-    )
+    paths = (Settings.DATA_DIRECTORY, Settings.PROCESSED_DIRECTORY)
 
-    assert paths[-1] == tmp_path / "data" / "processed" / "AAPL_panel.parquet"
+    assert paths[-1] == tmp_path / "data" / "processed"
     assert not any(tmp_path.iterdir())

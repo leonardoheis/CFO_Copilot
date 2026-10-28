@@ -6,16 +6,17 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
+from app.data.dates import QUARTERS_PER_YEAR
 from app.data.exceptions import ConsolidationError
 from app.settings import RANDOM_SEED
 
 BREAK_WINDOW_QUARTERS: Final = 4
 MIN_OUTLIER_ROWS: Final = 16
+OUTLIER_CONTAMINATION: Final = 0.03
 _COVID_QUARTERS: Final = tuple(
     pd.to_datetime(["2020-06-30", "2020-09-30", "2020-12-31"])
 )
 _MARGIN_INPUTS: Final = ["gross_margin", "operating_margin", "net_margin"]
-_YOY_LAG: Final = 4
 
 
 def covid_flag(dates: pd.Series) -> pd.Series:
@@ -55,7 +56,10 @@ def structural_break_flag(
 
 
 def outlier_flag(
-    panel: pd.DataFrame, *, contamination: float = 0.03, seed: int = RANDOM_SEED
+    panel: pd.DataFrame,
+    *,
+    contamination: float = OUTLIER_CONTAMINATION,
+    seed: int = RANDOM_SEED,
 ) -> pd.Series:
     """Flag unusual quarters with an Isolation Forest; the flag removes nothing.
 
@@ -66,7 +70,7 @@ def outlier_flag(
         A boolean series aligned to ``panel``; rows missing an input are False.
     """
     revenue = panel["revenue_usd_m"]
-    revenue_yoy_growth = np.log(revenue.where(revenue > 0)).diff(_YOY_LAG)
+    revenue_yoy_growth = np.log(revenue.where(revenue > 0)).diff(QUARTERS_PER_YEAR)
     inputs = (
         panel[_MARGIN_INPUTS].assign(revenue_yoy_growth=revenue_yoy_growth).dropna()
     )
@@ -105,7 +109,7 @@ def add_flags(
     breaks: Mapping[str, Sequence[date]],
     *,
     last_reported_quarter: date,
-    contamination: float = 0.03,
+    contamination: float = OUTLIER_CONTAMINATION,
     seed: int = RANDOM_SEED,
 ) -> pd.DataFrame:
     """Add the five NB00 flag columns company by company.

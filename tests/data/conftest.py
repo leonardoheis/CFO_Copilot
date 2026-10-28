@@ -1,14 +1,31 @@
 import json
+from collections.abc import Callable, Mapping
 
+import pandas as pd
 import pytest
+from fredapi import Fred
 
 from app.data.companies import CompanyRegistry
+from app.data.sources import FredSource
 from app.data.sources.sec_edgar import SecEdgarSource
-from app.data.sources.sec_edgar.concepts import DILUTED_SHARES_FALLBACK, TAG_CHAINS
+from app.data.sources.sec_edgar.concepts import (
+    COST_OF_REVENUE_PARTS,
+    D_AND_A_PARTS,
+    DILUTED_SHARES_FALLBACK,
+    TAG_CHAINS,
+)
+from app.data.sources.sec_edgar.xbrl import XbrlFact
 from app.settings import Settings
 
 _RECORDED_TAGS = frozenset(
-    tag for spec in (*TAG_CHAINS.values(), DILUTED_SHARES_FALLBACK) for tag in spec.tags
+    tag
+    for spec in (
+        *TAG_CHAINS.values(),
+        DILUTED_SHARES_FALLBACK,
+        *dict(COST_OF_REVENUE_PARTS).values(),
+        *dict(D_AND_A_PARTS).values(),
+    )
+    for tag in spec.tags
 )
 
 
@@ -57,6 +74,54 @@ def sec_user_agent() -> str:
 
 
 @pytest.fixture
+def fred_source() -> FredSource:
+    # Never Settings.FRED_API_KEY: replay needs no key, and cassettes filter it.
+    return FredSource(client=Fred(api_key="test-key"))
+
+
+class FakeYahooTicker:
+    """A yfinance ``Ticker`` stand-in returning canned values, including ``None``.
+
+    yfinance talks to Yahoo through curl-cffi, which VCR cannot record, so every
+    yfinance test runs against this fake instead of a cassette.
+    """
+
+    def __init__(
+        self,
+        splits: pd.Series | None = None,
+        history: pd.DataFrame | None = None,
+        dividends: pd.Series | None = None,
+        error: Exception | None = None,
+    ) -> None:
+        self._splits = splits
+        self._history = history
+        self._dividends = pd.Series(dtype=float) if dividends is None else dividends
+        self._error = error
+
+    @property
+    def splits(self) -> pd.Series:
+        if self._error is not None:
+            raise self._error
+        return self._splits  # type: ignore[return-value]
+
+    @property
+    def dividends(self) -> pd.Series:
+        return self._dividends
+
+    def history(
+        self,
+        *,
+        start: str,
+        end: str,
+        auto_adjust: bool,
+    ) -> pd.DataFrame:
+        del start, end, auto_adjust
+        if self._error is not None:
+            raise self._error
+        return self._history  # type: ignore[return-value]
+
+
+@pytest.fixture
 def sec_source(
     company_registry: CompanyRegistry, sec_user_agent: str
 ) -> SecEdgarSource:
@@ -65,3 +130,30 @@ def sec_source(
         registry=company_registry,
         timeout=Settings.REQUEST_TIMEOUT,
     )
+
+
+type ConceptServer = Callable[[Mapping[str, list[XbrlFact]]], list[str]]
+
+
+@pytest.fixture
+def serve_concepts(
+    sec_source: SecEdgarSource, monkeypatch: pytest.MonkeyPatch
+) -> ConceptServer:
+    """Make ``sec_source`` read its XBRL facts from a mapping instead of SEC.
+
+    Returns:
+        A function taking the facts per tag (an absent tag has none) and
+        returning the tags the source requested, in order.
+    """
+
+    def serve(facts_by_tag: Mapping[str, list[XbrlFact]]) -> list[str]:
+        requested: list[str] = []
+
+        def fetch_concept(_cik: str, tag: str, _unit: str = "USD") -> list[XbrlFact]:
+            requested.append(tag)
+            return list(facts_by_tag.get(tag, []))
+
+        monkeypatch.setattr(sec_source, "fetch_concept", fetch_concept)
+        return requested
+
+    return serve

@@ -2,9 +2,9 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
 
 from app.data.companies import CompanyRegistry
+from app.data.exceptions import ConfigError
 from app.data.structural_breaks import load_structural_breaks
 from app.settings import Settings
 
@@ -27,12 +27,12 @@ def test_loads_sorted_quarters_by_ticker(tmp_path: Path) -> None:
 
 
 def test_a_date_that_is_not_a_quarter_end_is_refused(tmp_path: Path) -> None:
-    with pytest.raises(ValidationError, match="quarter"):
+    with pytest.raises(ConfigError, match="quarter"):
         load_structural_breaks(_write(tmp_path, "breaks:\n  ABT: [2013-03-15]\n"))
 
 
 def test_unknown_keys_are_refused(tmp_path: Path) -> None:
-    with pytest.raises(ValidationError):
+    with pytest.raises(ConfigError, match="surprise"):
         load_structural_breaks(_write(tmp_path, "breaks: {}\nsurprise: 1\n"))
 
 

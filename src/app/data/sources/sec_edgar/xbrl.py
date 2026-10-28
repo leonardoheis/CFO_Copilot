@@ -10,7 +10,8 @@ from typing import Final, TypedDict
 import pandas as pd
 
 from app.data.dates import QUARTER_END_TOLERANCE_DAYS, nearest_quarter_end
-from app.data.xbrl_facts import (
+
+from .xbrl_facts import (
     InstantXbrlFact,
     QuarterlyFact,
     XbrlFact,

@@ -6,9 +6,8 @@ from app.services.diagnostics import (
     DiagnosticsSettings,
     SeriesDiagnostician,
     observed_since_last_gap,
+    prepared_for_diagnosis,
 )
-
-RNG = np.random.default_rng(0)
 
 QUARTERS = 80
 BASE_REVENUE = 100.0
@@ -22,6 +21,11 @@ SETTINGS = DiagnosticsSettings()
 @pytest.fixture
 def diagnostician() -> SeriesDiagnostician:
     return SeriesDiagnostician(settings=SETTINGS)
+
+
+@pytest.fixture
+def rng() -> np.random.Generator:
+    return np.random.default_rng(0)
 
 
 def test_series_after_the_last_gap_is_kept_without_splicing() -> None:
@@ -40,11 +44,24 @@ def test_all_missing_series_is_empty() -> None:
     assert observed_since_last_gap(pd.Series([np.nan, np.nan])).empty
 
 
+def test_preparation_fills_short_gaps_and_counts_only_the_kept_ones() -> None:
+    # The first gap is dropped with the run before the long gap; the last is filled.
+    series = pd.Series([1.0, np.nan, 3.0, np.nan, np.nan, np.nan, 7.0, np.nan, 9.0])
+
+    observed, interpolated = prepared_for_diagnosis(series, max_gap=1)
+
+    assert observed.tolist() == [7.0, 8.0, 9.0]
+    assert interpolated == 1
+
+
 @pytest.mark.parametrize(("times_integrated", "expected"), [(0, 0), (1, 1), (2, 2)])
 def test_differencing_order_matches_integration_order(
-    diagnostician: SeriesDiagnostician, times_integrated: int, expected: int
+    diagnostician: SeriesDiagnostician,
+    times_integrated: int,
+    expected: int,
+    rng: np.random.Generator,
 ) -> None:
-    series = pd.Series(RNG.normal(size=300))
+    series = pd.Series(rng.normal(size=300))
     for _ in range(times_integrated):
         series = series.cumsum()
 
@@ -52,20 +69,20 @@ def test_differencing_order_matches_integration_order(
 
 
 def test_seasonal_series_scores_high_and_noise_scores_low(
-    diagnostician: SeriesDiagnostician,
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
 ) -> None:
     steps = np.arange(QUARTERS)
-    seasonal = pd.Series(np.sin(steps * np.pi / 2) + 0.05 * RNG.normal(size=QUARTERS))
-    noise = pd.Series(RNG.normal(size=QUARTERS))
+    seasonal = pd.Series(np.sin(steps * np.pi / 2) + 0.05 * rng.normal(size=QUARTERS))
+    noise = pd.Series(rng.normal(size=QUARTERS))
 
     assert diagnostician.seasonal_and_trend_strength(seasonal)[0] > STRONG
     assert diagnostician.seasonal_and_trend_strength(noise)[0] < WEAK
 
 
 def test_trending_series_has_high_trend_strength(
-    diagnostician: SeriesDiagnostician,
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
 ) -> None:
-    trend = pd.Series(np.arange(QUARTERS) + 0.1 * RNG.normal(size=QUARTERS))
+    trend = pd.Series(np.arange(QUARTERS) + 0.1 * rng.normal(size=QUARTERS))
 
     assert diagnostician.seasonal_and_trend_strength(trend)[1] > STRONG
 
@@ -83,9 +100,9 @@ def test_short_series_is_reported_not_raised(
 
 
 def test_non_positive_values_switch_off_log_fields_only(
-    diagnostician: SeriesDiagnostician,
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
 ) -> None:
-    values = pd.Series(np.linspace(-5, 50, 60) + RNG.normal(size=60))
+    values = pd.Series(np.linspace(-5, 50, 60) + rng.normal(size=60))
 
     result = diagnostician.diagnose("AAA", "free_cash_flow_usd_m", values)
 
@@ -97,11 +114,11 @@ def test_non_positive_values_switch_off_log_fields_only(
 
 
 def test_positive_series_fills_every_field(
-    diagnostician: SeriesDiagnostician,
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
 ) -> None:
     steps = np.arange(QUARTERS)
     season = np.sin(steps * np.pi / 2)
-    noise = 0.01 * RNG.normal(size=QUARTERS)
+    noise = 0.01 * rng.normal(size=QUARTERS)
     values = pd.Series(
         BASE_REVENUE
         * np.exp(QUARTERLY_GROWTH * steps + SEASONAL_AMPLITUDE * season + noise)
@@ -114,9 +131,9 @@ def test_positive_series_fills_every_field(
 
 
 def test_gapped_series_counts_only_the_run_after_the_gap(
-    diagnostician: SeriesDiagnostician,
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
 ) -> None:
-    values = pd.Series(np.linspace(10, 100, 40) + RNG.normal(size=40))
+    values = pd.Series(np.linspace(10, 100, 40) + rng.normal(size=40))
     last_gap = 9
     # A two-quarter gap is too long to fill, so it cuts the analysed run.
     values.iloc[[0, 1, 8, last_gap]] = np.nan
@@ -146,47 +163,51 @@ def test_constant_series_is_reported_not_raised(
 SERIES_LENGTH = 40
 
 
-def _gapped(gap_positions: list[int]) -> pd.Series:
+def _gapped(gap_positions: list[int], rng: np.random.Generator) -> pd.Series:
     values = pd.Series(
-        np.linspace(10, 100, SERIES_LENGTH) + RNG.normal(size=SERIES_LENGTH)
+        np.linspace(10, 100, SERIES_LENGTH) + rng.normal(size=SERIES_LENGTH)
     )
     values.iloc[gap_positions] = np.nan
     return values
 
 
 def test_a_single_interior_gap_is_filled_for_diagnosis(
-    diagnostician: SeriesDiagnostician,
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
 ) -> None:
-    result = diagnostician.diagnose("ADBE", "revenue_usd_m", _gapped([20]))
+    result = diagnostician.diagnose("ADBE", "revenue_usd_m", _gapped([20], rng))
 
     assert result.n_obs == SERIES_LENGTH
     assert result.interpolated == 1
 
 
 def test_a_two_quarter_gap_still_cuts_the_history(
-    diagnostician: SeriesDiagnostician,
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
 ) -> None:
     last_gap = 21
-    result = diagnostician.diagnose("TSLA", "revenue_usd_m", _gapped([20, last_gap]))
+    result = diagnostician.diagnose(
+        "TSLA", "revenue_usd_m", _gapped([20, last_gap], rng)
+    )
 
     assert result.n_obs == SERIES_LENGTH - last_gap - 1
     assert result.interpolated == 0
 
 
-def test_a_leading_gap_is_not_filled(diagnostician: SeriesDiagnostician) -> None:
-    result = diagnostician.diagnose("TSLA", "revenue_usd_m", _gapped([0]))
+def test_a_leading_gap_is_not_filled(
+    diagnostician: SeriesDiagnostician, rng: np.random.Generator
+) -> None:
+    result = diagnostician.diagnose("TSLA", "revenue_usd_m", _gapped([0], rng))
 
     assert result.n_obs == SERIES_LENGTH - 1
     assert result.interpolated == 0
 
 
-def test_interpolation_can_be_switched_off() -> None:
+def test_interpolation_can_be_switched_off(rng: np.random.Generator) -> None:
     diagnostician = SeriesDiagnostician(
         settings=DiagnosticsSettings(max_interpolated_gap=0)
     )
     gap = 20
 
-    result = diagnostician.diagnose("ADBE", "revenue_usd_m", _gapped([gap]))
+    result = diagnostician.diagnose("ADBE", "revenue_usd_m", _gapped([gap], rng))
 
     assert result.n_obs == SERIES_LENGTH - gap - 1
     assert result.interpolated == 0

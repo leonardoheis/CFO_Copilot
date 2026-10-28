@@ -8,12 +8,6 @@ from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError
 from app.data.schema import FRED_MACRO_COLUMNS
 from app.data.sources.fred import FredSource
-from app.settings import Settings
-
-
-@pytest.fixture
-def fred_source() -> FredSource:
-    return FredSource(client=Fred(api_key=Settings.FRED_API_KEY or "test-key"))
 
 
 @pytest.mark.vcr

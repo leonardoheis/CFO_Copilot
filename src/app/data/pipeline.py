@@ -8,7 +8,6 @@ import pandas as pd
 from app.data.companies import CompanyRegistry
 from app.data.dates import most_recent_completed_quarter, quarter_end_dates
 from app.data.schema import (
-    COST_OF_REVENUE_COLUMNS,
     FINANCIAL_COLUMNS,
     METADATA_COLUMNS,
     MILLIONS_DIVISOR,
@@ -19,7 +18,6 @@ from app.data.sources_bundle import IngestionSources
 logger = logging.getLogger(__name__)
 
 DEFAULT_HISTORY_YEARS = 20
-XBRL_HISTORY_START = date(2008, 4, 1)
 
 
 def resolve_date_range(
@@ -70,7 +68,7 @@ def merge_panel(
         :,
         list(METADATA_COLUMNS),
     ]
-    splits = sources.yfinance.fetch_splits(ticker)
+    splits = sources.market.fetch_splits(ticker)
     financials = sources.fetch_sec_financials(
         ticker,
         start,
@@ -86,19 +84,16 @@ def merge_panel(
     )
     # After the fallback, or Alpha Vantage would refill what is blanked here.
     metadata = sources.registry.company_metadata(ticker)
-    if not metadata.has_cost_of_revenue:
-        financials = financials.assign(
-            **dict.fromkeys(COST_OF_REVENUE_COLUMNS, math.nan)
-        )
-    if not metadata.has_reliable_opex:
-        financials = financials.assign(opex_usd_m=math.nan)
+    financials = financials.assign(
+        **dict.fromkeys(metadata.declared_empty_columns(), math.nan)
+    )
     withheld = pd.to_datetime(financials["date"]).dt.date.isin(
         metadata.withheld_quarters
     )
     financials.loc[withheld, list(FINANCIAL_COLUMNS)] = math.nan
-    market = sources.yfinance.fetch_market_panel(ticker, start, end)
+    market = sources.market.fetch_market_panel(ticker, start, end)
     macro = sources.fetch_macro_panel(start, end)
-    index_returns = sources.yfinance.fetch_index_return_panel(start, end)
+    index_returns = sources.market.fetch_index_return_panel(start, end)
 
     for source_panel in (financials, market, macro, index_returns):
         panel = panel.merge(source_panel, on="date", how="left")

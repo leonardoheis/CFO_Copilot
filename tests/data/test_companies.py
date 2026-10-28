@@ -12,6 +12,8 @@ from app.data.companies import (
     SecTickerLookup,
     load_company_registry,
 )
+from app.data.exceptions import ConfigError
+from app.data.schema import COST_OF_REVENUE_COLUMNS
 
 
 def test_scraped_companies_lists_each_profile_once(
@@ -101,29 +103,38 @@ def test_a_company_has_cost_of_revenue_unless_declared_otherwise(
     assert company_registry.company_metadata("UNH").has_cost_of_revenue is False
 
 
-def test_registry_lists_the_companies_without_cost_of_revenue(
+def test_registry_declares_which_companies_have_empty_columns(
     company_registry: CompanyRegistry,
 ) -> None:
-    assert company_registry.tickers_without_cost_of_revenue() == frozenset({
+    declared = {
+        ticker: company_registry.company_metadata(ticker).declared_empty_columns()
+        for company in company_registry.companies
+        for ticker in company.tickers
+    }
+
+    assert {ticker for ticker, columns in declared.items() if columns} == {
+        "GE",
         "UNH",
         "UNP",
-    })
-
-
-def test_registry_lists_the_companies_without_reliable_opex(
-    company_registry: CompanyRegistry,
-) -> None:
-    assert company_registry.tickers_without_reliable_opex() == frozenset({"GE"})
-    assert company_registry.company_metadata("GE").has_cost_of_revenue is True
+    }
+    assert declared["GE"] == {"opex_usd_m": "unreliable_opex"}
+    assert declared["UNH"] == dict.fromkeys(
+        COST_OF_REVENUE_COLUMNS, "no_cost_of_revenue"
+    )
 
 
 def test_registry_lists_the_quarters_withheld_for_mixed_bases(
     company_registry: CompanyRegistry,
 ) -> None:
-    assert company_registry.withheld_quarters() == {
-        "ABT": frozenset({date(2012, 12, 31)}),
-        "BMY": frozenset({date(2008, 12, 31)}),
-        "OXY": frozenset({date(2025, 12, 31)}),
+    assert {
+        ticker: set(company_registry.company_metadata(ticker).withheld_quarters)
+        for company in company_registry.companies
+        for ticker in company.tickers
+        if company.panel.withheld_quarters
+    } == {
+        "ABT": {date(2012, 12, 31)},
+        "BMY": {date(2008, 12, 31)},
+        "OXY": {date(2025, 12, 31)},
     }
     assert (
         "OxyChem"
@@ -152,7 +163,7 @@ companies:
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="2025-11-30 is not a quarter end"):
+    with pytest.raises(ConfigError, match="2025-11-30 is not a quarter end"):
         load_company_registry(registry)
 
 
@@ -229,14 +240,6 @@ def test_resolve_sec_ciks_for_unknown_ticker_uses_runtime_lookup(
     )
 
 
-def test_primary_sec_cik_returns_current_cik_for_dual_filer(
-    company_registry: CompanyRegistry,
-) -> None:
-    primary = company_registry.primary_sec_cik("GOOGL", lambda _t: "0000000000")
-
-    assert primary == "0001652044"
-
-
 def test_resolve_market_history_tickers_for_googl_includes_goog_fallback(
     company_registry: CompanyRegistry,
 ) -> None:
@@ -290,7 +293,7 @@ companies:
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="Duplicate company ticker aliases: DUP"):
+    with pytest.raises(ConfigError, match="Duplicate company ticker aliases: DUP"):
         load_company_registry(registry)
 
 
@@ -307,5 +310,5 @@ companies:
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="CIK must contain exactly 10 digits"):
+    with pytest.raises(ConfigError, match="CIK must contain exactly 10 digits"):
         load_company_registry(registry)

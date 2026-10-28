@@ -92,33 +92,29 @@ class AlphaVantageSource:
         if cache_path.exists() and not self._refresh:
             return _read_cache(cache_path)
 
-        last_rate_limit: RateLimitedError | None = None
         for attempt in range(1, RATE_LIMIT_ATTEMPTS + 1):
             self._wait_for_rate_limit()
             typed_payload = self._get_json(function, ticker)
             self._last_request_at = time.monotonic()
             rate_limit = _rate_limit_error(typed_payload)
-            if rate_limit is not None:
-                last_rate_limit = rate_limit
-                logger.warning(
-                    "Alpha Vantage rate-limited %s for %s (attempt %d/%d)",
-                    function,
-                    ticker,
-                    attempt,
-                    RATE_LIMIT_ATTEMPTS,
-                )
-                continue
-            permanent = _permanent_error(typed_payload)
-            if permanent is not None:
-                raise permanent
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            cache_path.write_text(json.dumps(typed_payload), encoding="utf-8")
-            return typed_payload
+            if rate_limit is None:
+                break
+            logger.warning(
+                "Alpha Vantage rate-limited %s for %s (attempt %d/%d)",
+                function,
+                ticker,
+                attempt,
+                RATE_LIMIT_ATTEMPTS,
+            )
+            if attempt == RATE_LIMIT_ATTEMPTS:
+                raise rate_limit
 
-        if last_rate_limit is None:
-            msg = f"Alpha Vantage {function} for {ticker} failed after retries"
-            raise DataSourceError(msg)
-        raise last_rate_limit
+        permanent = _permanent_error(typed_payload)
+        if permanent is not None:
+            raise permanent
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(json.dumps(typed_payload), encoding="utf-8")
+        return typed_payload
 
     def _wait_for_rate_limit(self) -> None:
         if self._last_request_at is None:

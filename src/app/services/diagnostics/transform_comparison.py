@@ -23,8 +23,8 @@ from app.domain import TargetVariable
 from app.services.diagnostics.models import DiagnosticsSettings
 from app.services.diagnostics.series import (
     observed_since_last_gap,
+    prepared_for_diagnosis,
     stl_remainder,
-    with_short_interior_gaps_filled,
 )
 from app.services.features.transforms import (
     TargetFamily,
@@ -191,12 +191,6 @@ class TransformComparer:
     def __init__(self, settings: DiagnosticsSettings) -> None:
         self._settings = settings
 
-    def _prepared(self, series: pd.Series) -> pd.Series:
-        filled, _ = with_short_interior_gaps_filled(
-            series, self._settings.max_interpolated_gap
-        )
-        return observed_since_last_gap(filled)
-
     def _level_dependence(self, values: pd.Series, revenue: pd.Series) -> float:
         window = self._settings.variance_window
         change_size = values.diff(self._settings.seasonal_period).rolling(window).std()
@@ -221,7 +215,9 @@ class TransformComparer:
     def _usable(self, series: pd.Series, variable: str) -> bool:
         if len(series) < self._settings.min_observations:
             return False
-        return variable != TargetVariable.REVENUE or bool((series > 0).all())
+        return target_family(variable) != TargetFamily.POSITIVE or bool(
+            (series > 0).all()
+        )
 
     def _company_rows(
         self,
@@ -230,7 +226,9 @@ class TransformComparer:
         variable: str,
         lambdas: Mapping[LevelTransform, float],
     ) -> list[dict[str, object]]:
-        series = self._prepared(panel[variable])
+        series = prepared_for_diagnosis(
+            panel[variable], self._settings.max_interpolated_gap
+        ).observed
         revenue = panel[TargetVariable.REVENUE]
         candidates = {
             transform: _transformed(
@@ -262,16 +260,19 @@ class TransformComparer:
             One row per (ticker, transform) with the lambda used (NaN where none
             applies) and the scores.
         """
+        prepared = {
+            ticker: prepared_for_diagnosis(
+                panel[variable], self._settings.max_interpolated_gap
+            ).observed
+            for ticker, panel in panels.items()
+        }
         usable = {
             ticker: panel
             for ticker, panel in panels.items()
-            if self._usable(self._prepared(panel[variable]), variable)
+            if self._usable(prepared[ticker], variable)
         }
         lambdas = _fitted_lambdas(
-            {
-                ticker: self._prepared(panel[variable])
-                for ticker, panel in usable.items()
-            },
+            {ticker: prepared[ticker] for ticker in usable},
             pd.Series({
                 ticker: panel["sector"].iloc[0] for ticker, panel in usable.items()
             }),

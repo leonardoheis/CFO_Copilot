@@ -17,7 +17,8 @@ from app.data.schema import (
     PROVENANCE_COLUMNS,
 )
 from app.data.splits import cumulative_split_factors
-from app.data.xbrl import XbrlFact
+
+from .xbrl import XbrlFact
 
 MIN_SHARE_COUNT_FRACTION_OF_MEDIAN: Final = 0.01
 logger = logging.getLogger(__name__)

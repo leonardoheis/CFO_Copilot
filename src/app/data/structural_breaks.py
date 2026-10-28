@@ -6,6 +6,7 @@ import yaml
 from pydantic import AfterValidator, BaseModel, ConfigDict
 
 from app.data.dates import is_quarter_end
+from app.data.exceptions import ConfigError
 
 
 def _require_quarter_ends(
@@ -40,10 +41,17 @@ def load_structural_breaks(path: Path) -> dict[str, tuple[date, ...]]:
 
     Returns:
         Sorted break quarters keyed by upper-case ticker.
+
+    Raises:
+        ConfigError: If the file is unreadable or malformed.
     """
-    config = _BreaksConfig.model_validate(
-        yaml.safe_load(path.read_text(encoding="utf-8"))
-    )
+    try:
+        config = _BreaksConfig.model_validate(
+            yaml.safe_load(path.read_text(encoding="utf-8"))
+        )
+    except (OSError, ValueError, yaml.YAMLError) as error:
+        message = f"Invalid structural breaks {path}: {error}"
+        raise ConfigError(message) from error
     return {
         ticker.upper(): tuple(sorted(quarters))
         for ticker, quarters in config.breaks.items()

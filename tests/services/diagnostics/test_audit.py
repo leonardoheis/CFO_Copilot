@@ -1,4 +1,5 @@
 import math
+from enum import Enum
 
 import numpy as np
 import pandas as pd
@@ -63,6 +64,8 @@ def test_a_jump_is_registered_with_both_scores(register: OutlierRegister) -> Non
 
     entry = table.iloc[0]
     assert entry["date"] == pd.Timestamp("2019-03-31")
+    # A plain str, not the enum, so the stored register and W&B table are unchanged.
+    assert not isinstance(entry["direction"], Enum)
     assert entry["direction"] == "up"
     assert entry["robust_z"] > OutlierSettings().z_threshold
     assert entry["change"] == pytest.approx(revenue[jump_quarter] / revenue[15] - 1)

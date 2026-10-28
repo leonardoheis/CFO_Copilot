@@ -92,17 +92,13 @@ def test_missing_directory_holds_no_tickers(tmp_path: Path) -> None:
     assert not PanelStore(tmp_path / "absent").tickers()
 
 
-def test_file_naming_matches_the_ingestion_writer() -> None:
-    store = PanelStore(Settings.panel_output_path("AAPL").parent)
+def test_file_names_match_the_stored_processed_files() -> None:
+    store = PanelStore(Settings.PROCESSED_DIRECTORY)
+    processed = Settings.DATA_DIRECTORY / "processed"
 
-    assert store.path_for("aapl") == Settings.panel_output_path("AAPL")
-
-
-def test_nb00_output_naming_matches_the_consolidation_writer() -> None:
-    store = PanelStore(Settings.PANEL_LONG_PATH.parent)
-
-    assert store.panel_long_path == Settings.PANEL_LONG_PATH
-    assert store.macro_q_path == Settings.MACRO_Q_PATH
+    assert store.path_for("aapl") == processed / "AAPL_panel.parquet"
+    assert store.panel_long_path == processed / "panel_long.parquet"
+    assert store.macro_q_path == processed / "macro_q.parquet"
 
 
 class Nb00Outputs(NamedTuple):

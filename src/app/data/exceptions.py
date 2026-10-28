@@ -47,6 +47,10 @@ class MalformedPanelError(PanelStoreError):
     """Raised when a stored panel breaks the schema or the quarterly calendar."""
 
 
+class ConfigError(Exception):
+    """Raised when a hand-edited file under config/ is unreadable or invalid."""
+
+
 class ConsolidationError(Exception):
     """Base error for building the consolidated panel and its flags."""
 

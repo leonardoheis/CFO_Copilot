@@ -8,6 +8,7 @@ from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceUnavailableError, TickerNotFoundError
 from app.data.schema import MARKET_COLUMNS
 from app.data.sources.yfinance_source import YfinanceSource
+from tests.data.conftest import FakeYahooTicker
 
 
 @pytest.fixture
@@ -15,101 +16,117 @@ def yfinance_source(company_registry: CompanyRegistry) -> YfinanceSource:
     return YfinanceSource(registry=company_registry)
 
 
-@pytest.mark.vcr
-def test_fetch_stock_history_returns_data(yfinance_source: YfinanceSource) -> None:
-    history = yfinance_source.fetch_stock_history(
-        "AMZN",
-        start=date(2020, 1, 1),
-        end=date(2020, 6, 30),
+TICKER_TARGET = "app.data.sources.yfinance_source.source.yf.Ticker"
+
+
+def test_fetch_stock_history_returns_the_tickers_history(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    history = pd.DataFrame(
+        {"Close": [90.0, 97.49]},
+        index=pd.DatetimeIndex(["2020-03-30", "2020-03-31"]),
+    )
+    monkeypatch.setattr(TICKER_TARGET, lambda _ticker: FakeYahooTicker(history=history))
+
+    fetched = yfinance_source.fetch_stock_history(
+        "AMZN", start=date(2020, 1, 1), end=date(2020, 6, 30)
     )
 
-    assert not history.empty
-    assert "Close" in history.columns
+    pd.testing.assert_frame_equal(fetched, history)
 
 
-@pytest.mark.vcr
-def test_fetch_market_panel_has_market_columns(yfinance_source: YfinanceSource) -> None:
-    start = date(2020, 1, 1)
-    end = date(2020, 6, 30)
-    panel = yfinance_source.fetch_market_panel("AMZN", start, end)
-    expected_rows = len(quarter_end_dates(start, end))
-
-    assert list(panel.columns) == ["date", *MARKET_COLUMNS]
-    assert len(panel) == expected_rows
-    assert panel.loc[0, "stock_price_usd"] == pytest.approx(97.49, rel=1e-2)
-    assert panel.loc[0, "dividend_yield"] == pytest.approx(0.0)
-
-
-@pytest.mark.vcr
-def test_fetch_splits_returns_amazon_split_history(
-    yfinance_source: YfinanceSource,
-) -> None:
-    splits = yfinance_source.fetch_splits("AMZN")
-
-    split = splits.loc[
-        pd.to_datetime(splits.index).strftime("%Y-%m-%d") == "2022-06-06"
-    ]
-    assert split.iloc[0] == pytest.approx(20.0)
-
-
-@pytest.mark.vcr
-def test_fetch_market_panel_uses_goog_history_for_googl(
-    yfinance_source: YfinanceSource,
-) -> None:
-    start = date(2010, 1, 1)
-    end = date(2010, 6, 30)
-    panel = yfinance_source.fetch_market_panel("GOOGL", start, end)
-
-    stock_prices = panel["stock_price_usd"].astype(float)
-
-    assert stock_prices.notna().all()
-    assert stock_prices.gt(0.0).all()
-
-
-@pytest.mark.vcr
-def test_fetch_stock_history_raises_for_unknown_ticker(
-    yfinance_source: YfinanceSource,
+def test_fetch_market_panel_has_market_columns(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     start, end = date(2020, 1, 1), date(2020, 6, 30)
+    history = pd.DataFrame(
+        {"Close": [97.49, 137.94]},
+        index=pd.DatetimeIndex(["2020-03-31", "2020-06-30"]),
+    )
+    monkeypatch.setattr(TICKER_TARGET, lambda _ticker: FakeYahooTicker(history=history))
+
+    panel = yfinance_source.fetch_market_panel("AMZN", start, end)
+
+    assert list(panel.columns) == ["date", *MARKET_COLUMNS]
+    assert len(panel) == len(quarter_end_dates(start, end))
+    assert panel["stock_price_usd"].tolist() == pytest.approx([97.49, 137.94])
+    assert panel["dividend_yield"].tolist() == pytest.approx([0.0, 0.0])
+
+
+def test_fetch_market_panel_divides_trailing_dividends_by_price(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    history = pd.DataFrame(
+        {"Close": [50.0, 40.0]},
+        index=pd.DatetimeIndex(["2020-03-31", "2020-06-30"]),
+    )
+    dividends = pd.Series(
+        [0.5, 0.5], index=pd.DatetimeIndex(["2020-02-14", "2020-05-15"])
+    )
+    monkeypatch.setattr(
+        TICKER_TARGET,
+        lambda _ticker: FakeYahooTicker(history=history, dividends=dividends),
+    )
+
+    panel = yfinance_source.fetch_market_panel(
+        "KO", date(2020, 1, 1), date(2020, 6, 30)
+    )
+
+    assert panel["dividend_yield"].tolist() == pytest.approx([0.5 / 50.0, 1.0 / 40.0])
+
+
+def test_fetch_splits_returns_the_tickers_split_history(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    amazon_splits = pd.Series(
+        [2.0, 20.0], index=pd.DatetimeIndex(["1999-09-02", "2022-06-06"])
+    )
+    monkeypatch.setattr(
+        TICKER_TARGET, lambda _ticker: FakeYahooTicker(splits=amazon_splits)
+    )
+
+    splits = yfinance_source.fetch_splits("AMZN")
+
+    assert splits.loc["2022-06-06"] == pytest.approx(20.0)
+
+
+def test_fetch_market_panel_combines_googl_with_older_goog_history(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GOOGL trades only from 2014; GOOG fills the quarters before it."""
+    tickers = {
+        "GOOGL": FakeYahooTicker(
+            history=pd.DataFrame(
+                {"Close": [560.0]}, index=pd.DatetimeIndex(["2014-06-30"])
+            )
+        ),
+        "GOOG": FakeYahooTicker(
+            history=pd.DataFrame(
+                {"Close": [550.0, 555.0]},
+                index=pd.DatetimeIndex(["2014-03-31", "2014-06-30"]),
+            )
+        ),
+    }
+    monkeypatch.setattr(TICKER_TARGET, lambda ticker: tickers[ticker])
+
+    panel = yfinance_source.fetch_market_panel(
+        "GOOGL", date(2014, 1, 1), date(2014, 6, 30)
+    )
+
+    assert panel["stock_price_usd"].tolist() == pytest.approx([550.0, 560.0])
+
+
+def test_fetch_stock_history_raises_for_unknown_ticker(
+    yfinance_source: YfinanceSource, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        TICKER_TARGET, lambda _ticker: FakeYahooTicker(history=pd.DataFrame())
+    )
 
     with pytest.raises(TickerNotFoundError, match="INVALIDTICKER123"):
-        yfinance_source.fetch_stock_history("INVALIDTICKER123", start=start, end=end)
-
-
-class FakeYahooTicker:
-    """A `_YahooTicker` stand-in returning canned values, including `None`."""
-
-    def __init__(
-        self,
-        splits: pd.Series | None = None,
-        history: pd.DataFrame | None = None,
-        error: Exception | None = None,
-    ) -> None:
-        self._splits = splits
-        self._history = history
-        self._error = error
-
-    @property
-    def splits(self) -> pd.Series:
-        if self._error is not None:
-            raise self._error
-        return self._splits  # type: ignore[return-value]
-
-    @property
-    def dividends(self) -> pd.Series:
-        return pd.Series(dtype=float)
-
-    def history(
-        self,
-        *,
-        start: str,
-        end: str,
-        auto_adjust: bool,
-    ) -> pd.DataFrame:
-        del start, end, auto_adjust
-        if self._error is not None:
-            raise self._error
-        return self._history  # type: ignore[return-value]
+        yfinance_source.fetch_stock_history(
+            "INVALIDTICKER123", start=date(2020, 1, 1), end=date(2020, 6, 30)
+        )
 
 
 def test_fetch_splits_returns_empty_series_when_yahoo_returns_none(
@@ -118,7 +135,7 @@ def test_fetch_splits_returns_empty_series_when_yahoo_returns_none(
 ) -> None:
     """A `None` splits payload is treated as no data, not an AttributeError."""
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda _ticker: FakeYahooTicker(splits=None),
     )
     source = YfinanceSource(registry=company_registry)
@@ -131,7 +148,7 @@ def test_fetch_splits_propagates_api_failure_as_data_source_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda _ticker: FakeYahooTicker(error=RuntimeError("connection reset")),
     )
     source = YfinanceSource(registry=company_registry)
@@ -145,7 +162,7 @@ def test_fetch_stock_history_treats_none_payload_as_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda _ticker: FakeYahooTicker(history=None),
     )
     source = YfinanceSource(registry=company_registry)
@@ -160,7 +177,7 @@ def test_fetch_stock_history_propagates_api_failure_as_data_source_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda _ticker: FakeYahooTicker(error=RuntimeError("connection reset")),
     )
     source = YfinanceSource(registry=company_registry)
@@ -176,7 +193,7 @@ def test_fetch_splits_returns_empty_series_when_every_market_ticker_is_empty(
 ) -> None:
     source = YfinanceSource(registry=company_registry)
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda _ticker: FakeYahooTicker(splits=None),
     )
 
@@ -198,7 +215,7 @@ def test_fetch_splits_skips_empty_ticker_and_uses_fallback(
         "GOOG": FakeYahooTicker(splits=goog_splits),
     }
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda ticker: tickers[ticker],
     )
     source = YfinanceSource(registry=company_registry)
@@ -215,7 +232,7 @@ def test_fetch_market_panel_raises_when_every_ticker_is_empty(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda _ticker: FakeYahooTicker(history=pd.DataFrame()),
     )
     source = YfinanceSource(registry=company_registry)
@@ -241,7 +258,7 @@ def test_fetch_market_panel_skips_empty_ticker_and_uses_fallback(
         "GOOG": FakeYahooTicker(history=goog_history),
     }
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda ticker: tickers[ticker],
     )
     source = YfinanceSource(registry=company_registry)
@@ -268,7 +285,7 @@ def test_fetch_index_return_panel_lags_quarterly_return_by_one_quarter(
         index=pd.DatetimeIndex([pd.Timestamp(day) for day in closes]),
     )
     monkeypatch.setattr(
-        "app.data.sources.yfinance_source.source.yf.Ticker",
+        TICKER_TARGET,
         lambda _ticker: FakeYahooTicker(history=history),
     )
     source = YfinanceSource(registry=company_registry)

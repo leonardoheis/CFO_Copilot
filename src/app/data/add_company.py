@@ -1,30 +1,18 @@
 """Register a new ticker in config/companies.yaml after verifying it with SEC."""
 
+import textwrap
 from pathlib import Path
 from typing import Final
 
 import click
+import yaml
 
 from app.data.companies import CompanyRegistry
-from app.data.exceptions import DataSourceError
+from app.data.exceptions import ConfigError, DataSourceError
 from app.data.sources import fetch_sec_tickers
 from app.settings import Settings
 
 PINNED_TEST: Final = "tests/data/test_companies.py"
-
-ENTRY_TEMPLATE: Final = """
-  - tickers:
-      - {ticker}
-    panel:
-      company: {company}
-      sector: {sector}
-      is_public: true
-    sec:
-      type: known_cik
-      cik: "{cik}"
-    market:
-      type: from_ticker
-"""
 
 
 @click.command()
@@ -67,14 +55,32 @@ def add_company(
         raise click.ClickException(message)
 
     cik, title = found.cik, found.title
-    entry = ENTRY_TEMPLATE.format(
-        ticker=normalized,
-        company=company or title.title(),
-        sector=sector,
-        cik=cik,
+    entry = {
+        "tickers": [normalized],
+        "panel": {
+            "company": company or title.title(),
+            "sector": sector,
+            "is_public": True,
+        },
+        "sec": {"type": "known_cik", "cik": cik},
+        "market": {"type": "from_ticker"},
+    }
+    original = path.read_text(encoding="utf-8")
+    # Appended rather than re-dumped, so the registry's comments survive.
+    path.write_text(
+        original
+        + "\n"
+        + textwrap.indent(yaml.safe_dump([entry], sort_keys=False), "  "),
+        encoding="utf-8",
     )
-    with path.open("a", encoding="utf-8") as registry:
-        registry.write(entry)
+    try:
+        CompanyRegistry.from_path(path)
+    except ConfigError as error:
+        path.write_text(original, encoding="utf-8")
+        message = (
+            f"The new entry would make {path} invalid, so it was not added: {error}"
+        )
+        raise click.ClickException(message) from error
 
     click.echo(f"Added {normalized} ({title}) with CIK {cik} to {path}")
     click.echo(

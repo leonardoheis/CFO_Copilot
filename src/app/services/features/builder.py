@@ -84,9 +84,9 @@ def _rolling_features(growth: pd.Series) -> pd.DataFrame:
     })
 
 
-def _static_features(panel: pd.DataFrame, regimes: pd.Series | None) -> pd.DataFrame:
+def _static_features(panel: pd.DataFrame, regimes: pd.Series) -> pd.DataFrame:
     ticker = panel["ticker"].iloc[0]
-    if regimes is None or ticker not in regimes.index:
+    if ticker not in regimes.index:
         raise MissingRegimeError(ticker=str(ticker))
     return pd.DataFrame({
         "sector": panel["sector"],
@@ -129,7 +129,7 @@ class FeatureBuilder:
         return group in self._spec.groups
 
     def build(
-        self, panel: pd.DataFrame, *, horizon: int, regimes: pd.Series | None = None
+        self, panel: pd.DataFrame, *, horizon: int, regimes: pd.Series
     ) -> pd.DataFrame:
         """Build features that use only quarters up to each row's origin.
 

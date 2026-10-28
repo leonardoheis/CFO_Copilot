@@ -1,7 +1,9 @@
+from enum import StrEnum
 from typing import Annotated, Literal, NamedTuple, Self
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
+from app.data.dates import QUARTERS_PER_YEAR
 from app.settings import RANDOM_SEED
 
 _STL_MINIMUM_CYCLES = 2
@@ -18,15 +20,30 @@ def _ordered_in_unit_interval(pair: tuple[float, float]) -> tuple[float, float]:
 QuantilePair = Annotated[tuple[float, float], AfterValidator(_ordered_in_unit_interval)]
 
 
+class Direction(StrEnum):
+    """Which way an outlier register entry departs from normal."""
+
+    UP = "up"
+    DOWN = "down"
+    NON_POSITIVE = "non_positive"
+
+
+class SeriesStatus(StrEnum):
+    OK = "ok"
+    INSUFFICIENT_DATA = "insufficient_data"
+    CONSTANT = "constant"
+
+
 class SeriesDiagnostics(BaseModel):
     """Everything NB01 records about one company's variable."""
 
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    # Enum values, so the diagnostics frame and its parquet hold plain strings.
+    model_config = ConfigDict(frozen=True, extra="forbid", use_enum_values=True)
 
     ticker: str
     variable: str
     n_obs: int
-    status: Literal["ok", "insufficient_data", "constant"]
+    status: SeriesStatus
     log_defined: bool
     d_levels: int | None = None
     d_log: int | None = None
@@ -71,7 +88,7 @@ class DiagnosticsSettings(BaseModel):
 
     min_observations: int = 16
     significance: float = Field(default=0.05, gt=0.0, lt=1.0)
-    seasonal_period: int = Field(default=4, ge=2)
+    seasonal_period: int = Field(default=QUARTERS_PER_YEAR, ge=2)
     ljung_box_lag: int = Field(default=8, ge=1)
     max_differencing_order: int = Field(default=2, ge=0)
     # Longest interior gap filled for diagnosis only; 0 fills nothing.

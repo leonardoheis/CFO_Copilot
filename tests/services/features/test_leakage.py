@@ -39,7 +39,7 @@ def test_a_builder_that_peeks_one_quarter_ahead_is_caught(
     builder = FeatureBuilder(spec=FeatureSpec(groups=frozenset({FeatureGroup.LAGS})))
 
     def leaky(panel: pd.DataFrame) -> pd.DataFrame:
-        features = builder.build(panel, horizon=1)
+        features = builder.build(panel, horizon=1, regimes=REGIMES)
         return features.assign(peek=panel["revenue_usd_m"].shift(-1))
 
     with pytest.raises(LeakageError, match="peek") as caught:

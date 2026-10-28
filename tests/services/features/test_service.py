@@ -95,7 +95,9 @@ def test_without_the_static_group_no_sector_column_appears(
 ) -> None:
     service = _service(FeatureSpec(groups=frozenset({FeatureGroup.LAGS})))
 
-    dataset = service.assemble(panels, horizon=1, arm=TargetArm.LOG_DIFF1)
+    dataset = service.assemble(
+        panels, horizon=1, arm=TargetArm.LOG_DIFF1, regimes=REGIMES
+    )
 
     assert "sector" not in dataset.columns
 
@@ -122,7 +124,7 @@ def test_a_signed_target_gets_the_revenue_scaled_target(
     horizon = 2
 
     dataset = _service(spec).assemble(
-        panels, horizon=horizon, arm=TargetArm.REVENUE_SCALED_YOY
+        panels, horizon=horizon, arm=TargetArm.REVENUE_SCALED_YOY, regimes=REGIMES
     )
 
     company = dataset[dataset["ticker"] == "AAA"].reset_index(drop=True)
@@ -139,7 +141,9 @@ def test_an_arm_foreign_to_the_target_is_refused(
     spec = FeatureSpec(target_variable=TargetVariable.EBITDA)
 
     with pytest.raises(UnsupportedArmError, match="ebitda_usd_m") as caught:
-        _service(spec).assemble(panels, horizon=1, arm=TargetArm.LOG_DIFF4)
+        _service(spec).assemble(
+            panels, horizon=1, arm=TargetArm.LOG_DIFF4, regimes=REGIMES
+        )
 
     assert caught.value.arm == TargetArm.LOG_DIFF4
 

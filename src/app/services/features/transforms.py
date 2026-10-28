@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
+from app.data.dates import QUARTERS_PER_YEAR
 from app.domain import TargetVariable
 from app.services.features.exceptions import (
     InvalidHorizonError,
@@ -13,7 +14,7 @@ from app.services.features.exceptions import (
     NonPositiveValueError,
 )
 
-SEASONAL_LAG: Final = 4
+SEASONAL_LAG: Final = QUARTERS_PER_YEAR
 MAX_HORIZON: Final = SEASONAL_LAG
 
 

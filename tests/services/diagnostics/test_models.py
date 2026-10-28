@@ -10,6 +10,7 @@ from app.services.diagnostics import (
     RegimeSettings,
     SegmentSettings,
     SeriesDiagnostics,
+    SeriesStatus,
     TooFewCompaniesError,
 )
 
@@ -61,7 +62,7 @@ def test_constant_is_a_valid_status() -> None:
         ticker="AAA",
         variable="dividend_yield",
         n_obs=40,
-        status="constant",
+        status=SeriesStatus.CONSTANT,
         log_defined=False,
     )
 

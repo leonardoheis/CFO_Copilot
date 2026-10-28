@@ -103,15 +103,8 @@ class _Settings(BaseSettings):
         return self.ROOT_PATH / "config" / "ingestion_defects.yaml"
 
     @property
-    def PANEL_LONG_PATH(self) -> Path:
-        return self.DATA_DIRECTORY / "processed" / "panel_long.parquet"
-
-    @property
-    def MACRO_Q_PATH(self) -> Path:
-        return self.DATA_DIRECTORY / "processed" / "macro_q.parquet"
-
-    def panel_output_path(self, ticker: str) -> Path:
-        return self.DATA_DIRECTORY / "processed" / f"{ticker.upper()}_panel.parquet"
+    def PROCESSED_DIRECTORY(self) -> Path:
+        return self.DATA_DIRECTORY / "processed"
 
 
 Settings = _Settings()

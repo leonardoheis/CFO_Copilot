@@ -52,7 +52,10 @@ def test_a_spec_override_builds_only_the_requested_groups(
     service = Container().feature_service(builder__spec=lags_only)
 
     dataset = service.assemble(
-        {"AAA": make_panel(ticker="AAA")}, horizon=1, arm=TargetArm.LOG_DIFF1
+        {"AAA": make_panel(ticker="AAA")},
+        horizon=1,
+        arm=TargetArm.LOG_DIFF1,
+        regimes=pd.Series({"AAA": 0}),
     )
 
     lag_columns = [

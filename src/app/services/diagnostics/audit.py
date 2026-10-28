@@ -6,7 +6,7 @@ import pandas as pd
 
 from app.data.schema import ColumnFamily, column_family
 from app.domain import TargetVariable
-from app.services.diagnostics.models import OutlierSettings
+from app.services.diagnostics.models import Direction, OutlierSettings
 from app.services.features.transforms import trailing_revenue
 
 REGISTER_COLUMNS: Final = (
@@ -30,6 +30,7 @@ TARGET_EXTREME_COLUMNS: Final = (
     "direction",
 )
 _TARGET_GROUP: Final = ["ticker", "arm", "horizon"]
+
 # For a normal distribution the MAD is 0.6745 and the mean absolute deviation
 # 0.7979 standard deviations; dividing by them makes robust z read like z.
 _MAD_TO_SIGMA: Final = 0.6745
@@ -82,7 +83,7 @@ class _Scores(NamedTuple):
 
 
 def _entries(
-    series: _CompanySeries, mask: pd.Series, scores: _Scores, direction: str
+    series: _CompanySeries, mask: pd.Series, scores: _Scores, direction: Direction
 ) -> pd.DataFrame:
     return pd.DataFrame({
         "ticker": series.ticker,
@@ -92,7 +93,7 @@ def _entries(
         "change": scores.change[mask],
         "robust_z": scores.robust_z[mask],
         "hampel_z": scores.hampel_z[mask],
-        "direction": direction,
+        "direction": direction.value,
     })
 
 
@@ -186,12 +187,14 @@ class OutlierRegister:
             return []
         threshold = self._settings.z_threshold
         findings = [
-            _entries(series, scores.robust_z > threshold, scores, "up"),
-            _entries(series, scores.robust_z < -threshold, scores, "down"),
+            _entries(series, scores.robust_z > threshold, scores, Direction.UP),
+            _entries(series, scores.robust_z < -threshold, scores, Direction.DOWN),
         ]
         if column_family(series.column) is ColumnFamily.POSITIVE:
             non_positive = series.panel[series.column] <= 0
-            findings.append(_entries(series, non_positive, scores, "non_positive"))
+            findings.append(
+                _entries(series, non_positive, scores, Direction.NON_POSITIVE)
+            )
         return [finding for finding in findings if not finding.empty]
 
     def _target_extremes(self, group: pd.DataFrame) -> pd.DataFrame:
@@ -202,7 +205,9 @@ class OutlierRegister:
         extreme = robust_z.abs() > self._settings.z_threshold
         return group.loc[extreme].assign(
             robust_z=robust_z[extreme],
-            direction=np.where(robust_z[extreme] > 0, "up", "down"),
+            direction=np.where(
+                robust_z[extreme] > 0, Direction.UP.value, Direction.DOWN.value
+            ),
         )[list(TARGET_EXTREME_COLUMNS)]
 
     def register_target(self, target_frame: pd.DataFrame) -> pd.DataFrame:

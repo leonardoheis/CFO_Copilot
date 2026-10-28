@@ -1,4 +1,4 @@
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from typing import Literal, NamedTuple
 
 import pandas as pd
@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from scipy.stats import kruskal
 
 from app.domain import TargetVariable
-from app.services.diagnostics.models import DecisionSettings
+from app.services.diagnostics.models import DecisionSettings, Direction
 from app.services.features.transforms import arms_for, default_arm
 
 DecisionType = Literal[
@@ -45,16 +45,12 @@ class DecisionInputs(NamedTuple):
     ljung_box_p: pd.Series
 
 
-def _comma_separated(items: Iterable[str]) -> str:
-    return ", ".join(items)
-
-
 def _transform_row(inputs: DecisionInputs) -> DecisionRow:
     arms = arms_for(inputs.variable)
     exported = f"export {default_arm(inputs.variable).value}"
     return DecisionRow(
         decision="target_transform",
-        finding=f"arms available: {_comma_separated(arm.value for arm in arms)}",
+        finding="arms available: " + ", ".join(arm.value for arm in arms),
         evidence="F3: log arms only for a variable that is never non-positive",
         action=f"{exported}; compare the arms in NB02" if len(arms) > 1 else exported,
         applies_to=inputs.variable.value,
@@ -65,21 +61,19 @@ def _exclusions_row(inputs: DecisionInputs) -> DecisionRow:
     register = inputs.register
     non_positive = register[
         (register["column"] == inputs.variable.value)
-        & (register["direction"] == "non_positive")
+        & (register["direction"] == Direction.NON_POSITIVE)
     ]
     sign_tickers = sorted(set(non_positive["ticker"].astype(str)))
     excluded = sorted(inputs.excluded_companies)
     tickers = excluded + [ticker for ticker in sign_tickers if ticker not in excluded]
-    defects = _comma_separated(excluded) or "none"
+    defects = ", ".join(excluded) or "none"
     return DecisionRow(
         decision="exclusions",
         finding=f"{len(excluded)} excluded by an ingestion spec, "
         f"{len(sign_tickers)} with a non-positive target",
         evidence=f"ingestion defects: {defects}; "
         f"sign rule: {len(non_positive)} register entries",
-        action=f"exclude {_comma_separated(tickers)}"
-        if tickers
-        else "exclude no company",
+        action="exclude " + ", ".join(tickers) if tickers else "exclude no company",
         applies_to=inputs.variable.value,
     )
 

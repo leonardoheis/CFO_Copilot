@@ -18,6 +18,7 @@ from .models import (
     CorrelationSettings,
     DecisionSettings,
     DiagnosticsSettings,
+    Direction,
     FigureSettings,
     MacroCorrelation,
     OutlierSettings,
@@ -25,6 +26,7 @@ from .models import (
     RegimeSettings,
     SegmentSettings,
     SeriesDiagnostics,
+    SeriesStatus,
 )
 from .panel import MacroCorrelator, SeasonalityRegimeClusterer
 from .profiling import AutoProfiler, profile_frame
@@ -34,7 +36,11 @@ from .segments import (
     seasonal_profile,
     segment_frame,
 )
-from .series import SeriesDiagnostician, observed_since_last_gap
+from .series import (
+    SeriesDiagnostician,
+    observed_since_last_gap,
+    prepared_for_diagnosis,
+)
 from .service import DiagnosticsService
 from .transform_comparison import (
     LevelTransform,
@@ -58,6 +64,7 @@ __all__ = [
     "DiagnosticsError",
     "DiagnosticsService",
     "DiagnosticsSettings",
+    "Direction",
     "EdaFigures",
     "FeatureAudit",
     "FeatureAuditor",
@@ -76,6 +83,7 @@ __all__ = [
     "SegmentSettings",
     "SeriesDiagnostician",
     "SeriesDiagnostics",
+    "SeriesStatus",
     "TooFewCompaniesError",
     "TransformComparer",
     "baseline_transform",
@@ -87,6 +95,7 @@ __all__ = [
     "observed_since_last_gap",
     "pooled_yoy_changes",
     "preferred_transform",
+    "prepared_for_diagnosis",
     "profile_frame",
     "seasonal_profile",
     "segment_frame",

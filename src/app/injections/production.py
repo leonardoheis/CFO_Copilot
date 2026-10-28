@@ -78,15 +78,13 @@ class Container(containers.DeclarativeContainer):
     ingestion_sources = providers.Factory(
         IngestionSources.from_sources,
         fred=fred_source,
-        yfinance=yfinance_source,
+        market=yfinance_source,
         sec_edgar=sec_edgar_source,
         registry=company_registry,
         alpha_vantage=alpha_vantage_source if Settings.ALPHA_VANTAGE_API_KEY else None,
     )
 
-    panel_store = providers.Factory(
-        PanelStore, directory=Settings.DATA_DIRECTORY / "processed"
-    )
+    panel_store = providers.Factory(PanelStore, directory=Settings.PROCESSED_DIRECTORY)
     experiment_tracker = providers.Factory(
         WandbTracker,
         settings=WandbSettings(

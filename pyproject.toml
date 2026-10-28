@@ -130,6 +130,9 @@ patch_tags = ["fix"]
 [tool.pytest.ini_options]
 addopts = [
     "-r=A",
+    "--block-network",
+    # Windows' asyncio event loop wakes itself through a loopback socket pair.
+    "--allowed-hosts=127.0.0.1",
     "--doctest-modules",
     "--junitxml=pytest-report.xml",
     "--cov=.",

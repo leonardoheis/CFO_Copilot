@@ -9,6 +9,8 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.data.dates import is_quarter_end
+from app.data.exceptions import ConfigError
+from app.data.schema import COST_OF_REVENUE_COLUMNS
 
 CIK_LENGTH = 10
 
@@ -22,6 +24,19 @@ class CompanyPanelMetadata:
     has_reliable_opex: bool = True
     # Quarter end -> why its financials are withheld (two reporting bases mixed).
     withheld_quarters: Mapping[date, str] = field(default_factory=dict)
+
+    def declared_empty_columns(self) -> dict[str, str]:
+        """Map each column declared empty for the whole history to its reason.
+
+        Returns:
+            Column name to reason; empty for a company with nothing declared.
+        """
+        declared: dict[str, str] = {}
+        if not self.has_reliable_opex:
+            declared["opex_usd_m"] = "unreliable_opex"
+        if not self.has_cost_of_revenue:
+            declared |= dict.fromkeys(COST_OF_REVENUE_COLUMNS, "no_cost_of_revenue")
+        return declared
 
 
 @dataclass(frozen=True, slots=True)
@@ -222,7 +237,7 @@ def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
         A tuple of validated company profiles.
 
     Raises:
-        ValueError: If the file is unreadable, malformed, or has duplicate tickers.
+        ConfigError: If the file is unreadable, malformed, or has duplicate tickers.
     """
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -230,7 +245,7 @@ def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
         companies = tuple(_to_domain_company(item) for item in config.companies)
     except (OSError, TypeError, ValueError, yaml.YAMLError) as error:
         msg = f"Invalid company registry {path}: {error}"
-        raise ValueError(msg) from error
+        raise ConfigError(msg) from error
 
     ticker_counts = Counter(
         ticker for company in companies for ticker in company.tickers
@@ -239,7 +254,7 @@ def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
     if duplicates:
         alias_list = ", ".join(duplicates)
         duplicate_msg = f"Duplicate company ticker aliases: {alias_list}"
-        raise ValueError(duplicate_msg)
+        raise ConfigError(duplicate_msg)
     return companies
 
 
@@ -295,30 +310,6 @@ class CompanyRegistry:
         """
         return self.scraped_company(ticker).panel
 
-    def tickers_without_cost_of_revenue(self) -> frozenset[str]:
-        return frozenset(
-            ticker
-            for company in self.companies
-            if not company.panel.has_cost_of_revenue
-            for ticker in company.tickers
-        )
-
-    def tickers_without_reliable_opex(self) -> frozenset[str]:
-        return frozenset(
-            ticker
-            for company in self.companies
-            if not company.panel.has_reliable_opex
-            for ticker in company.tickers
-        )
-
-    def withheld_quarters(self) -> dict[str, frozenset[date]]:
-        return {
-            ticker: frozenset(company.panel.withheld_quarters)
-            for company in self.companies
-            if company.panel.withheld_quarters
-            for ticker in company.tickers
-        }
-
     def market_history_tickers(self, ticker: str) -> tuple[str, ...]:
         """Return the Yahoo Finance symbols to try, current symbol first.
 
@@ -353,15 +344,3 @@ class CompanyRegistry:
             case _ as unreachable:
                 assert_never(unreachable)
         return tuple(ciks)
-
-    def primary_sec_cik(
-        self,
-        ticker: str,
-        lookup_cik: Callable[[str], str],
-    ) -> str:
-        """Return the current SEC CIK for a ticker.
-
-        Returns:
-            The most recent CIK, which is the last entry for dual filers.
-        """
-        return self.sec_ciks(ticker, lookup_cik)[-1]

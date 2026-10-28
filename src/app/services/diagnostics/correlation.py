@@ -85,10 +85,6 @@ class CorrelationAnalyzer:
     def __init__(self, settings: CorrelationSettings) -> None:
         self._settings = settings
 
-    @property
-    def redundancy_threshold(self) -> float:
-        return self._settings.redundancy_threshold
-
     def redundant_pairs(self, matrix: pd.DataFrame) -> pd.DataFrame:
         """List pairs whose correlation exceeds the redundancy threshold.
 

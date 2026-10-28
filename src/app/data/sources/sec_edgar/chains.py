@@ -8,20 +8,11 @@ from typing import cast
 
 import pandas as pd
 
-from app.data.xbrl import (
-    FactProvenance,
-    InstantXbrlFact,
-    PeriodMeasure,
-    XbrlFact,
-    annual_totals_by_end,
-    instant_series_from_facts,
-    quarterly_facts_from_facts,
-)
-
 from .concepts import (
+    COST_OF_REVENUE_PARTS,
+    D_AND_A_PARTS,
     DILUTED_SHARES_FALLBACK,
     PER_SHARE_UNIT,
-    SHARES_UNIT,
     TAG_CHAINS,
     USD_UNIT,
     ConceptSpec,
@@ -33,11 +24,21 @@ from .parsing import (
     split_factors_for_filing_dates,
     without_implausible_counts,
 )
+from .xbrl import (
+    FactProvenance,
+    InstantXbrlFact,
+    PeriodMeasure,
+    XbrlFact,
+    annual_totals_by_end,
+    instant_series_from_facts,
+    quarterly_facts_from_facts,
+)
 
 logger = logging.getLogger(__name__)
 
 # Called with (tag, unit); read lazily, so a chain stops reading once it is full.
 type FactLookup = Callable[[str, str], list[XbrlFact]]
+type _ShareRecordsReader = Callable[[list[XbrlFact], list[date]], pd.DataFrame]
 
 
 def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
@@ -169,61 +170,46 @@ def _tag_chain_records(
     return combined
 
 
-def _diluted_shares_fallback(
-    cik: str,
-    facts_for: FactLookup,
-    quarter_dates: list[date],
-    splits: pd.Series | None,
-) -> pd.Series:
-    combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
-    for tag in DILUTED_SHARES_FALLBACK.tags:
-        facts = facts_for(tag, DILUTED_SHARES_FALLBACK.unit)
-        if facts:
-            records = quarterly_facts_from_facts(
-                facts,
-                quarter_dates,
-                PeriodMeasure.PERIOD_AVERAGE,
-            )
-            values = records["value"] * split_factors_for_filing_dates(
-                records["filed"],
-                splits,
-            )
-            combined = combined.combine_first(
-                without_implausible_counts(values, cik),
-            )
-    return combined
-
-
 def _shares_chain(
     cik: str,
     facts_for: FactLookup,
     quarter_dates: list[date],
     splits: pd.Series | None,
 ) -> pd.Series:
-    combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
-    for tag in TAG_CHAINS["shares_outstanding"].tags:
-        facts = facts_for(tag, SHARES_UNIT)
-        if facts:
-            records = instant_series_from_facts(
-                cast("list[InstantXbrlFact]", facts),
-                quarter_dates,
-            )
-            values = records["value"] * split_factors_for_filing_dates(
-                records["filed"],
-                splits,
-            )
-            combined = combined.combine_first(
-                without_implausible_counts(values, cik),
-            )
-
-    if combined.notna().all():
+    def share_counts(spec: ConceptSpec, read_records: _ShareRecordsReader) -> pd.Series:
+        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
+        for tag in spec.tags:
+            facts = facts_for(tag, spec.unit)
+            if facts:
+                records = read_records(facts, quarter_dates)
+                values = records["value"] * split_factors_for_filing_dates(
+                    records["filed"],
+                    splits,
+                )
+                combined = combined.combine_first(
+                    without_implausible_counts(values, cik),
+                )
         return combined
+
+    outstanding = share_counts(
+        TAG_CHAINS["shares_outstanding"],
+        lambda facts, dates: instant_series_from_facts(
+            cast("list[InstantXbrlFact]", facts), dates
+        ),
+    )
+    if outstanding.notna().all():
+        return outstanding
 
     # Instant shares-outstanding tags cover fewer early quarters than the
     # weighted-average diluted-share duration facts, so fill any remaining
     # gaps rather than only falling back when the primary is wholly empty.
-    fallback = _diluted_shares_fallback(cik, facts_for, quarter_dates, splits)
-    return combined.combine_first(fallback)
+    diluted_average = share_counts(
+        DILUTED_SHARES_FALLBACK,
+        lambda facts, dates: quarterly_facts_from_facts(
+            facts, dates, PeriodMeasure.PERIOD_AVERAGE
+        ),
+    )
+    return outstanding.combine_first(diluted_average)
 
 
 def quarterly_financials(
@@ -246,22 +232,26 @@ def quarterly_financials(
         quarter_dates,
         splits,
     )
+
+    def chain_values(spec: ConceptSpec) -> pd.Series:
+        return _tag_chain_records(cik, spec, facts_for, quarter_dates, splits)["value"]
+
     series_by_name = {
-        name: _tag_chain_records(cik, spec, facts_for, quarter_dates, splits)["value"]
+        name: chain_values(spec)
         for name, spec in TAG_CHAINS.items()
         if name not in {"shares_outstanding", "revenue"}
     }
     series_by_name["revenue"] = revenue_records["value"]
     series_by_name["cogs"] = cost_of_revenue(
         series_by_name["cogs"],
-        series_by_name.pop("cogs_total"),
-        series_by_name.pop("cost_of_products"),
-        series_by_name.pop("cost_of_services"),
+        chain_values(COST_OF_REVENUE_PARTS.total),
+        chain_values(COST_OF_REVENUE_PARTS.products),
+        chain_values(COST_OF_REVENUE_PARTS.services),
     )
     series_by_name["dep_amort"] = depreciation_and_amortization(
         series_by_name["dep_amort"],
-        series_by_name.pop("depreciation"),
-        series_by_name.pop("intangible_amortization"),
+        chain_values(D_AND_A_PARTS.depreciation),
+        chain_values(D_AND_A_PARTS.amortization),
     )
     shares = _shares_chain(cik, facts_for, quarter_dates, splits)
     if not shares.notna().all():

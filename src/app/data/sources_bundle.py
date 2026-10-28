@@ -29,7 +29,7 @@ class MarketSource(Protocol):
 @dataclass(frozen=True, slots=True)
 class IngestionSources:
     fetch_macro_panel: MacroPanelFetcher
-    yfinance: MarketSource
+    market: MarketSource
     fetch_sec_financials: FinancialsFetcher
     registry: CompanyRegistry
     fetch_fallback_financials: FallbackFinancialsFetcher | None = None
@@ -39,7 +39,7 @@ class IngestionSources:
         cls,
         *,
         fred: FredSource,
-        yfinance: MarketSource,
+        market: MarketSource,
         sec_edgar: SecEdgarSource,
         registry: CompanyRegistry,
         alpha_vantage: AlphaVantageSource | None = None,
@@ -51,7 +51,7 @@ class IngestionSources:
         """
         return cls(
             fetch_macro_panel=fred.fetch_macro_panel,
-            yfinance=yfinance,
+            market=market,
             fetch_sec_financials=sec_edgar.fetch_financials_panel,
             registry=registry,
             fetch_fallback_financials=(

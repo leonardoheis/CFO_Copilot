@@ -27,7 +27,7 @@ def _bundle(
 ) -> IngestionSources:
     return IngestionSources.from_sources(
         fred=fred,
-        yfinance=YfinanceSource(registry=registry),
+        market=YfinanceSource(registry=registry),
         sec_edgar=sec_edgar,
         registry=registry,
         alpha_vantage=alpha_vantage,

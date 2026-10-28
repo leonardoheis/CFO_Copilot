@@ -5,8 +5,8 @@ from typing import Final
 import pandas as pd
 from pydantic import BaseModel, ConfigDict
 
-from app.data.pipeline import XBRL_HISTORY_START
 from app.data.schema import FINANCIAL_COLUMNS
+from app.data.sources import XBRL_HISTORY_START
 
 COVERAGE_FIELDS: Final[tuple[str, ...]] = (
     *FINANCIAL_COLUMNS,
@@ -86,23 +86,10 @@ def evaluate_coverage(
     )
 
 
-def report_as_dict(report: CoverageReport) -> dict[str, object]:
-    """Render a coverage report as a JSON-serializable dictionary.
-
-    Returns:
-        A nested dictionary mirroring the report structure.
-    """
-    return report.model_dump(mode="json")
-
-
 def _indexed_panel(panel: pd.DataFrame) -> pd.DataFrame:
     indexed = panel.copy()
     indexed["date"] = pd.to_datetime(indexed["date"])
     return indexed.set_index("date")
-
-
-def _quarter_timestamp(quarter_date: date) -> pd.Timestamp:
-    return pd.Timestamp(quarter_date)
 
 
 def _field_coverage(
@@ -128,7 +115,7 @@ def _missing_dates(
 ) -> list[date]:
     missing: list[date] = []
     for quarter_date in expected_dates:
-        quarter_timestamp = _quarter_timestamp(quarter_date)
+        quarter_timestamp = pd.Timestamp(quarter_date)
         if quarter_timestamp not in panel.index:
             missing.append(quarter_date)
             continue
@@ -144,8 +131,8 @@ def _overlap_errors(
     alpha: pd.DataFrame,
     sec: pd.DataFrame,
 ) -> dict[str, float]:
-    overlap_start = _quarter_timestamp(XBRL_HISTORY_START)
-    overlap_end = _quarter_timestamp(OVERLAP_END)
+    overlap_start = pd.Timestamp(XBRL_HISTORY_START)
+    overlap_end = pd.Timestamp(OVERLAP_END)
     dates = [
         value
         for value in alpha.index

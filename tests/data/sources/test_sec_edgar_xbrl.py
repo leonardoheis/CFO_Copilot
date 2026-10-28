@@ -5,7 +5,7 @@ import pytest
 
 from app.data.dates import QUARTER_END_TOLERANCE_DAYS, nearest_quarter_end
 from app.data.exceptions import MalformedPayloadError
-from app.data.xbrl import (
+from app.data.sources.sec_edgar.xbrl import (
     FactProvenance,
     InstantXbrlFact,
     PeriodMeasure,

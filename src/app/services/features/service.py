@@ -33,8 +33,12 @@ class FeatureService:
     Usage::
 
         service = container.feature_service()
-        dataset = service.assemble(panels, horizon=2, arm=TargetArm.LOG_DIFF4)
-        service.check_lookahead(panel, horizon=2, origins=[3, 8, 15])
+        dataset = service.assemble(
+            panels, horizon=2, arm=TargetArm.LOG_DIFF4, regimes=regimes
+        )
+        service.check_lookahead(
+            panel, horizon=2, origins=[3, 8, 15], regimes=regimes
+        )
     """
 
     def __init__(self, builder: FeatureBuilder, guard: LookaheadGuard) -> None:
@@ -45,7 +49,7 @@ class FeatureService:
         self,
         panel: pd.DataFrame,
         transformer: TargetTransformer,
-        regimes: pd.Series | None,
+        regimes: pd.Series,
     ) -> pd.DataFrame:
         target = panel[self._builder.target_variable]
         features = self._builder.build(
@@ -67,7 +71,7 @@ class FeatureService:
         *,
         horizon: int,
         arm: TargetArm,
-        regimes: pd.Series | None = None,
+        regimes: pd.Series,
     ) -> pd.DataFrame:
         """Pool every company's origin rows with the arm's target for one horizon.
 
@@ -130,7 +134,7 @@ class FeatureService:
         *,
         horizon: int,
         origins: Sequence[int],
-        regimes: pd.Series | None = None,
+        regimes: pd.Series,
     ) -> None:
         """Fail when this service's builder reads quarters after an origin."""
         self._guard.check(

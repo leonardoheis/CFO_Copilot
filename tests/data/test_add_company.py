@@ -4,6 +4,7 @@ import pytest
 from click.testing import CliRunner
 
 from app.data.add_company import add_company
+from app.data.companies import CompanyRegistry, KnownCik
 from app.data.exceptions import DataSourceUnavailableError
 from app.data.sources import SecTicker
 
@@ -44,12 +45,50 @@ def test_appends_the_company_and_keeps_existing_entries(registry: Path) -> None:
         add_company,
         ["--ticker", "INTC", "--sector", "Technology", "--registry", str(registry)],
     )
-    written = registry.read_text(encoding="utf-8")
+    reloaded = CompanyRegistry.from_path(registry)
 
     assert result.exit_code == 0, result.output
-    assert 'cik: "0000050863"' in written
-    assert "- INTC" in written
-    assert "Amazon" in written
+    assert [company.tickers for company in reloaded.companies] == [("AMZN",), ("INTC",)]
+    assert reloaded.scraped_company("INTC").sec == KnownCik(cik="0000050863")
+    assert reloaded.company_metadata("INTC").company == "Intel Corp"
+
+
+def test_a_name_with_yaml_syntax_is_written_as_text(registry: Path) -> None:
+    result = CliRunner().invoke(
+        add_company,
+        [
+            "--ticker",
+            "INTC",
+            "--sector",
+            "Technology",
+            "--company",
+            "Intel: #1 chips",
+            "--registry",
+            str(registry),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    reloaded = CompanyRegistry.from_path(registry)
+    assert reloaded.company_metadata("INTC").company == "Intel: #1 chips"
+
+
+def test_an_entry_the_registry_rejects_is_rolled_back(
+    registry: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        "app.data.add_company.fetch_sec_tickers",
+        lambda **_: {"INTC": SecTicker(cik="50863", title="INTEL CORP")},
+    )
+
+    result = CliRunner().invoke(
+        add_company,
+        ["--ticker", "INTC", "--sector", "Technology", "--registry", str(registry)],
+    )
+
+    assert result.exit_code == 1
+    assert "not added" in result.output
+    assert registry.read_text(encoding="utf-8") == REGISTRY
 
 
 def test_rejects_a_ticker_sec_does_not_know(registry: Path) -> None:

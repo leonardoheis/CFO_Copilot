@@ -6,7 +6,7 @@ import requests
 from app.data.exceptions import DataSourceUnavailableError, MalformedPayloadError
 from app.data.sources.sec_edgar import SecEdgarSource, SecTicker, fetch_sec_tickers
 from app.data.sources.sec_edgar.parsing import concept_facts, sec_tickers
-from app.data.xbrl import XbrlFact
+from app.data.sources.sec_edgar.xbrl import XbrlFact
 
 GET_TARGET = "app.data.sources.sec_edgar.source.requests.get"
 REVENUE_FACT: XbrlFact = {
@@ -155,7 +155,7 @@ def test_a_ticker_file_server_error_is_reported_as_unavailable(
     _fake_get(monkeypatch, FakeResponse({}, HTTPStatus.SERVICE_UNAVAILABLE))
 
     with pytest.raises(DataSourceUnavailableError, match="company_tickers"):
-        sec_source.resolve_cik("QCOM")
+        sec_source.resolve_ciks("QCOM")
 
 
 def test_a_malformed_ticker_entry_is_reported(
@@ -165,7 +165,7 @@ def test_a_malformed_ticker_entry_is_reported(
     _fake_get(monkeypatch, FakeResponse({"0": {"ticker": "QCOM"}}))
 
     with pytest.raises(MalformedPayloadError, match="Malformed SEC ticker entry"):
-        sec_source.resolve_cik("QCOM")
+        sec_source.resolve_ciks("QCOM")
 
 
 def test_sec_tickers_pads_the_cik_and_upper_cases_the_ticker() -> None:

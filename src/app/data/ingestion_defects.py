@@ -5,7 +5,7 @@ import pandas as pd
 import yaml
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from app.data.exceptions import BlockedTargetError
+from app.data.exceptions import BlockedTargetError, ConfigError
 
 
 class IngestionDefects(BaseModel):
@@ -60,8 +60,15 @@ def load_ingestion_defects(path: Path) -> IngestionDefects:
 
     Returns:
         The registry; an empty file excludes and blocks nothing.
+
+    Raises:
+        ConfigError: If the file is unreadable or malformed.
     """
-    # An empty file parses to None, which means nothing is held back.
-    return IngestionDefects.model_validate(
-        yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    )
+    try:
+        # An empty file parses to None, which means nothing is held back.
+        return IngestionDefects.model_validate(
+            yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        )
+    except (OSError, ValueError, yaml.YAMLError) as error:
+        message = f"Invalid ingestion defects {path}: {error}"
+        raise ConfigError(message) from error

@@ -1,15 +1,10 @@
-from collections.abc import Mapping
-from datetime import date
 from typing import Final
 
 import pandas as pd
 
+from app.data.companies import CompanyPanelMetadata, CompanyRegistry
 from app.data.flags import pre_listing_flag
-from app.data.schema import (
-    COMPANY_VALUE_COLUMNS,
-    COST_OF_REVENUE_COLUMNS,
-    FINANCIAL_COLUMNS,
-)
+from app.data.schema import COMPANY_VALUE_COLUMNS, FINANCIAL_COLUMNS
 
 _PRE_LISTING_COLUMNS: Final = (
     "stock_price_usd",
@@ -48,12 +43,13 @@ def _reasons(
 
 
 def _company_ledger(
-    company: pd.DataFrame,
-    declared_reasons: dict[str, str],
-    withheld: frozenset[date],
+    company: pd.DataFrame, metadata: CompanyPanelMetadata
 ) -> pd.DataFrame:
+    declared_reasons = metadata.declared_empty_columns()
     pre_listing_rows = pre_listing_flag(company)
-    withheld_rows = pd.to_datetime(company["date"]).dt.date.isin(withheld)
+    withheld_rows = pd.to_datetime(company["date"]).dt.date.isin(
+        metadata.withheld_quarters
+    )
     frames = []
     for column in COMPANY_VALUE_COLUMNS:
         missing = company[column].isna()
@@ -72,27 +68,8 @@ def _company_ledger(
     return pd.concat(frames)
 
 
-def _declared_reasons(
-    ticker: str, no_cost_of_revenue: frozenset[str], unreliable_opex: frozenset[str]
-) -> dict[str, str]:
-    """Map each column the registry declares empty for ``ticker`` to its reason.
-
-    Returns:
-        Column name to reason; empty for a company with nothing declared.
-    """
-    declared: dict[str, str] = {}
-    if ticker in unreliable_opex:
-        declared["opex_usd_m"] = "unreliable_opex"
-    if ticker in no_cost_of_revenue:
-        declared |= dict.fromkeys(COST_OF_REVENUE_COLUMNS, "no_cost_of_revenue")
-    return declared
-
-
 def missing_value_ledger(
-    panel_long: pd.DataFrame,
-    no_cost_of_revenue: frozenset[str] = frozenset(),
-    unreliable_opex: frozenset[str] = frozenset(),
-    withheld_quarters: Mapping[str, frozenset[date]] | None = None,
+    panel_long: pd.DataFrame, registry: CompanyRegistry
 ) -> pd.DataFrame:
     """List every NaN cell with the reason it is missing.
 
@@ -105,11 +82,7 @@ def missing_value_ledger(
     """
     return pd.concat(
         [
-            _company_ledger(
-                company,
-                _declared_reasons(str(ticker), no_cost_of_revenue, unreliable_opex),
-                (withheld_quarters or {}).get(str(ticker), frozenset()),
-            )
+            _company_ledger(company, registry.company_metadata(str(ticker)))
             for ticker, company in panel_long.groupby("ticker", sort=True)
         ],
         ignore_index=True,

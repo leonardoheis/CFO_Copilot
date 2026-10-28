@@ -648,10 +648,18 @@ on disk are unaffected.
   it stages. The `pyproject.toml` note beside the `SKIP` already marks this
   as a pending decision.
 
+A second wave, from a fresh scan after Phase 5, is in
+[code-smells-wave-2.md](code-smells-wave-2.md).
+
 ## Dormant scaffold: recorded, not fixed
 
 Template code that nothing in development uses. Until its trigger fires, an item
 here is not worth fixing. All markers are **Rerun: No**.
+
+Deferred to the next development wave and tracked in
+[template-scaffold-replacement.md](template-scaffold-replacement.md), which
+holds the steps and the deployment caveat. The table below is the original
+record.
 
 | # | Smell | Where | Trigger |
 |---|---|---|---|
@@ -668,6 +676,10 @@ here is not worth fixing. All markers are **Rerun: No**.
 Fixing any of these changes stored data or notebook tables. Each needs its own
 spec in `docs/specs/` (required behaviour, evidence, acceptance criteria) before
 any code change. No fix is proposed here.
+
+Triaged on 2026-10-26 in
+[output-sensitive-catalog.md](output-sensitive-catalog.md): #8, #17, #26 and
+#28 change no stored data today, while #9, #16b and possibly #25 do.
 
 | # | Smell | Where | What would change | Reruns needed if changed |
 |---|---|---|---|---|

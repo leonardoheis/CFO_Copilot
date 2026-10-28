@@ -7,18 +7,20 @@ from pathlib import Path
 
 import click
 
+from app.data.cli import end_option, resolved_dates, start_option
 from app.data.coverage import (
     OVERLAP_END,
     CoverageReport,
     evaluate_coverage,
-    report_as_dict,
 )
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceError
-from app.data.pipeline import XBRL_HISTORY_START, resolve_date_range
-from app.data.sources.alpha_vantage import AlphaVantageSource
-from app.data.sources.sec_edgar import SecEdgarSource
-from app.data.sources.yfinance_source import YfinanceSource
+from app.data.sources import (
+    XBRL_HISTORY_START,
+    AlphaVantageSource,
+    SecEdgarSource,
+    YfinanceSource,
+)
 from app.injections import configure_container
 from app.settings import Settings
 
@@ -32,10 +34,6 @@ class ProbeContext:
     client: AlphaVantageSource
     sec_source: SecEdgarSource
     market_source: YfinanceSource
-
-
-def _parse_date(value: datetime | None) -> date | None:
-    return value.date() if value is not None else None
 
 
 def _write_coverage_report(
@@ -98,7 +96,7 @@ def _probe_ticker(ticker: str, context: ProbeContext) -> dict[str, object]:
     except DataSourceError as error:
         logger.warning("Could not probe %s: %s", ticker, error)
         return {"ticker": ticker, "passed": False, "error": str(error)}
-    return report_as_dict(report)
+    return report.model_dump(mode="json")
 
 
 def _coverage_report(ticker: str, context: ProbeContext) -> CoverageReport:
@@ -130,18 +128,8 @@ def _coverage_report(ticker: str, context: ProbeContext) -> CoverageReport:
     required=True,
     help="Ticker to probe. Repeat the option for multiple tickers.",
 )
-@click.option(
-    "--start",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive history start date. Defaults to 20 years before --end.",
-)
-@click.option(
-    "--end",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive history end date. Defaults to the latest completed quarter.",
-)
+@start_option
+@end_option
 @click.option(
     "--refresh",
     is_flag=True,
@@ -155,15 +143,13 @@ def _coverage_report(ticker: str, context: ProbeContext) -> CoverageReport:
 )
 def probe_alpha_vantage(
     tickers: tuple[str, ...],
-    start: datetime | None,
-    end: datetime | None,
+    start_date: datetime | None,
+    end_date: datetime | None,
     *,
     refresh: bool,
     output: Path | None,
 ) -> None:
-    resolved_start, resolved_end = resolve_date_range(
-        _parse_date(start), _parse_date(end)
-    )
+    resolved_start, resolved_end = resolved_dates(start_date, end_date)
     context = _build_probe_context(resolved_start, resolved_end, refresh=refresh)
     reports = _collect_reports(tickers, context)
 

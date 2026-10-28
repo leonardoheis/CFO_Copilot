@@ -1,5 +1,5 @@
 import warnings
-from typing import Literal, Protocol, cast
+from typing import Literal, NamedTuple, Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -10,7 +10,11 @@ from statsmodels.tools.sm_exceptions import InterpolationWarning
 from statsmodels.tsa.seasonal import STL
 from statsmodels.tsa.stattools import adfuller, kpss
 
-from app.services.diagnostics.models import DiagnosticsSettings, SeriesDiagnostics
+from app.services.diagnostics.models import (
+    DiagnosticsSettings,
+    SeriesDiagnostics,
+    SeriesStatus,
+)
 from app.services.features.transforms import log_level
 
 type _FloatArray = npt.NDArray[np.float64]
@@ -111,6 +115,22 @@ def observed_since_last_gap(series: pd.Series) -> pd.Series:
     return series.iloc[start:]
 
 
+class PreparedSeries(NamedTuple):
+    observed: pd.Series
+    interpolated: int
+
+
+def prepared_for_diagnosis(series: pd.Series, max_gap: int) -> PreparedSeries:
+    """Fill short interior gaps, then keep the run after the last remaining gap.
+
+    Returns:
+        The observed run and how many of its values were interpolated.
+    """
+    filled, was_filled = with_short_interior_gaps_filled(series, max_gap)
+    observed = observed_since_last_gap(filled)
+    return PreparedSeries(observed, int(was_filled[observed.index].sum()))
+
+
 def stl_remainder(series: pd.Series, period: int) -> _FloatArray:
     """Fit a robust STL and keep what trend and season leave unexplained.
 
@@ -145,7 +165,7 @@ def _unanalysed(
     ticker: str,
     variable: str,
     observed: pd.Series,
-    status: Literal["insufficient_data", "constant"],
+    status: Literal[SeriesStatus.INSUFFICIENT_DATA, SeriesStatus.CONSTANT],
     interpolated: int,
 ) -> SeriesDiagnostics:
     return SeriesDiagnostics(
@@ -237,18 +257,18 @@ class SeriesDiagnostician:
         Returns:
             The record for this company and variable.
         """
-        filled, was_filled = with_short_interior_gaps_filled(
+        observed, interpolated = prepared_for_diagnosis(
             series, self._settings.max_interpolated_gap
         )
-        observed = observed_since_last_gap(filled)
-        interpolated = int(was_filled[observed.index].sum())
         if len(observed) < self._settings.min_observations:
             return _unanalysed(
-                ticker, variable, observed, "insufficient_data", interpolated
+                ticker, variable, observed, SeriesStatus.INSUFFICIENT_DATA, interpolated
             )
         # ADF and KPSS divide by the variance, which a constant run does not have.
         if _is_constant(observed):
-            return _unanalysed(ticker, variable, observed, "constant", interpolated)
+            return _unanalysed(
+                ticker, variable, observed, SeriesStatus.CONSTANT, interpolated
+            )
         log_defined = _log_defined(observed)
         d_levels = self.differencing_order(observed)
         seasonal_strength, trend_strength = self.seasonal_and_trend_strength(observed)
@@ -256,7 +276,7 @@ class SeriesDiagnostician:
             ticker=ticker,
             variable=variable,
             n_obs=len(observed),
-            status="ok",
+            status=SeriesStatus.OK,
             interpolated=interpolated,
             log_defined=log_defined,
             d_levels=d_levels,

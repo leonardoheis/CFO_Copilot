@@ -1,3 +1,5 @@
+from enum import Enum
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -44,3 +46,5 @@ def test_panel_diagnostics_yield_one_row_per_company_and_variable(
 
     assert len(table) == len(panels) * len(VARIABLES)
     assert set(table.columns) == set(SeriesDiagnostics.model_fields)
+    # A plain str, not the enum, so the stored diagnostics table is unchanged.
+    assert not any(isinstance(status, Enum) for status in table["status"])

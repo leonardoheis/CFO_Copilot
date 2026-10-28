@@ -51,11 +51,10 @@ CFO_Copilot/
 │   │   ├── companies.py     # CompanyRegistry (loads config/companies.yaml)
 │   │   ├── dates.py         # Shared quarter/date helpers
 │   │   ├── splits.py        # Shared split-adjustment helpers
-│   │   ├── xbrl.py          # Shared XBRL fact handling
 │   │   └── sources/         # One package per external source
 │   │       ├── alpha_vantage/   # source.py, parsing.py
 │   │       ├── fred/            # source.py
-│   │       ├── sec_edgar/       # source.py, chains.py, parsing.py, concepts.py
+│   │       ├── sec_edgar/       # source.py, chains.py, parsing.py, concepts.py, xbrl.py, xbrl_facts.py
 │   │       └── yfinance_source/ # source.py, fetching.py
 │   ├── utils/               # ExamplerMixIn (OpenAPI example generation)
 │   ├── ml_binaries/         # Runtime model artifacts (model.joblib)
@@ -206,7 +205,9 @@ Rules:
 - **Vendor field names stay inside the package.** This is an Anti-Corruption
   Layer: `fiscalDateEnding`, `totalRevenue` and us-gaap tags must not appear
   outside their own source package. Logic genuinely shared across sources goes
-  in `app/data/` (`dates.py`, `splits.py`, `xbrl.py`), never a vendor's quirks.
+  in `app/data/` (`dates.py`, `splits.py`), never a vendor's quirks. XBRL is
+  SEC's format, so its fact handling lives in `sec_edgar/` (`xbrl.py`,
+  `xbrl_facts.py`).
 - **Names crossing a module boundary drop the leading underscore.** Ruff's
   `import-private-name` rejects importing `_foo` from a sibling module, so
   package-internal helpers are public within the package and kept out of the

@@ -15,8 +15,9 @@ from pathlib import Path
 
 import click
 
+from app.data.cli import end_option, fetch_panel, resolved_dates, start_option
 from app.data.exceptions import DataSourceError, RateLimitedError
-from app.data.pipeline import merge_panel, resolve_date_range, write_panel
+from app.data.pipeline import write_panel
 from app.data.progress import Progress
 from app.injections import configure_container
 from app.settings import Settings
@@ -37,7 +38,7 @@ class IngestOutcome(StrEnum):
 
 
 def ledger_path() -> Path:
-    return Settings.DATA_DIRECTORY / "processed" / LEDGER_FILENAME
+    return Settings.PROCESSED_DIRECTORY / LEDGER_FILENAME
 
 
 def load_completed(path: Path) -> dict[str, str]:
@@ -83,14 +84,7 @@ def _ingest_one(ticker: str, start: date, end: date, *, quiet: bool) -> IngestOu
     progress = Progress(ticker, enabled=not quiet)
     container = configure_container()
     try:
-        with progress.stage("fetching sources") as stage:
-            panel = merge_panel(
-                ticker=ticker,
-                start=start,
-                end=end,
-                sources=container.ingestion_sources(),
-            )
-            stage.detail(f"{len(panel)} quarters")
+        panel = fetch_panel(ticker, (start, end), container, progress)
     except RateLimitedError as error:
         logger.warning("Quota spent before %s could finish: %s", ticker, error)
         return IngestOutcome.QUOTA_EXHAUSTED
@@ -98,7 +92,7 @@ def _ingest_one(ticker: str, start: date, end: date, *, quiet: bool) -> IngestOu
         logger.exception("Could not re-ingest %s", ticker)
         return IngestOutcome.FAILED
 
-    write_panel(panel, Settings.panel_output_path(ticker))
+    write_panel(panel, container.panel_store().path_for(ticker))
     return IngestOutcome.WRITTEN
 
 
@@ -116,20 +110,8 @@ def _panel_tickers() -> tuple[str, ...]:
     show_default=True,
     help="How many companies to attempt in this run.",
 )
-@click.option(
-    "--start",
-    "start_date",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive start date (YYYY-MM-DD). Defaults to ~20 years before --end.",
-)
-@click.option(
-    "--end",
-    "end_date",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive end date (YYYY-MM-DD). Defaults to the latest completed quarter.",
-)
+@start_option
+@end_option
 @click.option(
     "--quiet",
     is_flag=True,
@@ -152,10 +134,7 @@ def reingest_batch(
         click.echo(f"All {len(all_tickers)} companies already re-ingested.")
         return
 
-    start, end = resolve_date_range(
-        start_date.date() if start_date else None,
-        end_date.date() if end_date else None,
-    )
+    start, end = resolved_dates(start_date, end_date)
     click.echo(
         f"{len(pending)} of {len(all_tickers)} companies pending; "
         f"attempting {min(limit, len(pending))} "

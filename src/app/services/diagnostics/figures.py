@@ -8,6 +8,7 @@ import seaborn as sns
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+from app.data.dates import QUARTERS_PER_YEAR
 from app.services.diagnostics.audit import OutlierRegister
 from app.services.diagnostics.models import DiagnosticsSettings, FigureSettings
 
@@ -305,7 +306,7 @@ class EdaFigures:
                 title="Mean target by forecast quarter, per regime",
                 xlabel="calendar quarter forecast",
                 ylabel="mean target",
-                xticks=[1, 2, 3, 4],
+                xticks=range(1, QUARTERS_PER_YEAR + 1),
             )
             figure.set_layout_engine("tight")
         return figure
