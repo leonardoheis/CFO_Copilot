@@ -134,6 +134,7 @@ def test_registry_lists_the_quarters_withheld_for_mixed_bases(
     } == {
         "ABT": {date(2012, 12, 31)},
         "BMY": {date(2008, 12, 31)},
+        "HON": {date(2025, 9, 30)},
         "OXY": {date(2025, 12, 31)},
     }
     assert (

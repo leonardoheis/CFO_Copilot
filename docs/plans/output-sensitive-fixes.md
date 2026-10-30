@@ -84,6 +84,40 @@ request were re-recorded for `A191RO1Q156NBEA` only; FRED returned 1.4 and
   against the stored ones (rows changed, median and largest change); O3's
   2020 Q2 GDP near −7.4.
 
+## Verification record (2026-10-28)
+
+Re-ingest of all 60 companies on the stored window (2006-06-30 → 2026-06-30),
+then NB00, NB01 and NB01b. Compared against the pre-run copy in
+`data/backups/processed_2026-10-28/` (git-ignored) and the committed reports.
+
+- **Shape.** `panel_long` 4,860 rows and 28 columns, `macro_q` 81 rows, both
+  unchanged; all 16 feature datasets carry `usd_broad_index` and no `dxy`.
+- **O1.** No value changed through the EPS repair.
+- **O2.** 3,031 `dividend_yield` cells changed (median 0.0002, p95 0.0018,
+  largest 0.063). No paying company has a zero first-quarter yield (KO 0 →
+  2.74%, XOM 0 → 1.99%); TSLA's 16 pre-listing yields are missing. The outlier
+  register lost 15 yield entries dated 2006-09-30, the jumps off the false
+  zero.
+- **O3.** 77 of 81 `gdp_yoy` values changed; 2020 Q2 = −7.4. Sector
+  correlation with GDP rose for most cells (revenue, Energy +0.08 → +0.51);
+  other macro columns moved at most 0.021. Two free-cash-flow cells changed
+  sign (Consumer Cyclical +0.08 → −0.10, Materials +0.11 → −0.02).
+- **O4.** All 46 d = 2 series changed `ljung_box_p` (the spec's 47 less HON
+  operating income, now d = 1, see below). Significant counts unchanged
+  (52, 51, 54, 57 of 60); the NB01 decision tables are identical.
+
+**Not from O1–O4.** Q3 2026 10-Qs (filed 2026-10-20 → 27) re-reported Q3 2025
+as their comparative, so 2025-09-30 changed for 14 companies: filing dates
+only for most, EPS for NFLX (0.587 → 0.59) and CMCSA (0.84 → 0.90), EBITDA for
+TXN (2,160 → 2,180). HON's quarter was restated to continuing operations
+(revenue 10,408 → 4,929). It alone explains the remaining differences:
+HON's `d_levels` for revenue (1 → 0) and operating income (2 → 1), five
+diagnostics records, eight new register entries, and the NB01b sector-pooled
+λ for Industrials (1.108 → 1.100), which moves every Industrials row. HON's
+per-share figures are also on a mixed basis since its July 2026 10-Q (EPS
+4.90, 5.71, 17.83 with ~317 m shares in 2025-06, 2025-09, 2026-06, against
+~610 m elsewhere); that predates this run and needs its own spec.
+
 ## Follow-up (not in these specs)
 
 Yahoo's split dates go through the same UTC conversion, so a split dated on a

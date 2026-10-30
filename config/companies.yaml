@@ -584,6 +584,14 @@ companies:
       company: Honeywell
       sector: Industrials
       is_public: true
+      # Spec hon-separation-and-reverse-split H1. Review once the window passes
+      # 2026-Q2: the 2026 10-K restates the other 2025 quarters on this basis,
+      # and the entry becomes a structural break (H3).
+      withheld_quarters:
+        2025-09-30: >-
+          restated to continuing operations after the 2026 separation (4,929)
+          between whole-company quarters (~9,300); net income still includes
+          the separated business
     sec:
       type: known_cik
       cik: "0000773840"
