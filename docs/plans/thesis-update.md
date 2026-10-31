@@ -77,7 +77,7 @@ The figures are W&B images logged by the notebooks, stored locally under
 | W&B key | Thesis file (`figuras/eda/`) |
 |---|---|
 | `target_distribution` | `objetivo_distribucion<suffix>.png` |
-| `target_by_segment` | `objetivo_por_segmento<suffix>.png` |
+| `target_by_segment_boxplots` | `objetivo_por_segmento<suffix>.png` |
 | `seasonal_strength` | `fuerza_estacional<suffix>.png` |
 | `seasonal_profile` | `perfil_estacional<suffix>.png` |
 | `median_timeline` | `mediana_temporal<suffix>.png` |
@@ -90,8 +90,7 @@ The figures are W&B images logged by the notebooks, stored locally under
 | `transform_comparison_boxplots` (NB01b) | `transformaciones_{ingresos,operating_income,ebitda,fcf}.png` |
 
 `<suffix>`: none for revenue, `_operating_income`, `_ebitda`, `_fcf`.
-The mapping is inferred from the names; on the first round that uses it, open
-each pair once and correct the table if a figure does not match.
+Confirmed on the 2026-10-30 round.
 
 Replace only figures whose underlying output changed (step 2), keeping
 the file names, so `\includegraphics` lines do not move.
@@ -130,8 +129,61 @@ rerun **before** step 1, and their runs replace the 2026-10-28 ones. H2 is
 deferred: no model feature uses EPS, market cap or P/E, so it goes to the
 limitations.
 
-Status: not started. Known candidates for step 3 (to be confirmed by the
-search, not edited blindly):
+Freeze (step 1, 2026-10-30): `data/backups/thesis_2026-10-30/` (processed,
+features, reports; 96 files). Window 2006-06-30 → 2026-06-30; ingest
+2026-10-28, HON re-ingested 2026-10-30; `CFO_Copilot` at `f37208f` plus
+uncommitted O1–O4 and H1. W&B runs: NB00 `5qo4anfj`; NB01 `fk4v1k3k` →
+`160gjfh2` (2026-10-30 18:13–18:19); NB01b `l3gnhk3v`, `q2pf4aoq`,
+`2tbrq4ec`, `4fqj30o4`.
+
+Decision-table values of this freeze, for the thesis table: weak groups —
+revenue none, operating income F and C, EBITDA none (C on the floor), FCF F
+and C; Kruskal–Wallis p — operating income 0.636, EBITDA 0.296, FCF 0.849
+(revenue unchanged from 2026-10-28); forecastable 52, 51, 54, 57 of 60. NB01b
+scores 58 companies for the revenue-scaled targets (HON and OXY drop out,
+see the HON plan).
+
+Status: steps 1–7 done 2026-10-30; nothing committed in either repo. Summary
+for the author: `cfo-copilot-thesis/RESUMEN_ACTUALIZACION_2026-10-30.md`.
+
+Edits made in `main.tex`. Line numbers are approximate, taken after the edit.
+
+| Location | Old → new |
+|---|---|
+| Problemas encontrados (≈L620) | two new items: dividend-yield window, HON separation and reverse split |
+| Results intro (≈L792) | run date 12 → 30 Oct 2026 |
+| NB00 missing values (≈L800) | three → four withheld quarters, adding HON 2025-Q3 |
+| NB01 intro (≈L825) | HON added to the companies with 80 quarters |
+| Audit, missing (≈L828) | 0,2 % → 0,3 % (13 of 4 860); opex 5,2 → 5,3 % |
+| Register paragraph (≈L838) | 817 → 796; opex 157 → 155; dividend yield now balanced (15 up, 14 down) |
+| Top-series paragraph (≈L847) | top four are now GOOGL EPS, HON EPS, COST dividend yield, SLB net margin; OXY dividend yield is sixth |
+| `tab:objetivo` | available share 93,4/94,5/94,4/90,8/94,5 → 93,3/94,4/94,3/90,7/94,4; FCF h4 kurtosis 203,7 → 203,6 |
+| Macro by sector (≈L977) | GDP added (Energy 0,51 revenue, 0,46 OI/EBITDA, 0,39 FCF; Industrials 0,28); Healthcare "least sensitive" |
+| `tab:diferenciacion` | OI 8/40/12 → 8/41/11; EBITDA 8/43/9 → 8/42/10 |
+| `tab:export` | every count, from the frozen `export_summary` |
+| FE text | FCF h1 ρ −0,28 → −0,29 |
+| `tab:grupos-res` | seven values; OI F 0,004 bold; EBITDA C 0,005 not bold; margins order "(0,10 y 0,09)" |
+| NB01b intro and caption | 59 → 58 companies (HON and OXY); 15 → 16 % |
+| `tab:transformaciones` and text | every value from the frozen `transform_summary` |
+| `tab:decisiones` | EBITDA C → Ninguno; Kruskal–Wallis 0,726 / 0,636 / 0,296 / 0,849 |
+| Pendientes and the limits paragraph | HON withheld; four limits instead of two; hypothesis drops "solo el calendario en el EBITDA" |
+| Data dictionary | `gdp\_yoy` series A191RO1Q156NBEA; `dxy` → `usd\_broad\_index` |
+
+Checked against the freeze and left unchanged:
+
+- the correlation paragraph (recomputed: 0,71, −0,30, −0,53; maxima 0,30, 0,20, 0,08);
+- seasonal strength;
+- the h1 and h4 rankings;
+- provenance 77/12/11 %;
+- the flag table;
+- Ford's seven unexplained cells.
+
+Figures: all 42 in `figuras/eda/` were copied from this round's runs by the
+step 5 mapping, and 39 changed. The mapping held except for one key: the
+segment figure is logged as `target_by_segment_boxplots`. Compile: 93 pages,
+no undefined references; the three overfull boxes are in the bibliography.
+
+Candidates listed before the search, kept for the record:
 
 | Thesis location | Old | New or change |
 |---|---|---|
@@ -142,7 +194,8 @@ search, not edited blindly):
 | Correlaciones, result | dollar and macro correlations, "como máximo 0,30 … 0,08" | recompute from the new run (GDP moved most) |
 | Sensibilidad macro por sector | text and figures | GDP correlations rose (revenue, Energy 0.08 → 0.51); two FCF signs flipped |
 | Diagnóstico temporal / decision table | Ljung–Box p-values, if quoted | decisions unchanged (52, 51, 54, 57 of 60); p-values of the 46 d = 2 series changed |
-| NB01b table and sector λ | Industrials λ 1,108 | 1,100 (HON-driven; changes again if H1 is applied) |
+| NB01b table and sector exceptions | shares and λ quoted in the text | recheck against the 2026-10-30 NB01b tables; decisions unchanged, 59 companies for the revenue-scaled targets |
+| Decision table (`tab:decisiones`) | EBITDA "C"; Kruskal–Wallis 0,638 / 0,294 / 0,861 | EBITDA none; 0,636 / 0,296 / 0,849 |
 | Scraper problems / Mercado y macro | dividend yield description | the quarter-end fix: no false zero in 2006-Q3; missing, not zero, without a price |
 | Limitations | — | HON 2025-Q3 (withheld or accepted) and the data-freeze rule |
 | Figures | `correlacion_spearman`, `sensibilidad_macro_sector*`, `registro_atipicos_*`, `transformaciones_*` | refresh per step 5 |

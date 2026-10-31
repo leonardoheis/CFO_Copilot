@@ -23,7 +23,21 @@ Status: done (2026-10-30). The registry test pins HON's entry. HON
 re-ingested on 2006-06-30 → 2026-06-30: exactly the 12 financial cells of
 2025-09-30 became missing (revenue 4,929, operating income 866, EBITDA
 1,114, …); no other cell changed. Market cap stays 66,063 there until H2.
-NB00, NB01 and NB01b rerun pending (A6).
+
+A6 holds (author's NB00, NB01, NB01b runs of 2026-10-30, compared with
+2026-10-28 in W&B). Every diagnostics change is HON's row (revenue `d_levels`
+back to 1; forecastable counts unchanged at 52, 51, 54, 57). The register lost
+12 HON entries and gained one (2025-06-30 EPS 4.90, the H2 basis, now next to
+an empty quarter): 807 → 796. HON's 15 revenue target extremes are gone. NB01b
+revenue rows changed for HON only, and every decision is unchanged.
+Side effects:
+- HON leaves NB01b for the three revenue-scaled targets (295 → 290 rows):
+  the target's one-quarter gap is interpolated, but the revenue it is scaled
+  by is not, so the scaled series breaks for a year and falls below the
+  minimum length.
+- The calendar group's best mutual information for revenue and EBITDA now
+  reaches the 0.005 floor exactly, so C is no longer a drop candidate for
+  them; it sits on the floor, and NB02's ablation decides it anyway.
 
 ## H2 — The filer's split ratio governs restated comparatives
 
