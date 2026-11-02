@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.6.1 (2026-11-02)
+
+### Bug Fixes
+
+- **ci**: Deploy to Render only after Lint and Test succeeds
+  ([`56e514d`](https://github.com/leonardoheis/CFO_Copilot/commit/56e514d19abdb01f3aa396e5c36925c9673ea2d8))
+
+
 ## v0.6.0 (2026-11-02)
 
 ### Features
