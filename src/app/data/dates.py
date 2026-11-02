@@ -1,14 +1,30 @@
 import math
 from datetime import date, timedelta
+from typing import Final
 
 import pandas as pd
 
+QUARTERS_PER_YEAR: Final = 4
 QUARTER_END_TOLERANCE_DAYS = 46
 
 
 def quarter_end_dates(start: date, end: date) -> list[date]:
     periods = pd.date_range(start=start, end=end, freq="QE")
     return [period.date() for period in periods]
+
+
+def is_quarter_end(day: date) -> bool:
+    return bool(pd.Timestamp(day).is_quarter_end)
+
+
+def most_recent_completed_quarter(as_of: date) -> date:
+    """Return the end of the last quarter that closed before ``as_of``'s quarter.
+
+    Returns:
+        A calendar quarter end strictly before the quarter containing ``as_of``.
+    """
+    previous_quarter = pd.Period(as_of, freq="Q") - 1
+    return previous_quarter.end_time.date()
 
 
 def nearest_quarter_end(value: date, tolerance_days: int) -> date:

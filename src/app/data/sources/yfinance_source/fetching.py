@@ -90,32 +90,23 @@ def try_splits(yahoo_ticker: YahooTicker, ticker: str) -> pd.Series:
 
 def quarterly_dividend_yield(
     yahoo_ticker: YahooTicker,
-    close: pd.Series,
-    quarter_dates: list[date],
+    quarter_prices: pd.Series,
 ) -> pd.Series:
-    """Compute the trailing-twelve-month dividend yield at each quarter end.
+    """Divide each quarter's trailing-twelve-month dividends by its closing price.
 
     Returns:
-        A series of yields indexed by quarter end date.
+        Yields indexed like ``quarter_prices``; missing where the price is.
     """
     dividends = yahoo_ticker.dividends
-    if dividends.empty:
-        return pd.Series([0.0] * len(quarter_dates), index=quarter_dates)
-
-    dividends = dividends.copy()
-    dividends.index = normalize_datetime_index(dividends.index)
-    yields: list[float] = []
-    for quarter_date in quarter_dates:
-        quarter_end = pd.Timestamp(quarter_date)
-        window_start = quarter_end - pd.Timedelta(days=TRAILING_DIVIDEND_DAYS)
-        trailing_dividends = dividends.loc[
-            (dividends.index > window_start) & (dividends.index <= quarter_end)
-        ].sum()
-        prices_to_date = close.loc[:quarter_end]
-        if prices_to_date.empty or pd.isna(prices_to_date.iloc[-1]):
-            yields.append(0.0)
-            continue
-        price = float(prices_to_date.iloc[-1])
-        yields.append(float(trailing_dividends / price) if price > 0 else 0.0)
-
-    return pd.Series(yields, index=quarter_dates)
+    # Yahoo stamps a trading day at midnight New York time; in UTC that is the
+    # same day at 04:00 or 05:00, which a midnight quarter end would exclude.
+    paid_on = normalize_datetime_index(dividends.index).normalize()
+    window = pd.Timedelta(days=TRAILING_DIVIDEND_DAYS)
+    trailing_dividends = [
+        float(
+            dividends[(paid_on > quarter_end - window) & (paid_on <= quarter_end)].sum()
+        )
+        for quarter_end in pd.DatetimeIndex(quarter_prices.index)
+    ]
+    positive_prices = quarter_prices.where(quarter_prices > 0)
+    return pd.Series(trailing_dividends, index=quarter_prices.index) / positive_prices

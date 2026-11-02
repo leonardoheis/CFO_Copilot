@@ -1,28 +1,30 @@
 import json
+import logging
 import sys
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import click
 
+from app.data.cli import end_option, resolved_dates, start_option
 from app.data.coverage import (
     OVERLAP_END,
-    OVERLAP_START,
     CoverageReport,
     evaluate_coverage,
-    report_as_dict,
 )
 from app.data.dates import quarter_end_dates
 from app.data.exceptions import DataSourceError
-from app.data.pipeline import most_recent_completed_quarter
-from app.data.sources.alpha_vantage import AlphaVantageSource
-from app.data.sources.sec_edgar import SecEdgarSource
-from app.data.sources.yfinance_source import YfinanceSource
+from app.data.sources import (
+    XBRL_HISTORY_START,
+    AlphaVantageSource,
+    SecEdgarSource,
+    YfinanceSource,
+)
 from app.injections import configure_container
 from app.settings import Settings
 
-DEFAULT_PROBE_YEARS = 20
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,14 +34,6 @@ class ProbeContext:
     client: AlphaVantageSource
     sec_source: SecEdgarSource
     market_source: YfinanceSource
-
-
-def _parse_date(value: datetime | None) -> date | None:
-    return value.date() if value is not None else None
-
-
-def _default_start(end: date) -> date:
-    return date(end.year - DEFAULT_PROBE_YEARS, end.month, end.day)
 
 
 def _write_coverage_report(
@@ -68,11 +62,7 @@ def _build_probe_context(start: date, end: date, *, refresh: bool) -> ProbeConte
     return ProbeContext(
         start=start,
         end=end,
-        client=AlphaVantageSource(
-            api_key=Settings.ALPHA_VANTAGE_API_KEY,
-            cache_directory=Settings.DATA_DIRECTORY / "raw" / "alpha_vantage",
-            refresh=refresh,
-        ),
+        client=container.alpha_vantage_source(refresh=refresh),
         sec_source=container.sec_edgar_source(),
         market_source=container.yfinance_source(),
     )
@@ -85,24 +75,31 @@ def _collect_reports(
     reports: list[dict[str, object]] = []
     for ticker in tickers:
         normalized_ticker = ticker.upper()
-        try:
-            report = _probe_ticker(normalized_ticker, context)
-            reports.append(report_as_dict(report))
-            status = "PASS" if report.passed else "FAIL"
-            click.echo(f"{normalized_ticker}: {status}")
-        except DataSourceError as error:
-            reports.append(
-                {
-                    "ticker": normalized_ticker,
-                    "passed": False,
-                    "error": str(error),
-                },
-            )
-            click.echo(f"{normalized_ticker}: FAIL ({error})")
+        entry = _probe_ticker(normalized_ticker, context)
+        reports.append(entry)
+        status = "PASS" if entry["passed"] else "FAIL"
+        error = entry.get("error")
+        detail = "" if error is None else f" ({error})"
+        click.echo(f"{normalized_ticker}: {status}{detail}")
     return reports
 
 
-def _probe_ticker(ticker: str, context: ProbeContext) -> CoverageReport:
+def _probe_ticker(ticker: str, context: ProbeContext) -> dict[str, object]:
+    """Probe one ticker, recording a source failure rather than raising.
+
+    Returns:
+        The ticker's report entry; a failed source gives ``passed: False`` and
+        its ``error``.
+    """
+    try:
+        report = _coverage_report(ticker, context)
+    except DataSourceError as error:
+        logger.warning("Could not probe %s: %s", ticker, error)
+        return {"ticker": ticker, "passed": False, "error": str(error)}
+    return report.model_dump(mode="json")
+
+
+def _coverage_report(ticker: str, context: ProbeContext) -> CoverageReport:
     alpha_panel = context.client.fetch_financials_panel(
         ticker,
         context.start,
@@ -111,7 +108,7 @@ def _probe_ticker(ticker: str, context: ProbeContext) -> CoverageReport:
     overlap_end = min(context.end, OVERLAP_END)
     sec_panel = context.sec_source.fetch_financials_panel(
         ticker,
-        OVERLAP_START,
+        XBRL_HISTORY_START,
         overlap_end,
         context.market_source.fetch_splits(ticker),
     )
@@ -131,18 +128,8 @@ def _probe_ticker(ticker: str, context: ProbeContext) -> CoverageReport:
     required=True,
     help="Ticker to probe. Repeat the option for multiple tickers.",
 )
-@click.option(
-    "--start",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive history start date. Defaults to 20 years before --end.",
-)
-@click.option(
-    "--end",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive history end date. Defaults to the latest completed quarter.",
-)
+@start_option
+@end_option
 @click.option(
     "--refresh",
     is_flag=True,
@@ -156,16 +143,13 @@ def _probe_ticker(ticker: str, context: ProbeContext) -> CoverageReport:
 )
 def probe_alpha_vantage(
     tickers: tuple[str, ...],
-    start: datetime | None,
-    end: datetime | None,
+    start_date: datetime | None,
+    end_date: datetime | None,
     *,
     refresh: bool,
     output: Path | None,
 ) -> None:
-    resolved_end = _parse_date(end) or most_recent_completed_quarter(
-        datetime.now(tz=UTC).date(),
-    )
-    resolved_start = _parse_date(start) or _default_start(resolved_end)
+    resolved_start, resolved_end = resolved_dates(start_date, end_date)
     context = _build_probe_context(resolved_start, resolved_end, refresh=refresh)
     reports = _collect_reports(tickers, context)
 

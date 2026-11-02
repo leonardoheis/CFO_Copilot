@@ -1,7 +1,7 @@
-"""SEC EDGAR HTTP client: CIK resolution and us-gaap concept retrieval."""
+"""SEC EDGAR HTTP client: CIK resolution and us-gaap fact retrieval."""
 
-import math
 from datetime import date
+from functools import partial
 from typing import Final, cast
 
 import pandas as pd
@@ -14,34 +14,24 @@ from app.data.exceptions import (
     MalformedPayloadError,
     TickerNotFoundError,
 )
-from app.data.xbrl import (
-    InstantXbrlFact,
-    XbrlFact,
-    instant_series_from_facts,
-    quarterly_facts_from_facts,
-)
-from app.settings import Settings
 
-from .concepts import (
-    DILUTED_SHARES_FALLBACK,
-    PER_SHARE_UNIT,
-    SHARES_UNIT,
-    TAG_CHAINS,
-    USD_UNIT,
-    ConceptSpec,
-)
+from .chains import quarterly_financials
+from .concepts import USD_UNIT
 from .parsing import (
+    JsonObject,
+    SecTicker,
+    concept_facts,
     financial_panel_from_raw,
-    implied_shares_from_earnings,
     merge_raw_financial_frames,
-    split_factors_for_filing_dates,
+    sec_tickers,
 )
-
-type JsonObject = dict[str, object]
+from .xbrl import XbrlFact
 
 SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
-SEC_CONCEPT_URL: Final = (
-    "https://data.sec.gov/api/xbrl/companyconcept/CIK{cik}/us-gaap/{tag}.json"
+# Not the per-concept endpoint: for some filers (ABT, F, KO) it answers 200 with
+# an empty unit while companyfacts holds the full history for the same tag.
+SEC_COMPANY_FACTS_URL: Final = (
+    "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 )
 NOT_FOUND_STATUS: Final = 404
 MISSING_USER_AGENT_MESSAGE: Final = (
@@ -49,37 +39,72 @@ MISSING_USER_AGENT_MESSAGE: Final = (
 )
 
 
-def _without_placeholder_zeros(values: pd.Series) -> pd.Series:
-    """Treat a superseded tag's 0 as not-reported rather than as data.
+def _get_sec_json(url: str, *, user_agent: str, timeout: int) -> object | None:
+    """Fetch one SEC document.
 
     Returns:
-        The series with zeros replaced by NaN.
+        The decoded JSON, or None when SEC has no document at ``url``.
+
+    Raises:
+        DataSourceUnavailableError: No user agent, any other HTTP failure, or a
+            body that is not JSON.
     """
-    return values.where(values != 0)
+    if not user_agent:
+        raise DataSourceUnavailableError(MISSING_USER_AGENT_MESSAGE)
+    try:
+        response = requests.get(
+            url,
+            headers={"User-Agent": user_agent},
+            timeout=timeout,
+        )
+        if response.status_code == NOT_FOUND_STATUS:
+            return None
+        response.raise_for_status()
+        payload: object = response.json()
+    except (requests.RequestException, ValueError) as error:
+        msg = f"Failed to fetch SEC EDGAR {url}: {error}"
+        raise DataSourceUnavailableError(msg) from error
+    return payload
+
+
+def fetch_sec_tickers(*, user_agent: str, timeout: int) -> dict[str, SecTicker]:
+    """Download SEC's ticker file, indexed by upper-case ticker.
+
+    Returns:
+        Each ticker's zero-padded CIK and registered title.
+
+    Raises:
+        DataSourceUnavailableError: The file cannot be fetched.
+    """
+    payload = _get_sec_json(SEC_TICKERS_URL, user_agent=user_agent, timeout=timeout)
+    if payload is None:
+        msg = f"SEC ticker file not found at {SEC_TICKERS_URL}"
+        raise DataSourceUnavailableError(msg)
+    return sec_tickers(payload)
 
 
 class SecEdgarSource:
-    def __init__(self, user_agent: str, registry: CompanyRegistry) -> None:
+    def __init__(
+        self, user_agent: str, registry: CompanyRegistry, *, timeout: int
+    ) -> None:
         self._user_agent = user_agent
         self._registry = registry
-        self._ticker_ciks: dict[str, str] | None = None
-
-    def resolve_cik(self, ticker: str) -> str:
-        return self._registry.primary_sec_cik(ticker, self._lookup_ticker_cik)
+        self._timeout = timeout
+        self._tickers: dict[str, SecTicker] | None = None
+        self._company_facts_by_cik: dict[str, JsonObject] = {}
 
     def resolve_ciks(self, ticker: str) -> tuple[str, ...]:
         return self._registry.sec_ciks(ticker, self._lookup_ticker_cik)
 
     def _lookup_ticker_cik(self, ticker: str) -> str:
         normalized_ticker = ticker.upper()
-        ticker_ciks = self._load_ticker_ciks()
-        cik = ticker_ciks.get(normalized_ticker)
-        if cik is None:
+        found = self._load_tickers().get(normalized_ticker)
+        if found is None:
             msg = f"No SEC EDGAR CIK found for ticker {normalized_ticker}"
             raise TickerNotFoundError(
                 msg,
             )
-        return cik
+        return found.cik
 
     def fetch_concept(
         self,
@@ -87,23 +112,27 @@ class SecEdgarSource:
         tag: str,
         unit: str = USD_UNIT,
     ) -> list[XbrlFact]:
-        url = SEC_CONCEPT_URL.format(cik=cik.zfill(10), tag=tag)
-        try:
-            response = self._get_json(url)
-        except requests.HTTPError as error:
-            if (
-                error.response is not None
-                and error.response.status_code == NOT_FOUND_STATUS
-            ):
-                return []
-            msg = f"Failed to fetch SEC concept {tag}: {error}"
-            raise DataSourceUnavailableError(
-                msg,
-            ) from error
+        return concept_facts(self._company_facts(cik), tag, unit)
 
-        payload = cast("JsonObject", response)
-        units = cast("JsonObject", payload.get("units", {}))
-        return cast("list[XbrlFact]", units.get(unit, []))
+    def _company_facts(self, cik: str) -> JsonObject:
+        padded_cik = cik.zfill(10)
+        cached = self._company_facts_by_cik.get(padded_cik)
+        if cached is not None:
+            return cached
+        payload = _get_sec_json(
+            SEC_COMPANY_FACTS_URL.format(cik=padded_cik),
+            user_agent=self._user_agent,
+            timeout=self._timeout,
+        )
+        # 404 is SEC's answer for a CIK that has never filed XBRL.
+        if payload is None:
+            payload = {}
+        if not isinstance(payload, dict):
+            msg = f"SEC companyfacts CIK{padded_cik} is not a JSON object"
+            raise MalformedPayloadError(msg)
+        company_facts = cast("JsonObject", payload)
+        self._company_facts_by_cik[padded_cik] = company_facts
+        return company_facts
 
     def fetch_quarterly_financials(
         self,
@@ -115,45 +144,14 @@ class SecEdgarSource:
         quarter_dates = quarter_end_dates(start, end)
         merged: pd.DataFrame | None = None
         for cik in self.resolve_ciks(ticker):
-            raw = self._fetch_quarterly_financials_for_cik(
-                cik,
-                quarter_dates,
-                splits,
+            raw = quarterly_financials(
+                cik, partial(self.fetch_concept, cik), quarter_dates, splits
             )
             merged = raw if merged is None else merge_raw_financial_frames(raw, merged)
         if merged is None:
             msg = f"No SEC EDGAR CIKs resolved for ticker {ticker.upper()}"
             raise TickerNotFoundError(msg)
         return merged
-
-    def _fetch_quarterly_financials_for_cik(
-        self,
-        cik: str,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.DataFrame:
-        series_by_name = {
-            name: self._fetch_tag_chain(cik, spec, quarter_dates, splits)
-            for name, spec in TAG_CHAINS.items()
-            if name != "shares_outstanding"
-        }
-        shares = self._fetch_shares_chain(cik, quarter_dates, splits)
-        if not shares.notna().all():
-            # Some filers (e.g. Google's legacy CIK) report no share-count fact
-            # of any kind for their earliest quarters, but do report net income
-            # and diluted EPS. Recover the implied share count for those gaps.
-            implied = implied_shares_from_earnings(
-                series_by_name["net_income"],
-                series_by_name["eps"],
-            )
-            shares = shares.combine_first(implied)
-        series_by_name["shares_outstanding"] = shares
-        return pd.DataFrame(
-            {
-                "date": quarter_dates,
-                **{name: series.tolist() for name, series in series_by_name.items()},
-            },
-        )
 
     def fetch_financials_panel(
         self,
@@ -165,118 +163,9 @@ class SecEdgarSource:
         raw = self.fetch_quarterly_financials(ticker, start, end, splits)
         return financial_panel_from_raw(raw)
 
-    def _fetch_tag_chain(
-        self,
-        cik: str,
-        spec: ConceptSpec,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.Series:
-        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
-        for tag in spec.tags:
-            facts = self.fetch_concept(cik, tag, spec.unit)
-            if facts:
-                records = quarterly_facts_from_facts(facts, quarter_dates)
-                values = records["value"]
-                if spec.unit == PER_SHARE_UNIT:
-                    values /= split_factors_for_filing_dates(
-                        records["filed"],
-                        splits,
-                    )
-                reported = _without_placeholder_zeros(values)
-                combined = (
-                    pd.concat([combined, reported], axis=1).max(axis=1)
-                    if spec.prefer_largest
-                    else combined.combine_first(reported)
-                )
-            if not spec.prefer_largest and combined.notna().all():
-                break
-        return combined
-
-    def _fetch_shares_chain(
-        self,
-        cik: str,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.Series:
-        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
-        for tag in TAG_CHAINS["shares_outstanding"].tags:
-            facts = self.fetch_concept(cik, tag, SHARES_UNIT)
-            if facts:
-                records = instant_series_from_facts(
-                    cast("list[InstantXbrlFact]", facts),
-                    quarter_dates,
-                )
-                values = records["value"] * split_factors_for_filing_dates(
-                    records["filed"],
-                    splits,
-                )
-                combined = combined.combine_first(values)
-
-        if combined.notna().all():
-            return combined
-
-        # Instant shares-outstanding tags cover fewer early quarters than the
-        # weighted-average diluted-share duration facts, so fill any remaining
-        # gaps rather than only falling back when the primary is wholly empty.
-        fallback = self._fetch_diluted_shares_fallback(cik, quarter_dates, splits)
-        return combined.combine_first(fallback)
-
-    def _fetch_diluted_shares_fallback(
-        self,
-        cik: str,
-        quarter_dates: list[date],
-        splits: pd.Series | None,
-    ) -> pd.Series:
-        combined = pd.Series(math.nan, index=quarter_dates, dtype="float64")
-        for tag in DILUTED_SHARES_FALLBACK.tags:
-            facts = self.fetch_concept(cik, tag, DILUTED_SHARES_FALLBACK.unit)
-            if facts:
-                records = quarterly_facts_from_facts(facts, quarter_dates)
-                values = records["value"] * split_factors_for_filing_dates(
-                    records["filed"],
-                    splits,
-                )
-                combined = combined.combine_first(values)
-        return combined
-
-    def _load_ticker_ciks(self) -> dict[str, str]:
-        if self._ticker_ciks is not None:
-            return self._ticker_ciks
-
-        payload = cast("JsonObject", self._get_json(SEC_TICKERS_URL))
-        ticker_ciks: dict[str, str] = {}
-        for entry in payload.values():
-            ticker_entry = cast("JsonObject", entry)
-            try:
-                ticker = str(ticker_entry["ticker"]).upper()
-                cik = str(ticker_entry["cik_str"]).zfill(10)
-            except KeyError as error:
-                msg = f"Malformed SEC ticker entry: {ticker_entry!r}"
-                raise MalformedPayloadError(
-                    msg,
-                ) from error
-            ticker_ciks[ticker] = cik
-        self._ticker_ciks = ticker_ciks
-        return ticker_ciks
-
-    def _get_json(self, url: str) -> object:
-        if not self._user_agent:
-            raise DataSourceUnavailableError(MISSING_USER_AGENT_MESSAGE)
-        try:
-            response = requests.get(
-                url,
-                headers={"User-Agent": self._user_agent},
-                timeout=Settings.REQUEST_TIMEOUT,
+    def _load_tickers(self) -> dict[str, SecTicker]:
+        if self._tickers is None:
+            self._tickers = fetch_sec_tickers(
+                user_agent=self._user_agent, timeout=self._timeout
             )
-            response.raise_for_status()
-            return response.json()
-        except DataSourceUnavailableError:
-            raise
-        except requests.HTTPError:
-            raise
-        except (requests.RequestException, ValueError) as error:
-            msg = f"Failed to fetch SEC EDGAR data: {error}"
-            raise DataSourceUnavailableError(
-                msg,
-            ) from error
+        return self._tickers

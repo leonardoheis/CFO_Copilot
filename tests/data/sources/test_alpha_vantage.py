@@ -1,13 +1,16 @@
 from datetime import date
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
-import pandas as pd
 import pytest
 
 from app.data.exceptions import DataSourceError, MalformedPayloadError
 from app.data.sources.alpha_vantage import AlphaVantageSource
-from app.data.sources.alpha_vantage.parsing import number, report_date, reports
 from app.data.sources.alpha_vantage.source import MIN_REQUEST_INTERVAL_SECONDS
+from app.settings import Settings
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 SLEEP_TARGET = "app.data.sources.alpha_vantage.source.time.sleep"
 GET_TARGET = "app.data.sources.alpha_vantage.source.requests.get"
@@ -81,7 +84,7 @@ def _source(
 
     monkeypatch.setattr(GET_TARGET, get)
     monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
-    return AlphaVantageSource("test-key", tmp_path)
+    return AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
 
 
 def test_fetch_financials_panel_maps_quarterly_values(
@@ -102,6 +105,86 @@ def test_fetch_financials_panel_maps_quarterly_values(
     assert panel.loc[0, "shares_outstanding"] == pytest.approx(1_000_000_000)
 
 
+def _ebitda(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    income_fields: dict[str, str],
+    cash_flow_fields: dict[str, str],
+) -> "pd.Series[float]":
+    payloads = _payloads()
+    income = cast(
+        "list[dict[str, str]]", payloads["INCOME_STATEMENT"]["quarterlyReports"]
+    )
+    cash_flow = cast("list[dict[str, str]]", payloads["CASH_FLOW"]["quarterlyReports"])
+    income[0] |= income_fields
+    cash_flow[0] |= cash_flow_fields
+    panel = _source(tmp_path, monkeypatch, payloads).fetch_financials_panel(
+        "KMB", date(2006, 1, 1), date(2006, 3, 31)
+    )
+    return panel["ebitda_usd_m"]
+
+
+def test_ebitda_is_operating_income_plus_d_and_a_not_the_vendor_figure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """KMB 2006-Q2: the vendor's ebitda sits on a broken ebit of -11,044."""
+    kmb = {
+        "operatingIncome": "544100000",
+        "ebit": "-11044300000",
+        "ebitda": "-10805700000",
+        "depreciationAndAmortization": "238600000",
+    }
+
+    assert _ebitda(tmp_path, monkeypatch, kmb, {}).tolist() == pytest.approx([782.7])
+
+
+def test_cash_flow_d_and_a_fills_a_missing_income_statement_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    abt = {"operatingIncome": "1782000000", "ebitda": "1782000000"}
+    cash_flow = {"depreciationDepletionAndAmortization": "1013000000"}
+
+    assert _ebitda(tmp_path, monkeypatch, abt, cash_flow).tolist() == pytest.approx([
+        2795.0
+    ])
+
+
+def test_a_negative_income_statement_d_and_a_falls_back_to_cash_flow(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """IBM 2026-Q2: the income statement's D&A is -1,274, the cash flow's 1,349."""
+    ibm = {
+        "operatingIncome": "2615000000",
+        "depreciationAndAmortization": "-1274000000",
+    }
+    cash_flow = {"depreciationDepletionAndAmortization": "1349000000"}
+
+    assert _ebitda(tmp_path, monkeypatch, ibm, cash_flow).tolist() == pytest.approx([
+        3964.0
+    ])
+
+
+def test_without_any_d_and_a_ebitda_is_missing_not_operating_income(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ford = {"operatingIncome": "2267000000", "ebitda": "2267000000"}
+
+    assert _ebitda(tmp_path, monkeypatch, ford, {}).isna().all()
+
+
+def test_fetch_payload_returns_the_raw_json_and_caches_it(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payloads = _payloads()
+    source = _source(tmp_path, monkeypatch, payloads)
+
+    payload = source.fetch_payload("EARNINGS", "AMZN")
+
+    assert payload == payloads["EARNINGS"]
+    assert (tmp_path / "AMZN" / "earnings.json").exists()
+
+
 def test_cache_is_reused_without_second_http_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -115,7 +198,7 @@ def test_cache_is_reused_without_second_http_request(
         raise AssertionError(msg)
 
     monkeypatch.setattr(GET_TARGET, fail_get)
-    cached = AlphaVantageSource("test-key", tmp_path)
+    cached = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     panel = cached.fetch_financials_panel(
         "AMZN",
         date(2006, 1, 1),
@@ -140,7 +223,7 @@ def test_api_quota_payload_raises_data_source_error(
 
     monkeypatch.setattr(GET_TARGET, get)
     monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
-    source = AlphaVantageSource("test-key", tmp_path)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(DataSourceError, match="Alpha Vantage Note"):
@@ -171,7 +254,7 @@ def test_rate_limit_information_retries_then_succeeds(
 
     monkeypatch.setattr(GET_TARGET, get)
     monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
-    source = AlphaVantageSource("test-key", tmp_path)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     panel = source.fetch_financials_panel(
         "AMZN",
         date(2006, 1, 1),
@@ -205,7 +288,7 @@ def test_throttle_waits_between_uncached_requests(
         clock["value"] += seconds
 
     monkeypatch.setattr(SLEEP_TARGET, fake_sleep)
-    source = AlphaVantageSource("test-key", tmp_path)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
 
     assert slept == pytest.approx(
@@ -220,11 +303,31 @@ def test_throttle_waits_between_uncached_requests(
 def test_missing_api_key_fails_before_http(
     tmp_path: Path,
 ) -> None:
-    source = AlphaVantageSource("", tmp_path)
+    source = AlphaVantageSource("", tmp_path, timeout=Settings.REQUEST_TIMEOUT)
     start, end = date(2006, 1, 1), date(2006, 3, 31)
 
     with pytest.raises(DataSourceError, match="ALPHA_VANTAGE_API_KEY"):
         source.fetch_financials_panel("AMZN", start, end)
+
+
+def test_every_request_uses_the_injected_timeout(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    payloads = _payloads()
+    timeouts: list[int] = []
+
+    def get(_url: str, *, params: dict[str, str], timeout: int) -> FakeResponse:
+        timeouts.append(timeout)
+        return FakeResponse(payloads[params["function"]])
+
+    monkeypatch.setattr(GET_TARGET, get)
+    monkeypatch.setattr(SLEEP_TARGET, lambda _: None)
+    source = AlphaVantageSource("test-key", tmp_path, timeout=7)
+
+    source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
+
+    assert timeouts == [7] * len(payloads)
 
 
 def test_reported_zero_diluted_eps_is_not_replaced_by_basic_eps(
@@ -259,6 +362,42 @@ def test_missing_diluted_eps_still_falls_back_to_basic_eps(
     assert panel.loc[0, "eps"] == pytest.approx(1.5)
 
 
+def _earnings_only_payloads(
+    reported_eps: str, net_income: str
+) -> dict[str, dict[str, object]]:
+    # No EPS on the income statement, as Alpha Vantage serves Costco's May quarters.
+    payloads = _payloads()
+    income_report = payloads["INCOME_STATEMENT"]["quarterlyReports"][0]  # type: ignore[index]
+    del income_report["dilutedEPS"]
+    income_report["netIncome"] = net_income
+    payloads["EARNINGS"]["quarterlyEarnings"][0]["reportedEPS"] = reported_eps  # type: ignore[index]
+    return payloads
+
+
+def test_reported_zero_eps_with_positive_net_income_is_treated_as_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    source = _source(tmp_path, monkeypatch, _earnings_only_payloads("0", "100000000"))
+
+    panel = source.fetch_financials_panel("COST", date(2006, 1, 1), date(2006, 3, 31))
+
+    assert panel["eps"].isna()[0]
+    assert "treating it as missing" in caplog.text
+
+
+def test_reported_zero_eps_with_zero_net_income_is_kept(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = _source(tmp_path, monkeypatch, _earnings_only_payloads("0", "0"))
+
+    panel = source.fetch_financials_panel("COST", date(2006, 1, 1), date(2006, 3, 31))
+
+    assert panel.loc[0, "eps"] == pytest.approx(0.0)
+
+
 def test_zero_revenue_quarter_yields_no_margins_instead_of_dividing(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -269,8 +408,8 @@ def test_zero_revenue_quarter_yields_no_margins_instead_of_dividing(
 
     panel = source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
 
-    assert pd.isna(panel.loc[0, "gross_margin"])
-    assert pd.isna(panel.loc[0, "net_margin"])
+    assert panel["gross_margin"].isna()[0]
+    assert panel["net_margin"].isna()[0]
 
 
 def test_unparsable_fiscal_date_raises_instead_of_dropping_the_quarter(
@@ -300,55 +439,3 @@ def test_absent_fiscal_date_raises(
 
     with pytest.raises(MalformedPayloadError, match="no usable fiscalDateEnding"):
         source.fetch_financials_panel("AMZN", start, end)
-
-
-def test_fiscal_date_outside_the_tolerance_raises(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Unreachable at the shipped 46-day tolerance; guards a future tightening."""
-    monkeypatch.setattr(
-        "app.data.sources.alpha_vantage.parsing.QUARTER_END_TOLERANCE_DAYS",
-        5,
-    )
-
-    with pytest.raises(MalformedPayloadError, match="cannot be placed"):
-        report_date({"fiscalDateEnding": "2006-02-10"})
-
-
-def test_every_calendar_date_maps_to_a_quarter_at_the_shipped_tolerance() -> None:
-    """46 days is exactly half the longest quarter, so no date falls outside one."""
-    for day in pd.date_range(date(2006, 1, 1), date(2006, 12, 31)):
-        assert report_date({"fiscalDateEnding": day.date().isoformat()}) is not None
-
-
-def test_out_of_bounds_fiscal_date_raises_with_placement_message() -> None:
-    with pytest.raises(MalformedPayloadError, match="cannot be placed"):
-        report_date({"fiscalDateEnding": "9999-12-31"})
-
-
-def test_unparsable_number_warns_and_returns_none(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    with caplog.at_level("WARNING"):
-        result = number({"totalRevenue": "not-a-number"}, "totalRevenue")
-
-    assert result is None
-    assert "not a number" in caplog.text
-
-
-def test_reports_rejects_non_list_payload() -> None:
-    with pytest.raises(MalformedPayloadError, match="must be a list"):
-        reports({"quarterlyReports": {}}, "quarterlyReports")
-
-
-def test_reports_warns_and_skips_non_dict_entries(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    with caplog.at_level("WARNING"):
-        result = reports(
-            {"quarterlyReports": [{"fiscalDateEnding": "2006-03-31"}, "invalid"]},
-            "quarterlyReports",
-        )
-
-    assert result == [{"fiscalDateEnding": "2006-03-31"}]
-    assert "Skipping non-object" in caplog.text

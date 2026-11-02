@@ -1,21 +1,16 @@
 from collections.abc import Mapping
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import cast
 
 import click
 from pydantic import BaseModel, ConfigDict
 
-from app.data.pipeline import (
-    XBRL_HISTORY_START,
-    build_panel_skeleton,
-    merge_panel,
-    resolve_date_range,
-    write_panel,
-)
+from app.data.cli import end_option, fetch_panel, resolved_dates, start_option
+from app.data.pipeline import build_panel_skeleton, write_panel
 from app.data.progress import Progress
+from app.data.sources import XBRL_HISTORY_START
 from app.injections import configure_container
-from app.settings import Settings
 
 
 class IngestRequest(BaseModel):
@@ -24,8 +19,8 @@ class IngestRequest(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     ticker: str
-    start: date | None = None
-    end: date | None = None
+    start_date: datetime | None = None
+    end_date: datetime | None = None
     skeleton: bool = False
     output_path: Path | None = None
     quiet: bool = False
@@ -39,34 +34,18 @@ class IngestRequest(BaseModel):
         """
         return cls(
             ticker=str(options["ticker"]).upper(),
-            start=_as_date(options.get("start_date")),
-            end=_as_date(options.get("end_date")),
+            start_date=cast("datetime | None", options.get("start_date")),
+            end_date=cast("datetime | None", options.get("end_date")),
             skeleton=bool(options.get("skeleton")),
             output_path=cast("Path | None", options.get("output_path")),
             quiet=bool(options.get("quiet")),
         )
 
 
-def _as_date(value: object) -> date | None:
-    return value.date() if isinstance(value, datetime) else None
-
-
 @click.command()
 @click.option("--ticker", required=True, help="Ticker symbol, e.g. AMZN.")
-@click.option(
-    "--start",
-    "start_date",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive start date (YYYY-MM-DD). Defaults to ~20 years before --end.",
-)
-@click.option(
-    "--end",
-    "end_date",
-    type=click.DateTime(formats=["%Y-%m-%d"]),
-    default=None,
-    help="Inclusive end date (YYYY-MM-DD). Defaults to the latest completed quarter.",
-)
+@start_option
+@end_option
 @click.option(
     "--skeleton",
     is_flag=True,
@@ -90,7 +69,7 @@ def ingest_data(**options: object) -> None:
 
 def _run(request: IngestRequest) -> None:
     ticker = request.ticker
-    resolved_start, resolved_end = resolve_date_range(request.start, request.end)
+    resolved_start, resolved_end = resolved_dates(request.start_date, request.end_date)
     if resolved_start < XBRL_HISTORY_START:
         click.echo(
             "SEC XBRL facts are typically empty before "
@@ -111,16 +90,9 @@ def _run(request: IngestRequest) -> None:
                 container.company_registry(),
             )
     else:
-        with progress.stage("fetching sources") as stage:
-            panel = merge_panel(
-                ticker=ticker,
-                start=resolved_start,
-                end=resolved_end,
-                sources=container.ingestion_sources(),
-            )
-            stage.detail(f"{len(panel)} quarters")
+        panel = fetch_panel(ticker, (resolved_start, resolved_end), container, progress)
 
-    destination = request.output_path or Settings.panel_output_path(ticker)
+    destination = request.output_path or container.panel_store().path_for(ticker)
     written_path = write_panel(panel, destination)
     click.echo(f"Wrote {len(panel)} quarterly rows to {written_path}")
 

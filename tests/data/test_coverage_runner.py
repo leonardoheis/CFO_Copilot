@@ -47,7 +47,7 @@ def probed_tickers(monkeypatch: pytest.MonkeyPatch) -> list[str]:
             raise DataSourceUnavailableError(message)
         return _report(ticker, passed=ticker != "BAD")
 
-    monkeypatch.setattr(coverage_runner, "_probe_ticker", fake_probe)
+    monkeypatch.setattr(coverage_runner, "_coverage_report", fake_probe)
     return probed
 
 
@@ -106,7 +106,9 @@ def test_probe_defaults_the_range_to_twenty_years_ending_last_quarter(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(coverage_runner, "most_recent_completed_quarter", lambda _: END)
+    monkeypatch.setattr(
+        "app.data.pipeline.most_recent_completed_quarter", lambda _: END
+    )
     output = tmp_path / "report.json"
 
     CliRunner().invoke(
@@ -123,16 +125,14 @@ def test_probe_wires_sources_from_the_container_and_evaluates_the_overlap(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Drives _build_probe_context and _probe_ticker through the public CLI.
+    """Drives _build_probe_context and _coverage_report through the public CLI.
 
     Both are private and have no other seam to test through — the
     `probed_tickers` fixture monkeypatches them away for every other test.
     """
     container = MagicMock()
-    alpha_vantage = MagicMock()
     evaluate = MagicMock(return_value=_report("AMZN", passed=True))
     monkeypatch.setattr(coverage_runner, "configure_container", lambda: container)
-    monkeypatch.setattr(coverage_runner, "AlphaVantageSource", alpha_vantage)
     monkeypatch.setattr(coverage_runner, "evaluate_coverage", evaluate)
     output = tmp_path / "report.json"
 
@@ -148,8 +148,8 @@ def test_probe_wires_sources_from_the_container_and_evaluates_the_overlap(
     )  # fmt: skip
 
     assert result.exit_code == 0, result.output
-    assert alpha_vantage.call_args.kwargs["refresh"] is True
-    client = alpha_vantage.return_value
+    container.alpha_vantage_source.assert_called_once_with(refresh=True)
+    client = container.alpha_vantage_source.return_value
     client.fetch_financials_panel.assert_called_once_with("AMZN", START, END)
     sec_source = container.sec_edgar_source.return_value
     market_source = container.yfinance_source.return_value

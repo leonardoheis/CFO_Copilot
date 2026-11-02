@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "CFO Copilot Architecture",
+    "output": "data/reports/architecture/cfo-copilot-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/leonardoheis/CFO_Copilot.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "fcf1d926123a63355a2a9b0309a6490a9fddaf25"
+    }
+  },
+  "components": [
+    { "id": "dev", "type": "external", "label": "Developer", "sublabel": "poe tasks", "pos": [20, 200], "size": [140, 64],
+      "sources": [{ "path": "pyproject.toml", "line": 80, "end_line": 88 }] },
+    { "id": "cli", "type": "backend", "label": "Ingest CLI", "sublabel": "app.data.runner", "pos": [270, 200], "size": [150, 64],
+      "sources": [{ "path": "src/app/data/runner.py", "line": 95, "end_line": 129 }] },
+    { "id": "apis", "type": "external", "label": "SEC · yfinance · FRED", "sublabel": "XBRL, prices, macro", "pos": [520, 40], "size": [180, 64],
+      "sources": [{ "path": "src/app/injections/production.py", "line": 61, "end_line": 67 }, { "path": "src/app/data/sources_bundle.py", "line": 30, "end_line": 60 }] },
+    { "id": "pipeline", "type": "backend", "label": "merge_panel", "sublabel": "quarterly panel builder", "pos": [530, 200], "size": [160, 64],
+      "sources": [{ "path": "src/app/data/pipeline.py", "line": 74, "end_line": 113 }] },
+    { "id": "av", "type": "external", "label": "Alpha Vantage", "sublabel": "optional fallback", "pos": [530, 360], "size": [160, 64],
+      "sources": [{ "path": "src/app/injections/production.py", "line": 68, "end_line": 81 }, { "path": "src/app/data/pipeline.py", "line": 127, "end_line": 149 }] },
+    { "id": "panels", "type": "database", "label": "Ticker panels", "sublabel": "data/processed/*.parquet", "pos": [800, 200], "size": [160, 64],
+      "sources": [{ "path": "src/app/data/pipeline.py", "line": 177, "end_line": 179 }, { "path": "src/app/settings.py", "line": 111, "end_line": 114 }] },
+    { "id": "nb00", "type": "backend", "label": "NB00 Consolidate", "sublabel": "consolidate_panels", "pos": [1070, 200], "size": [160, 64],
+      "sources": [{ "path": "src/app/playground/00_ingest_and_consolidate.ipynb" }, { "path": "src/app/data/consolidation.py", "line": 45, "end_line": 60 }] },
+    { "id": "consolidated", "type": "database", "label": "panel_long + macro_q", "sublabel": "processed parquet", "pos": [1060, 360], "size": [180, 64],
+      "sources": [{ "path": "src/app/settings.py", "line": 103, "end_line": 109 }, { "path": "src/app/data/panel_store.py", "line": 107, "end_line": 125 }] },
+    { "id": "nb01", "type": "backend", "label": "NB01 EDA + Features", "sublabel": "diagnostics, features", "pos": [1060, 520], "size": [180, 64],
+      "sources": [{ "path": "src/app/playground/01_eda_feature_engineering.ipynb" }, { "path": "src/app/services/features/service.py", "line": 16, "end_line": 60 }, { "path": "src/app/services/diagnostics/service.py", "line": 10, "end_line": 34 }] },
+    { "id": "wandb", "type": "cloud", "label": "Weights & Biases", "sublabel": "offline by default", "pos": [1340, 520], "size": [160, 64],
+      "sources": [{ "path": "src/app/services/tracking/wandb_tracker.py", "line": 75, "end_line": 100 }, { "path": "src/app/settings.py", "line": 25, "end_line": 30 }] },
+    { "id": "reports", "type": "database", "label": "EDA reports", "sublabel": "data/reports HTML/CSV", "pos": [1340, 680], "size": [160, 64],
+      "sources": [{ "path": "src/app/data/report_store.py", "line": 6, "end_line": 27 }, { "path": "src/app/injections/production.py", "line": 138, "end_line": 143 }] },
+    { "id": "featstore", "type": "database", "label": "Feature store", "sublabel": "data/features parquet", "pos": [1070, 680], "size": [160, 64],
+      "sources": [{ "path": "src/app/data/feature_store.py", "line": 6, "end_line": 32 }, { "path": "src/app/injections/production.py", "line": 120, "end_line": 122 }] },
+    { "id": "forecast", "type": "backend", "label": "Forecast models", "sublabel": "NB02-05 (planned)", "tag": "planned", "pos": [800, 680], "size": [160, 64],
+      "sources": [{ "path": "src/app/playground/02_statistical_models.ipynb" }] },
+    { "id": "model", "type": "database", "label": "model.joblib", "sublabel": "ml_binaries/", "pos": [530, 680], "size": [160, 64],
+      "sources": [{ "path": "src/app/services/helper.py", "line": 1, "end_line": 16 }, { "path": "src/app/settings.py", "line": 37, "end_line": 45 }] },
+    { "id": "api", "type": "backend", "label": "FastAPI", "sublabel": "/prediction :8000", "pos": [270, 680], "size": [150, 64],
+      "sources": [{ "path": "src/app/api/routes/train/endpoints.py", "line": 12, "end_line": 19 }, { "path": "src/app/api/routes/prediction/endpoints.py", "line": 15, "end_line": 23 }, { "path": "src/app/services/training/service.py", "line": 28, "end_line": 35 }] },
+    { "id": "client", "type": "external", "label": "API client", "sublabel": "JSON over HTTP", "pos": [20, 680], "size": [140, 64] },
+    { "id": "ui", "type": "frontend", "label": "Streamlit UI", "sublabel": "health, test pages", "pos": [270, 840], "size": [150, 64],
+      "sources": [{ "path": "src/app/frontend/home.py", "line": 6, "end_line": 8 }, { "path": "src/app/frontend/runner.py", "line": 7, "end_line": 20 }] },
+    { "id": "analyst", "type": "external", "label": "Analyst", "sublabel": "browser", "pos": [20, 840], "size": [140, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "python -m app (2 processes)", "wraps": ["api", "ui"] }
+  ],
+  "connections": [
+    { "id": "dev-cli", "from": "dev", "to": "cli", "label": "ingest-data", "variant": "emphasis" },
+    { "id": "cli-pipeline", "from": "cli", "to": "pipeline", "label": "merge_panel", "variant": "emphasis" },
+    { "id": "apis-pipeline", "from": "apis", "to": "pipeline", "label": "HTTP fetch" },
+    { "id": "av-pipeline", "from": "av", "to": "pipeline", "label": "if gaps + API key", "variant": "dashed" },
+    { "id": "pipeline-panels", "from": "pipeline", "to": "panels", "label": "to_parquet", "variant": "emphasis" },
+    { "id": "panels-nb00", "from": "panels", "to": "nb00", "label": "load_all", "variant": "emphasis" },
+    { "id": "nb00-consolidated", "from": "nb00", "to": "consolidated", "label": "write", "variant": "emphasis" },
+    { "id": "consolidated-nb01", "from": "consolidated", "to": "nb01", "label": "load_consolidated", "variant": "emphasis" },
+    { "id": "nb01-wandb", "from": "nb01", "to": "wandb", "label": "log runs", "variant": "dashed" },
+    { "id": "nb01-featstore", "from": "nb01", "to": "featstore", "label": "write", "variant": "emphasis" },
+    { "id": "nb01-reports", "from": "nb01", "to": "reports", "label": "profile", "variant": "dashed" },
+    { "id": "featstore-forecast", "from": "featstore", "to": "forecast", "label": "read", "variant": "dashed" },
+    { "id": "forecast-model", "from": "forecast", "to": "model", "label": "register", "variant": "dashed" },
+    { "id": "api-model", "from": "api", "to": "model", "label": "dump / load" },
+    { "id": "client-api", "from": "client", "to": "api", "label": "HTTP :8000" },
+    { "id": "analyst-ui", "from": "analyst", "to": "ui", "label": "HTTP :10000" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Ingestion (built)", "items": ["CLI merges SEC XBRL, yfinance prices/splits and FRED macro per quarter", "Alpha Vantage fills financial gaps only when its key is set", "Company rules come from config/companies.yaml via a Singleton registry"] },
+    { "dot": "emerald", "title": "Analysis (built)", "items": ["NB00 stacks ticker panels and splits shared macro", "NB01 runs diagnostics, outlier register, feature audit and lookahead guard", "NB00 and NB01 both log to W&B"] },
+    { "dot": "amber", "title": "Serving (template)", "items": ["/prediction/train and /predict still use the template age to time_for_failure model", "Streamlit pages do not call the API yet"] },
+    { "dot": "violet", "title": "Planned", "items": ["NB02-05 statistical, AutoML, LSTM models and backtests", "NB06 registry and predict, NB07 GenAI Q&A"] }
+  ]
+}

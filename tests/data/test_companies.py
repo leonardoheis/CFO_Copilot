@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,8 @@ from app.data.companies import (
     SecTickerLookup,
     load_company_registry,
 )
+from app.data.exceptions import ConfigError
+from app.data.schema import COST_OF_REVENUE_COLUMNS
 
 
 def test_scraped_companies_lists_each_profile_once(
@@ -93,6 +96,78 @@ def test_resolve_company_metadata_for_googl(
     assert metadata.is_public is True
 
 
+def test_a_company_has_cost_of_revenue_unless_declared_otherwise(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert company_registry.company_metadata("GOOGL").has_cost_of_revenue is True
+    assert company_registry.company_metadata("UNH").has_cost_of_revenue is False
+
+
+def test_registry_declares_which_companies_have_empty_columns(
+    company_registry: CompanyRegistry,
+) -> None:
+    declared = {
+        ticker: company_registry.company_metadata(ticker).declared_empty_columns()
+        for company in company_registry.companies
+        for ticker in company.tickers
+    }
+
+    assert {ticker for ticker, columns in declared.items() if columns} == {
+        "GE",
+        "UNH",
+        "UNP",
+    }
+    assert declared["GE"] == {"opex_usd_m": "unreliable_opex"}
+    assert declared["UNH"] == dict.fromkeys(
+        COST_OF_REVENUE_COLUMNS, "no_cost_of_revenue"
+    )
+
+
+def test_registry_lists_the_quarters_withheld_for_mixed_bases(
+    company_registry: CompanyRegistry,
+) -> None:
+    assert {
+        ticker: set(company_registry.company_metadata(ticker).withheld_quarters)
+        for company in company_registry.companies
+        for ticker in company.tickers
+        if company.panel.withheld_quarters
+    } == {
+        "ABT": {date(2012, 12, 31)},
+        "BMY": {date(2008, 12, 31)},
+        "HON": {date(2025, 9, 30)},
+        "OXY": {date(2025, 12, 31)},
+    }
+    assert (
+        "OxyChem"
+        in company_registry.company_metadata("OXY").withheld_quarters[
+            date(2025, 12, 31)
+        ]
+    )
+
+
+def test_load_company_registry_rejects_a_withheld_date_off_quarter_end(
+    tmp_path: Path,
+) -> None:
+    registry = tmp_path / "companies.yaml"
+    registry.write_text(
+        """
+companies:
+  - tickers: [OFF]
+    panel:
+      company: Off
+      sector: Energy
+      is_public: true
+      withheld_quarters: {2025-11-30: mixed bases}
+    sec: {type: known_cik, cik: "0000000001"}
+    market: {type: from_ticker}
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError, match="2025-11-30 is not a quarter end"):
+        load_company_registry(registry)
+
+
 def test_resolve_scraped_company_for_alphabet_tickers_share_profile(
     company_registry: CompanyRegistry,
 ) -> None:
@@ -137,20 +212,33 @@ def test_resolve_sec_ciks_for_alphabet_returns_legacy_then_current(
     )
 
 
+@pytest.mark.parametrize(
+    ("ticker", "legacy_cik", "current_cik"),
+    [
+        # WALT DISNEY CO/ filed until the 2019 restructuring under a new parent.
+        ("DIS", "0001001039", "0001744489"),
+        # MEDTRONIC INC filed until the 2015 inversion into Medtronic plc.
+        ("MDT", "0000064670", "0001613103"),
+    ],
+)
+def test_re_registered_filers_read_their_legacy_cik_first(
+    company_registry: CompanyRegistry,
+    ticker: str,
+    legacy_cik: str,
+    current_cik: str,
+) -> None:
+    assert company_registry.sec_ciks(ticker, lambda _ticker: "0000000000") == (
+        legacy_cik,
+        current_cik,
+    )
+
+
 def test_resolve_sec_ciks_for_unknown_ticker_uses_runtime_lookup(
     company_registry: CompanyRegistry,
 ) -> None:
     assert company_registry.sec_ciks("UNKNOWN_XYZ", lambda _t: "0000000123") == (
         "0000000123",
     )
-
-
-def test_primary_sec_cik_returns_current_cik_for_dual_filer(
-    company_registry: CompanyRegistry,
-) -> None:
-    primary = company_registry.primary_sec_cik("GOOGL", lambda _t: "0000000000")
-
-    assert primary == "0001652044"
 
 
 def test_resolve_market_history_tickers_for_googl_includes_goog_fallback(
@@ -206,7 +294,7 @@ companies:
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="Duplicate company ticker aliases: DUP"):
+    with pytest.raises(ConfigError, match="Duplicate company ticker aliases: DUP"):
         load_company_registry(registry)
 
 
@@ -223,5 +311,5 @@ companies:
         encoding="utf-8",
     )
 
-    with pytest.raises(ValueError, match="CIK must contain exactly 10 digits"):
+    with pytest.raises(ConfigError, match="CIK must contain exactly 10 digits"):
         load_company_registry(registry)

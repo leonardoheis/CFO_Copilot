@@ -1,53 +1,18 @@
 """Register a new ticker in config/companies.yaml after verifying it with SEC."""
 
+import textwrap
 from pathlib import Path
 from typing import Final
 
 import click
-import requests
+import yaml
 
 from app.data.companies import CompanyRegistry
+from app.data.exceptions import ConfigError, DataSourceError
+from app.data.sources import fetch_sec_tickers
 from app.settings import Settings
 
-SEC_TICKERS_URL: Final = "https://www.sec.gov/files/company_tickers.json"
-CIK_DIGITS: Final = 10
 PINNED_TEST: Final = "tests/data/test_companies.py"
-
-ENTRY_TEMPLATE: Final = """
-  - tickers:
-      - {ticker}
-    panel:
-      company: {company}
-      sector: {sector}
-      is_public: true
-    sec:
-      type: known_cik
-      cik: "{cik}"
-    market:
-      type: from_ticker
-"""
-
-
-def lookup_ticker(ticker: str) -> tuple[str, str] | None:
-    """Find a ticker in SEC's published ticker file.
-
-    Returns:
-        Its zero-padded CIK and registered title, or None when SEC has no
-        such ticker.
-    """
-    response = requests.get(
-        SEC_TICKERS_URL,
-        headers={"User-Agent": Settings.SEC_USER_AGENT},
-        timeout=Settings.REQUEST_TIMEOUT,
-    )
-    response.raise_for_status()
-    payload = response.json()
-
-    wanted = ticker.upper()
-    for entry in payload.values():
-        if entry["ticker"].upper() == wanted:
-            return str(entry["cik_str"]).zfill(CIK_DIGITS), entry["title"]
-    return None
 
 
 @click.command()
@@ -74,7 +39,14 @@ def add_company(
         message = f"{normalized} is already in {path}"
         raise click.ClickException(message)
 
-    found = lookup_ticker(normalized)
+    try:
+        sec_tickers = fetch_sec_tickers(
+            user_agent=Settings.SEC_USER_AGENT,
+            timeout=Settings.REQUEST_TIMEOUT,
+        )
+    except DataSourceError as error:
+        raise click.ClickException(str(error)) from error
+    found = sec_tickers.get(normalized)
     if found is None:
         message = (
             f"SEC does not list {normalized}. Check the symbol — a ticker that "
@@ -82,15 +54,33 @@ def add_company(
         )
         raise click.ClickException(message)
 
-    cik, title = found
-    entry = ENTRY_TEMPLATE.format(
-        ticker=normalized,
-        company=company or title.title(),
-        sector=sector,
-        cik=cik,
+    cik, title = found.cik, found.title
+    entry = {
+        "tickers": [normalized],
+        "panel": {
+            "company": company or title.title(),
+            "sector": sector,
+            "is_public": True,
+        },
+        "sec": {"type": "known_cik", "cik": cik},
+        "market": {"type": "from_ticker"},
+    }
+    original = path.read_text(encoding="utf-8")
+    # Appended rather than re-dumped, so the registry's comments survive.
+    path.write_text(
+        original
+        + "\n"
+        + textwrap.indent(yaml.safe_dump([entry], sort_keys=False), "  "),
+        encoding="utf-8",
     )
-    with path.open("a", encoding="utf-8") as registry:
-        registry.write(entry)
+    try:
+        CompanyRegistry.from_path(path)
+    except ConfigError as error:
+        path.write_text(original, encoding="utf-8")
+        message = (
+            f"The new entry would make {path} invalid, so it was not added: {error}"
+        )
+        raise click.ClickException(message) from error
 
     click.echo(f"Added {normalized} ({title}) with CIK {cik} to {path}")
     click.echo(

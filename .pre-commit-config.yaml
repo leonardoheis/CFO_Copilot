@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "0.12.18"
+    rev: "0.12.19"
     hooks:
     -   id: uv-lock
 
@@ -17,7 +17,8 @@ repos:
         # already normalizes those) - not hand-edited source.
         exclude: '^(README|(\.(cursor|claude)|results|data/coverage|src/app/playground)/)'
     -   id: end-of-file-fixer
-        exclude: '^(\.(cursor|claude)|results|data/coverage|src/app/playground)/'
+        # data/reports: ydata-profiling writes HTML with no final newline on every NB01 run.
+        exclude: '^(\.(cursor|claude)|results|data/(coverage|reports)|src/app/playground)/'
     -   id: check-yaml
     -   id: debug-statements
 
@@ -42,7 +43,7 @@ repos:
     -   id: pre-commit-update
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: "v0.16.8"
+    rev: "v0.16.9"
     hooks:
     -   id: ruff-format
     -   id: ruff-check
@@ -50,7 +51,7 @@ repos:
         -   "--exit-non-zero-on-fix"
 
 -   repo: https://github.com/pycqa/pylint
-    rev: "v4.0.8"
+    rev: "v4.0.9"
     hooks:
     -   id: pylint
         exclude: '^(\.(cursor|claude)|scripts)/'
@@ -77,6 +78,10 @@ repos:
         -   "pyarrow>=21.0.0"
         -   "httpx>=0.28.1"
         -   "pyyaml>=6.0.2"
+        -   "matplotlib>=3.11.2"
+        -   "statsmodels>=0.15.0"
+        -   "scipy>=1.16.1"
+        -   "seaborn>=0.13"
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v2.3.1"
@@ -106,6 +111,12 @@ repos:
         -   "git+https://github.com/microsoft/python-type-stubs.git"
         -   "pandas-stubs>=2.3.0.250703"
         -   "pandas>=2.3.1"
+        -   "wandb>=0.26.1"
+        -   "matplotlib>=3.11.2"
+        -   "statsmodels>=0.15.0"
+        -   "scipy>=1.16.1"
+        -   "scipy-stubs>=1.18.1.1"
+        -   "types-seaborn>=0.13.2"
         -   "fredapi>=0.5.2"
         -   "yfinance>=0.2.65"
         -   "click>=8.1.0,<8.2"
@@ -130,6 +141,8 @@ repos:
         -   "requests>=2.32.4"
         -   "streamlit>=1.48.0"
         -   "pylint-pydantic>=0.3.5"
+        -   "matplotlib>=3.10"
+        -   "seaborn>=0.13"
 
     -   id: nbqa-mypy
         additional_dependencies:
@@ -154,6 +167,12 @@ repos:
         -   "git+https://github.com/microsoft/python-type-stubs.git"
         -   "pandas-stubs>=2.3.0.250703"
         -   "pandas>=2.3.1"
+        -   "wandb>=0.26.1"
+        -   "matplotlib>=3.11.2"
+        -   "statsmodels>=0.15.0"
+        -   "scipy>=1.16.1"
+        -   "scipy-stubs>=1.18.1.1"
+        -   "types-seaborn>=0.13.2"
         -   "fredapi>=0.5.2"
         -   "yfinance>=0.2.65"
         -   "click>=8.1.0,<8.2"

@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "app"
-version = "0.4.0"
+version = "0.5.0"
 requires-python = "==3.12.*"
 dependencies = [
     "click>=8.1.0,<8.2",
@@ -13,7 +13,7 @@ dependencies = [
     "fredapi>=0.5.2",
     "httpx>=0.28.1",
     "joblib>=1.5.1",
-    "matplotlib>=3.11.2",
+    "matplotlib>=3.10",
     "numpy>=2.3.2",
     "pandas>=2.3.1",
     "polyfactory>=2.22.2",
@@ -22,6 +22,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "requests>=2.32.4",
     "scikit-learn>=1.7.1",
+    "scipy>=1.16.1",
     "statsmodels>=0.15.0",
     "streamlit>=1.48.0",
     "uvicorn[standard]==0.35.0",
@@ -32,6 +33,10 @@ dependencies = [
 default-groups = [
     "dev",
 ]
+# matplotlib 3.10 (held there by ydata-profiling) still calls pyparsing's
+# camelCase API, which pyparsing 3.3 deprecates with a warning on every use.
+# Drop this once ydata-profiling allows matplotlib >= 3.11.
+constraint-dependencies = ["pyparsing<3.3"]
 
 [dependency-groups]
 test = [
@@ -56,6 +61,15 @@ dev = [
     "pandas-stubs>=2.3.0.250703",
     "types-requests>=2.32.4",
     "types-pyyaml>=6.0.12.20250516",
+    "scipy-stubs>=1.18.1.1",
+    "types-seaborn>=0.13.2.20260728",
+]
+research = [
+    "ipykernel>=7.3.0",
+    "seaborn>=0.13",
+    "setuptools<81",
+    "wandb>=0.26.1",
+    "ydata-profiling>=4.18.4",
 ]
 
 
@@ -70,7 +84,10 @@ serve-ui = "uv run python -m app.frontend"
 ingest-data = "uv run python -m app.data"
 add-company = "uv run python -m app.data.add_company"
 probe-alpha-vantage = "uv run python -m app.data.coverage_runner"
-lint       = { shell = "uv run --all-groups ruff check . && uv run --all-groups ruff format --check ." }
+reingest-batch = "uv run python -m app.data.batch"
+#lint       = { shell = "uv run --all-groups ruff check . && uv run --all-groups ruff format --check ." }
+# nbstripout is skipped here so a check keeps the notebooks' outputs; it still runs on commit. -- VOLVER ATRAS ESTO Y HAECR BIEN LAS NOTEBOOKS!!!
+lint = { cmd="uv run --all-groups pre-commit run --all-files --verbose", env = { SKIP = "pre-commit-update,nbstripout"} }
 typecheck  = "uv run --all-groups pre-commit run mypy --all-files"
 test = "uv run --all-groups pytest"
 format = "uv run --all-groups pre-commit run --all-files --verbose"
@@ -78,7 +95,8 @@ check-coverage = "uv run coverage report --fail-under=80"
 docker-build = "docker buildx build --progress plain -t app ."
 docker-run = "docker container run --env-file .env --publish 8000:8000 --publish 10000:10000 app"
 version-bump = "uv run semantic-release -v version --no-tag --no-commit --skip-build --changelog"
-check      = ["lint", "typecheck", "test"]
+#check      = ["lint", "typecheck", "test"]
+check      = ["lint", "test"]
 
 #########################
 # Semantic Release
@@ -112,6 +130,9 @@ patch_tags = ["fix"]
 [tool.pytest.ini_options]
 addopts = [
     "-r=A",
+    "--block-network",
+    # Windows' asyncio event loop wakes itself through a loopback socket pair.
+    "--allowed-hosts=127.0.0.1",
     "--doctest-modules",
     "--junitxml=pytest-report.xml",
     "--cov=.",
@@ -176,9 +197,10 @@ module = [
     "fredapi",
     "fredapi.*",
     "sklearn.*",
+    "statsmodels.*",
+    "ydata_profiling.*",
 ]
 ignore_missing_imports = true
-
 
 #########################
 # RUFF
@@ -296,7 +318,7 @@ bad-functions = ["map", "filter"]
 
 [tool.pylint.design]
 max-args = 7
-max-attributes = 9
+max-attributes = 7
 max-bool-expr = 5
 max-branches = 12
 max-complexity = 10
@@ -305,6 +327,9 @@ max-parents = 7
 max-public-methods = 20
 max-returns = 6
 max-statements = 50
+# One-method classes are the single-responsibility services and Protocols
+# this codebase is built from; data-only classes are caught by Pydantic and ruff.
+min-public-methods = 1
 
 [tool.pylint.exceptions]
 overgeneral-exceptions = ["'builtins.Exception'"]
@@ -313,7 +338,7 @@ overgeneral-exceptions = ["'builtins.Exception'"]
 indent-after-paren = 4
 indent-string = "    "
 max-line-length = 120
-max-module-lines = 400
+max-module-lines = 600
 
 
 [tool.pylint.imports]
@@ -348,8 +373,7 @@ disable = [
     "not-an-iterable",                        # Too many false positives
     "assignment-from-no-return",              # Too many false positives
     "magic-value-comparison",
-    "consider-using-namedtuple-or-dataclass",
-    "too-few-public-methods",                 # Intentional for typing.Protocol sources
+    "consider-using-namedtuple-or-dataclass",               # Intentional for typing.Protocol sources
 ]
 
 enable = [

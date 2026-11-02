@@ -1,0 +1,92 @@
+# serializer version: 1
+# name: test_every_boxplot_keeps_its_boxes
+  dict({
+    'change': list([
+      dict({
+        'colours': list([
+          '#f08080',
+        ]),
+        'heights': list([
+          0.6,
+        ]),
+        'labels': list([
+          'revenue_usd_m',
+        ]),
+      }),
+      dict({
+        'colours': list([
+          '#f08080',
+        ]),
+        'heights': list([
+          0.6,
+        ]),
+        'labels': list([
+          'ebitda_usd_m',
+        ]),
+      }),
+    ]),
+    'segment': list([
+      dict({
+        'colours': list([
+          '#b0c4de',
+          '#b0c4de',
+        ]),
+        'heights': list([
+          0.15,
+          0.15,
+        ]),
+        'labels': list([
+          'Energy',
+          'Technology',
+        ]),
+      }),
+      dict({
+        'colours': list([
+          '#b0c4de',
+          '#b0c4de',
+          '#b0c4de',
+        ]),
+        'heights': list([
+          0.3,
+          0.3,
+          0.3,
+        ]),
+        'labels': list([
+          '0',
+          '1',
+          '2',
+        ]),
+      }),
+    ]),
+    'transform': list([
+      dict({
+        'colours': list([
+          '#b0c4de',
+          '#b0c4de',
+        ]),
+        'heights': list([
+          0.15,
+          0.15,
+        ]),
+        'labels': list([
+          'none',
+          'log',
+        ]),
+      }),
+      dict({
+        'colours': list([
+          '#b0c4de',
+          '#b0c4de',
+        ]),
+        'heights': list([
+          0.15,
+          0.15,
+        ]),
+        'labels': list([
+          'none',
+          'log',
+        ]),
+      }),
+    ]),
+  })
+# ---

@@ -11,12 +11,16 @@ import pandas as pd
 import requests
 
 from app.data.dates import quarter_end_dates
-from app.data.exceptions import DataSourceError, DataSourceUnavailableError
-from app.data.schema import FINANCIAL_COLUMNS, FinancialQuarterValues
-from app.settings import Settings
+from app.data.exceptions import (
+    DataSourceError,
+    DataSourceUnavailableError,
+    RateLimitedError,
+)
+from app.data.schema import FINANCIALS_FRAME_COLUMNS, FinancialQuarterValues
 
 from .parsing import (
     JsonObject,
+    fill_eps_from_net_income,
     merge_balance_sheet,
     merge_cash_flow,
     merge_earnings,
@@ -44,10 +48,12 @@ class AlphaVantageSource:
         api_key: str,
         cache_directory: Path,
         *,
+        timeout: int,
         refresh: bool = False,
     ) -> None:
         self._api_key = api_key
         self._cache_directory = cache_directory
+        self._timeout = timeout
         self._refresh = refresh
         self._last_request_at: float | None = None
 
@@ -59,16 +65,17 @@ class AlphaVantageSource:
     ) -> pd.DataFrame:
         self._ensure_api_key()
         normalized_ticker = ticker.upper()
-        income = self._request(INCOME_STATEMENT, normalized_ticker)
-        cash_flow = self._request(CASH_FLOW, normalized_ticker)
-        balance = self._request(BALANCE_SHEET, normalized_ticker)
-        earnings = self._request(EARNINGS, normalized_ticker)
+        income = self.fetch_payload(INCOME_STATEMENT, normalized_ticker)
+        cash_flow = self.fetch_payload(CASH_FLOW, normalized_ticker)
+        balance = self.fetch_payload(BALANCE_SHEET, normalized_ticker)
+        earnings = self.fetch_payload(EARNINGS, normalized_ticker)
 
         values_by_date: dict[date, FinancialQuarterValues] = {}
         merge_income(values_by_date, income)
         merge_cash_flow(values_by_date, cash_flow)
         merge_balance_sheet(values_by_date, balance)
         merge_earnings(values_by_date, earnings)
+        fill_eps_from_net_income(values_by_date)
         quarter_dates = quarter_end_dates(start, end)
 
         rows = [
@@ -77,41 +84,37 @@ class AlphaVantageSource:
         ]
         return pd.DataFrame(rows).loc[
             :,
-            ["date", *FINANCIAL_COLUMNS, "shares_outstanding"],
+            list(FINANCIALS_FRAME_COLUMNS),
         ]
 
-    def _request(self, function: str, ticker: str) -> JsonObject:
+    def fetch_payload(self, function: str, ticker: str) -> JsonObject:
         cache_path = self._cache_path(function, ticker)
         if cache_path.exists() and not self._refresh:
             return _read_cache(cache_path)
 
-        last_rate_limit: DataSourceError | None = None
         for attempt in range(1, RATE_LIMIT_ATTEMPTS + 1):
             self._wait_for_rate_limit()
             typed_payload = self._get_json(function, ticker)
             self._last_request_at = time.monotonic()
             rate_limit = _rate_limit_error(typed_payload)
-            if rate_limit is not None:
-                last_rate_limit = rate_limit
-                logger.warning(
-                    "Alpha Vantage rate-limited %s for %s (attempt %d/%d)",
-                    function,
-                    ticker,
-                    attempt,
-                    RATE_LIMIT_ATTEMPTS,
-                )
-                continue
-            permanent = _permanent_error(typed_payload)
-            if permanent is not None:
-                raise permanent
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            cache_path.write_text(json.dumps(typed_payload), encoding="utf-8")
-            return typed_payload
+            if rate_limit is None:
+                break
+            logger.warning(
+                "Alpha Vantage rate-limited %s for %s (attempt %d/%d)",
+                function,
+                ticker,
+                attempt,
+                RATE_LIMIT_ATTEMPTS,
+            )
+            if attempt == RATE_LIMIT_ATTEMPTS:
+                raise rate_limit
 
-        if last_rate_limit is None:
-            msg = f"Alpha Vantage {function} for {ticker} failed after retries"
-            raise DataSourceError(msg)
-        raise last_rate_limit
+        permanent = _permanent_error(typed_payload)
+        if permanent is not None:
+            raise permanent
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(json.dumps(typed_payload), encoding="utf-8")
+        return typed_payload
 
     def _wait_for_rate_limit(self) -> None:
         if self._last_request_at is None:
@@ -130,7 +133,7 @@ class AlphaVantageSource:
                     "symbol": ticker,
                     "apikey": self._api_key,
                 },
-                timeout=Settings.REQUEST_TIMEOUT,
+                timeout=self._timeout,
             )
             response.raise_for_status()
             payload = response.json()
@@ -151,10 +154,10 @@ class AlphaVantageSource:
             raise DataSourceUnavailableError(MISSING_API_KEY_MESSAGE)
 
 
-def _rate_limit_error(payload: JsonObject) -> DataSourceError | None:
+def _rate_limit_error(payload: JsonObject) -> RateLimitedError | None:
     for key in RATE_LIMIT_KEYS:
         if key in payload:
-            return DataSourceError(f"Alpha Vantage {key}: {payload[key]}")
+            return RateLimitedError(f"Alpha Vantage {key}: {payload[key]}")
     return None
 
 

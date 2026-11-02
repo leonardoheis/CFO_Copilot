@@ -1,13 +1,20 @@
 import sys
+from datetime import date
 from pathlib import Path
+from typing import Final, Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Not a settings field: an .env override would silently change NB00's outlier
+# flags and every seeded diagnostic, and the W&B run config would still say 42.
+RANDOM_SEED: Final = 42
 
 # The container sets WORKDIR to the directory holding .env, so the bare relative
 # name must stay. It resolves against the current directory though, which leaves
 # every credential empty when the CLI is run from anywhere but the repo root, so
 # the checkout's own .env is offered alongside it.
-_REPOSITORY_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+_REPOSITORY_ENV_FILE = _REPOSITORY_ROOT / ".env"
 
 
 class _Settings(BaseSettings):
@@ -18,6 +25,13 @@ class _Settings(BaseSettings):
     FRED_API_KEY: str = ""
     SEC_USER_AGENT: str = ""
     ALPHA_VANTAGE_API_KEY: str = ""
+    LAST_REPORTED_QUARTER: date = date(2026, 6, 30)
+    WANDB_PROJECT: str = "cfo-copilot"
+    WANDB_ENTITY: str = ""
+    WANDB_API_KEY: str = ""
+    WANDB_MODE: Literal["online", "offline", "disabled"] = "offline"
+    # wandb appends its own `wandb/` folder, so runs land in <repo>/wandb/.
+    WANDB_DIR: Path = _REPOSITORY_ROOT
 
     model_config = SettingsConfigDict(
         env_file=(_REPOSITORY_ENV_FILE, ".env"),
@@ -74,18 +88,23 @@ class _Settings(BaseSettings):
 
     @property
     def DATA_DIRECTORY(self) -> Path:
-        data_directory = self.ROOT_PATH / "data"
-        data_directory.mkdir(parents=True, exist_ok=True)
-        return data_directory
+        return self.ROOT_PATH / "data"
 
     @property
     def COMPANY_REGISTRY_PATH(self) -> Path:
         return self.ROOT_PATH / "config" / "companies.yaml"
 
-    def panel_output_path(self, ticker: str) -> Path:
-        processed_directory = self.DATA_DIRECTORY / "processed"
-        processed_directory.mkdir(parents=True, exist_ok=True)
-        return processed_directory / f"{ticker.upper()}_panel.parquet"
+    @property
+    def STRUCTURAL_BREAKS_PATH(self) -> Path:
+        return self.ROOT_PATH / "config" / "structural_breaks.yaml"
+
+    @property
+    def INGESTION_DEFECTS_PATH(self) -> Path:
+        return self.ROOT_PATH / "config" / "ingestion_defects.yaml"
+
+    @property
+    def PROCESSED_DIRECTORY(self) -> Path:
+        return self.DATA_DIRECTORY / "processed"
 
 
 Settings = _Settings()

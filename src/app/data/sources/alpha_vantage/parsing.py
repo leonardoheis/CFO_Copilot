@@ -7,9 +7,12 @@ rest of the data layer.
 """
 
 import logging
+import statistics
 from collections.abc import Iterator
 from datetime import date
-from typing import cast
+from typing import Final, cast
+
+from pydantic import TypeAdapter, ValidationError
 
 from app.data.dates import (
     QUARTER_END_TOLERANCE_DAYS,
@@ -21,6 +24,14 @@ from app.data.schema import MILLIONS_DIVISOR, FinancialQuarterValues, Financials
 logger = logging.getLogger(__name__)
 
 JsonObject = dict[str, object]
+_REPORT_LIST: Final[TypeAdapter[list[JsonObject]]] = TypeAdapter(list[JsonObject])
+
+# Recorded in the panel's financials_provenance column so a vendor-sourced row
+# is distinguishable from one the filer's own XBRL produced.
+PROVENANCE_LABEL = "alpha_vantage"
+EPS_DERIVATION_TOLERANCE: Final = 0.02
+# Below a nickel a rounding cent is a 20%+ relative error, which says nothing.
+MIN_EPS_FOR_RELATIVE_ERROR: Final = 0.05
 
 
 def merge_income(
@@ -32,7 +43,12 @@ def merge_income(
         values.gross_profit_usd_m = millions(report, "grossProfit")
         values.opex_usd_m = millions(report, "operatingExpenses")
         values.operating_income_usd_m = millions(report, "operatingIncome")
-        values.ebitda_usd_m = millions(report, "ebitda")
+        # Not the vendor's "ebitda": it is built on its own "ebit", which is
+        # broken in some quarters (KMB 2006-Q2 = -11,044) and differs from the
+        # SEC rows' operating income + D&A.
+        values.ebitda_usd_m = ebitda_from_operating_income(
+            values, millions(report, "depreciationAndAmortization")
+        )
         values.net_income_usd_m = millions(report, "netIncome")
         diluted = number(report, "dilutedEPS")
         values.eps = diluted if diluted is not None else number(report, "basicEPS")
@@ -43,6 +59,10 @@ def merge_cash_flow(
     payload: JsonObject,
 ) -> None:
     for report, values in _quarterly_reports(values_by_date, payload):
+        if values.ebitda_usd_m is None:
+            values.ebitda_usd_m = ebitda_from_operating_income(
+                values, millions(report, "depreciationDepletionAndAmortization")
+            )
         operating_cash_flow = number(report, "operatingCashflow")
         capital_expenditures = number(report, "capitalExpenditures")
         if operating_cash_flow is not None and capital_expenditures is not None:
@@ -71,8 +91,71 @@ def merge_earnings(
         key="quarterlyEarnings",
     ):
         earnings_per_share = number(report, "reportedEPS")
-        if earnings_per_share is not None and values.eps is None:
-            values.eps = earnings_per_share
+        if earnings_per_share is None or values.eps is not None:
+            continue
+        if _is_placeholder_zero(earnings_per_share, values.net_income_usd_m):
+            logger.warning(
+                "Alpha Vantage EPS for %s is a placeholder 0; treating it as missing",
+                report.get("fiscalDateEnding"),
+            )
+            continue
+        values.eps = earnings_per_share
+
+
+def fill_eps_from_net_income(
+    values_by_date: dict[date, FinancialQuarterValues],
+) -> None:
+    """Derive missing EPS as net income / shares, if this filer's own EPS agrees.
+
+    The vendor's ``reportedEPS`` is the adjusted figure for many filers (MRK runs
+    ~35% off net income / shares), so the quotient is only trusted where it has
+    matched the filer's reported EPS (COST: 0.23%).
+    """
+    derivable = sorted(
+        (quarter_date, values)
+        for quarter_date, values in values_by_date.items()
+        if values.eps is None and _has_earnings_and_shares(values)
+    )
+    errors = [
+        abs(_earnings_per_share(values) - eps) / abs(eps)
+        for values in values_by_date.values()
+        if (eps := values.eps) is not None
+        and abs(eps) > MIN_EPS_FOR_RELATIVE_ERROR
+        and _has_earnings_and_shares(values)
+    ]
+    if not derivable or not errors:
+        return
+    median_error = statistics.median(errors)
+    if median_error > EPS_DERIVATION_TOLERANCE:
+        logger.warning(
+            "Leaving %d EPS gaps: net income / shares is %.1f%% off reported EPS",
+            len(derivable),
+            median_error * 100,
+        )
+        return
+    for quarter_date, values in derivable:
+        values.eps = _earnings_per_share(values)
+        logger.warning(
+            "Alpha Vantage EPS for %s derived as net income / shares: %.4f",
+            quarter_date.isoformat(),
+            values.eps,
+        )
+
+
+def _has_earnings_and_shares(values: FinancialQuarterValues) -> bool:
+    return values.net_income_usd_m is not None and bool(values.shares_outstanding)
+
+
+def _earnings_per_share(values: FinancialQuarterValues) -> float:
+    net_income = cast("float", values.net_income_usd_m) * MILLIONS_DIVISOR
+    return net_income / cast("float", values.shares_outstanding)
+
+
+def _is_placeholder_zero(
+    earnings_per_share: float, net_income_usd_m: float | None
+) -> bool:
+    # The vendor writes 0 for quarters it has no EPS for; a real 0 needs 0 net income.
+    return earnings_per_share == 0 and net_income_usd_m not in {None, 0}
 
 
 def _quarterly_reports(
@@ -83,6 +166,7 @@ def _quarterly_reports(
     for report in reports(payload, key):
         quarter_date = report_date(report)
         values = values_by_date.setdefault(quarter_date, FinancialQuarterValues())
+        values.period_end = reported_period_end(report)
         yield report, values
 
 
@@ -90,28 +174,17 @@ def reports(payload: JsonObject, key: str) -> list[JsonObject]:
     """Extract the report list stored under ``key``.
 
     Returns:
-        Every dictionary entry under the key, or an empty list if absent.
+        Every report under the key, or an empty list if absent.
 
     Raises:
-        MalformedPayloadError: If the report container is not a list.
+        MalformedPayloadError: If the container is not a list or any entry is
+            not an object; one malformed report makes the whole payload suspect.
     """
-    raw_reports = payload.get(key, [])
-    if not isinstance(raw_reports, list):
-        msg = f"Alpha Vantage {key} must be a list, got {type(raw_reports).__name__}"
-        raise MalformedPayloadError(
-            msg,
-        )
-    parsed_reports: list[JsonObject] = []
-    for report in raw_reports:
-        if not isinstance(report, dict):
-            logger.warning(
-                "Skipping non-object Alpha Vantage report in %s: %r",
-                key,
-                report,
-            )
-        else:
-            parsed_reports.append(cast("JsonObject", report))
-    return parsed_reports
+    try:
+        return _REPORT_LIST.validate_python(payload.get(key, []))
+    except ValidationError as error:
+        msg = f"Alpha Vantage {key} must be a list of report objects: {error}"
+        raise MalformedPayloadError(msg) from error
 
 
 def report_date(report: JsonObject) -> date:
@@ -130,6 +203,27 @@ def report_date(report: JsonObject) -> date:
             be placed in time is unusable, and treating it as merely missing
             would hide an API format change behind gaps in the panel.
     """
+    parsed_date = reported_period_end(report)
+    try:
+        return nearest_quarter_end(parsed_date, QUARTER_END_TOLERANCE_DAYS)
+    except ValueError as error:
+        msg = (
+            f"Alpha Vantage fiscalDateEnding {parsed_date.isoformat()!r} cannot "
+            "be placed on a calendar quarter"
+        )
+        raise MalformedPayloadError(msg) from error
+
+
+def reported_period_end(report: JsonObject) -> date:
+    """Read ``fiscalDateEnding`` as the filer stated it, before any snapping.
+
+    Returns:
+        The period end the report itself claims.
+
+    Raises:
+        MalformedPayloadError: If ``fiscalDateEnding`` is absent or is not an
+            ISO date.
+    """
     raw_date = report.get("fiscalDateEnding")
     if not isinstance(raw_date, str):
         msg = (
@@ -138,18 +232,9 @@ def report_date(report: JsonObject) -> date:
         )
         raise MalformedPayloadError(msg)
     try:
-        parsed_date = date.fromisoformat(raw_date)
+        return date.fromisoformat(raw_date)
     except ValueError as error:
         msg = f"Alpha Vantage fiscalDateEnding is not an ISO date: {raw_date!r}"
-        raise MalformedPayloadError(msg) from error
-
-    try:
-        return nearest_quarter_end(parsed_date, QUARTER_END_TOLERANCE_DAYS)
-    except ValueError as error:
-        msg = (
-            f"Alpha Vantage fiscalDateEnding {raw_date!r} cannot be placed "
-            "on a calendar quarter"
-        )
         raise MalformedPayloadError(msg) from error
 
 
@@ -181,6 +266,25 @@ def millions(report: JsonObject, key: str) -> float | None:
     """
     value = number(report, key)
     return value / MILLIONS_DIVISOR if value is not None else None
+
+
+def ebitda_from_operating_income(
+    values: FinancialQuarterValues, depreciation_usd_m: float | None
+) -> float | None:
+    """EBITDA as the SEC rows define it: operating income + D&A.
+
+    Returns:
+        The sum, or ``None`` when either part is missing or D&A is negative.
+    """
+    # A negative D&A is a vendor error (IBM 2026-Q2: -1,274); returning None
+    # lets the cash-flow statement's figure fill in.
+    if (
+        values.operating_income_usd_m is None
+        or depreciation_usd_m is None
+        or depreciation_usd_m < 0
+    ):
+        return None
+    return values.operating_income_usd_m + depreciation_usd_m
 
 
 def row_for_date(
@@ -215,6 +319,12 @@ def row_for_date(
         net_margin=_margin(net_income, revenue),
         eps=values.eps,
         shares_outstanding=values.shares_outstanding,
+        period_end=values.period_end,
+        # The vendor publishes no filing date, only the period it covers.
+        financials_filed=None,
+        financials_provenance=(
+            PROVENANCE_LABEL if values.period_end is not None else None
+        ),
     )
 
 

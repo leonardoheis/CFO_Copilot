@@ -1,0 +1,50 @@
+from enum import Enum
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from app.services.diagnostics import (
+    DiagnosticsService,
+    DiagnosticsSettings,
+    SeriesDiagnostician,
+    SeriesDiagnostics,
+)
+from tests.conftest import PanelFactory
+
+QUARTERS = 40
+VARIABLES = ["revenue_usd_m", "eps"]
+
+
+@pytest.fixture
+def service() -> DiagnosticsService:
+    return DiagnosticsService(
+        diagnostician=SeriesDiagnostician(settings=DiagnosticsSettings())
+    )
+
+
+@pytest.fixture
+def panels(make_panel: PanelFactory) -> dict[str, pd.DataFrame]:
+    # Real series carry noise and differ by company; exact curves leave ADF's
+    # regression rank-deficient and give KMeans identical points.
+    rng = np.random.default_rng(0)
+    return {
+        ticker: make_panel(ticker=ticker, quarters=QUARTERS).assign(
+            revenue_usd_m=lambda panel: (
+                panel["revenue_usd_m"] * np.exp(0.05 * rng.normal(size=QUARTERS))
+            ),
+            eps=lambda panel: panel["eps"] + 0.1 * rng.normal(size=QUARTERS),
+        )
+        for ticker in ("AAA", "BBB", "CCC")
+    }
+
+
+def test_panel_diagnostics_yield_one_row_per_company_and_variable(
+    service: DiagnosticsService, panels: dict[str, pd.DataFrame]
+) -> None:
+    table = service.diagnose_panel(panels, VARIABLES)
+
+    assert len(table) == len(panels) * len(VARIABLES)
+    assert set(table.columns) == set(SeriesDiagnostics.model_fields)
+    # A plain str, not the enum, so the stored diagnostics table is unchanged.
+    assert not any(isinstance(status, Enum) for status in table["status"])

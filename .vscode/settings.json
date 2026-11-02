@@ -12,6 +12,9 @@
         80,
         120
     ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingTypeStubs": "none"
+    },
     "files.autoSaveDelay": 1000,
     "notebook.lineNumbers": "on",
     "gitlens.mode.active": "review",

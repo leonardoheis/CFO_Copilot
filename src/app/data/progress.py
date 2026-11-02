@@ -1,7 +1,7 @@
 """Stage-by-stage console output for long ingestion runs."""
 
 import time
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 
@@ -27,7 +27,7 @@ class Progress:
     enabled: bool = True
 
     @contextmanager
-    def stage(self, label: str) -> Iterator[Stage]:
+    def stage(self, label: str) -> Generator[Stage]:
         """Time a stage and print it when it ends.
 
         Yields:

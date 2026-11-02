@@ -33,6 +33,7 @@ CFO_Copilot/
 │   │       └── train/       # POST /prediction/train
 │   ├── domain/              # Business entities (no HTTP concerns)
 │   │   ├── base.py          # BaseEntity
+│   │   ├── forecast_target.py  # TargetVariable, TARGET_VARIABLES
 │   │   ├── ml_model.py      # MLModel protocol (fit, predict)
 │   │   ├── prediction_input.py
 │   │   └── prediction_output.py
@@ -50,11 +51,10 @@ CFO_Copilot/
 │   │   ├── companies.py     # CompanyRegistry (loads config/companies.yaml)
 │   │   ├── dates.py         # Shared quarter/date helpers
 │   │   ├── splits.py        # Shared split-adjustment helpers
-│   │   ├── xbrl.py          # Shared XBRL fact handling
 │   │   └── sources/         # One package per external source
 │   │       ├── alpha_vantage/   # source.py, parsing.py
 │   │       ├── fred/            # source.py
-│   │       ├── sec_edgar/       # source.py, parsing.py, concepts.py
+│   │       ├── sec_edgar/       # source.py, chains.py, parsing.py, concepts.py, xbrl.py, xbrl_facts.py
 │   │       └── yfinance_source/ # source.py, fetching.py
 │   ├── utils/               # ExamplerMixIn (OpenAPI example generation)
 │   ├── ml_binaries/         # Runtime model artifacts (model.joblib)
@@ -149,6 +149,18 @@ Say it in the name, not in a paragraph above it.
 - Same for variables: `annual_candidates` beats `tmp` plus a note explaining
   what `tmp` holds.
 
+## No needless indirection
+
+- **Do not wrap an expression in a private function just to reuse it or to
+  pass an argument.** A helper whose body is one constructor call or one
+  expression hides the code it replaces. Write the expression where it is used,
+  even if it appears twice.
+- In tests, build the object in the fixture or in the test itself; do not add a
+  `_make_x()` helper for a single constructor call.
+- Add a helper only when it is strictly necessary: it names a rule the reader
+  could not infer, removes genuinely duplicated logic (not a repeated call), or
+  a framework requires it.
+
 ## Lint suppressions
 
 - **Do not silence a linter to make code pass.** `# noqa` and `# ruff: ignore`
@@ -181,6 +193,7 @@ single module. The split separates the stateful adapter from pure translation:
 |------|-------|-----------|
 | `source.py` | The `*Source` class | HTTP, cache, credentials, instance state |
 | `parsing.py` | Pure payload → panel translation | Only its arguments |
+| `chains.py` | Accounting rules over an injected fact lookup (`sec_edgar`) | The lookup it is given |
 | `concepts.py` | Vendor tag/field declarations (`sec_edgar`) | Nothing |
 | `fetching.py` | Calls against an injected client (`yfinance_source`) | The injected object only |
 | `__init__.py` | Re-exports the public names | — |
@@ -192,7 +205,9 @@ Rules:
 - **Vendor field names stay inside the package.** This is an Anti-Corruption
   Layer: `fiscalDateEnding`, `totalRevenue` and us-gaap tags must not appear
   outside their own source package. Logic genuinely shared across sources goes
-  in `app/data/` (`dates.py`, `splits.py`, `xbrl.py`), never a vendor's quirks.
+  in `app/data/` (`dates.py`, `splits.py`), never a vendor's quirks. XBRL is
+  SEC's format, so its fact handling lives in `sec_edgar/` (`xbrl.py`,
+  `xbrl_facts.py`).
 - **Names crossing a module boundary drop the leading underscore.** Ruff's
   `import-private-name` rejects importing `_foo` from a sibling module, so
   package-internal helpers are public within the package and kept out of the

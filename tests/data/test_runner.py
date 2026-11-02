@@ -54,7 +54,7 @@ def test_ingest_writes_the_panel_and_reports_progress(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     output = tmp_path / "INTC_panel.parquet"
-    monkeypatch.setattr("app.data.runner.merge_panel", lambda **_: _panel())
+    monkeypatch.setattr("app.data.cli.merge_panel", lambda **_: _panel())
 
     result = CliRunner().invoke(
         ingest_data,
@@ -63,6 +63,7 @@ def test_ingest_writes_the_panel_and_reports_progress(
 
     assert result.exit_code == 0, result.output
     assert f"Wrote {EXPECTED_ROWS} quarterly rows" in result.output
+    assert "fetching sources" in result.output
     assert output.exists()
 
 
@@ -71,7 +72,7 @@ def test_quiet_suppresses_stage_lines(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     output = tmp_path / "INTC_panel.parquet"
-    monkeypatch.setattr("app.data.runner.merge_panel", lambda **_: _panel())
+    monkeypatch.setattr("app.data.cli.merge_panel", lambda **_: _panel())
 
     result = CliRunner().invoke(
         ingest_data,
@@ -80,4 +81,4 @@ def test_quiet_suppresses_stage_lines(
 
     assert result.exit_code == 0, result.output
     assert "Wrote" in result.output
-    assert "resolving" not in result.output
+    assert "fetching sources" not in result.output

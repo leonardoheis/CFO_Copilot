@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 
+from app.injections import configure_container
+
 from .error_handlers import EXCEPTION_HANDLERS
 from .routes import ROUTERS
 
 
 def create_app() -> FastAPI:
+    configure_container()
     app = FastAPI(title="FastAPI Production Template")
 
     for router in ROUTERS:

@@ -1,9 +1,12 @@
 import logging
 import math
-from datetime import date
+from dataclasses import replace
+from datetime import date, timedelta
+from pathlib import Path
 
 import pandas as pd
 import pytest
+from syrupy.assertion import SnapshotAssertion
 
 from app.data.companies import CompanyRegistry
 from app.data.dates import quarter_end_dates
@@ -11,22 +14,23 @@ from app.data.exceptions import DataSourceUnavailableError
 from app.data.pipeline import (
     build_panel_skeleton,
     merge_panel,
-    most_recent_completed_quarter,
     resolve_date_range,
+    write_panel,
 )
 from app.data.schema import (
+    COST_OF_REVENUE_COLUMNS,
     FINANCIAL_COLUMNS,
     FRED_MACRO_COLUMNS,
     MARKET_COLUMNS,
     PANEL_COLUMNS,
 )
 from app.data.sources import FredSource, SecEdgarSource, YfinanceSource
-from app.data.sources_bundle import IngestionSources
-from app.settings import Settings
+from app.data.sources_bundle import FinancialsFetcher, IngestionSources
+from tests.data.conftest import FakeYahooTicker
 
-TEST_USER_AGENT = "CFO Copilot tests test@example.com"
 TEST_QUARTER_DATES = quarter_end_dates(date(2020, 1, 1), date(2020, 6, 30))
 EXPECTED_REVENUE = 1_000.0
+FISCAL_OFFSET_DAYS = 31
 EXPECTED_STOCK_PRICE = 100.0
 EXPECTED_FED_FUNDS = 1.0
 EXPECTED_SP500 = 0.05
@@ -38,12 +42,10 @@ EXPECTED_SHARES = 1_000_000_000.0
 EXPECTED_FALLBACK_EBITDA = 275.0
 
 
-class FakeMacroSource:
-    @staticmethod
-    def fetch_macro_panel(_start: date, _end: date) -> pd.DataFrame:
-        values = {column: [math.nan] * 2 for column in FRED_MACRO_COLUMNS}
-        values["fed_funds"] = [EXPECTED_FED_FUNDS, 2.0]
-        return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
+def fake_macro_panel(_start: date, _end: date) -> pd.DataFrame:
+    values = {column: [math.nan] * 2 for column in FRED_MACRO_COLUMNS}
+    values["fed_funds"] = [EXPECTED_FED_FUNDS, 2.0]
+    return pd.DataFrame({"date": TEST_QUARTER_DATES, **values})
 
 
 class FakeMarketSource:
@@ -70,56 +72,90 @@ class FakeMarketSource:
         return pd.Series(dtype=float)
 
 
-class FakeFinancialsSource:
-    @staticmethod
-    def fetch_financials_panel(
-        _ticker: str,
-        _start: date,
-        _end: date,
-        _splits: pd.Series,
-    ) -> pd.DataFrame:
-        values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
-        values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
-        values["net_income_usd_m"] = [100.0, 110.0]
-        values["eps"] = [EXPECTED_ADJUSTED_EPS, -1.0]
-        return pd.DataFrame(
-            {
-                "date": TEST_QUARTER_DATES,
-                **values,
-                "shares_outstanding": [EXPECTED_SHARES] * 2,
-            },
-        )
+def fake_sec_financials(
+    _ticker: str,
+    _start: date,
+    _end: date,
+    _splits: pd.Series,
+) -> pd.DataFrame:
+    values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
+    values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
+    values["net_income_usd_m"] = [100.0, 110.0]
+    values["eps"] = [EXPECTED_ADJUSTED_EPS, -1.0]
+    return pd.DataFrame(
+        {
+            "date": TEST_QUARTER_DATES,
+            **values,
+            "shares_outstanding": [EXPECTED_SHARES] * 2,
+            "period_end": TEST_QUARTER_DATES,
+            "financials_filed": TEST_QUARTER_DATES,
+            "financials_provenance": ["native"] * 2,
+        },
+    )
 
 
-class FakeFallbackFinancialsSource:
-    @staticmethod
-    def fetch_financials_panel(
-        _ticker: str,
-        _start: date,
-        _end: date,
-    ) -> pd.DataFrame:
-        values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
-        values["revenue_usd_m"] = [900.0, 950.0]
-        values["ebitda_usd_m"] = [EXPECTED_FALLBACK_EBITDA, 300.0]
-        values["eps"] = [10.0, 2.0]
-        return pd.DataFrame(
-            {
-                "date": TEST_QUARTER_DATES,
-                **values,
-                "shares_outstanding": [900_000_000.0] * 2,
-            },
-        )
+def fake_fiscal_sec_financials(
+    _ticker: str,
+    _start: date,
+    _end: date,
+    _splits: pd.Series,
+) -> pd.DataFrame:
+    """A filer whose quarters end a month after the calendar quarter they land in.
+
+    Returns:
+        A raw financials frame whose period ends are offset from their slots.
+    """
+    values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
+    values["revenue_usd_m"] = [EXPECTED_REVENUE, 1_100.0]
+    period_ends = [
+        quarter + timedelta(days=FISCAL_OFFSET_DAYS) for quarter in TEST_QUARTER_DATES
+    ]
+    return pd.DataFrame(
+        {
+            "date": TEST_QUARTER_DATES,
+            **values,
+            "shares_outstanding": [EXPECTED_SHARES] * 2,
+            "period_end": period_ends,
+            "financials_filed": period_ends,
+            "financials_provenance": ["native"] * 2,
+        },
+    )
 
 
-class FailingMacroSource:
-    @staticmethod
-    def fetch_macro_panel(_start: date, _end: date) -> pd.DataFrame:
-        msg = "macro source unavailable"
-        raise DataSourceUnavailableError(msg)
+def fake_fallback_financials(
+    _ticker: str,
+    _start: date,
+    _end: date,
+) -> pd.DataFrame:
+    values = {column: [math.nan] * 2 for column in FINANCIAL_COLUMNS}
+    values["revenue_usd_m"] = [900.0, 950.0]
+    values["ebitda_usd_m"] = [EXPECTED_FALLBACK_EBITDA, 300.0]
+    values["eps"] = [10.0, 2.0]
+    return pd.DataFrame(
+        {
+            "date": TEST_QUARTER_DATES,
+            **values,
+            "shares_outstanding": [900_000_000.0] * 2,
+            "period_end": TEST_QUARTER_DATES,
+            "financials_filed": [None] * 2,
+            "financials_provenance": ["alpha_vantage"] * 2,
+        },
+    )
 
 
-def test_most_recent_completed_quarter_for_august() -> None:
-    assert most_recent_completed_quarter(date(2026, 8, 9)) == date(2026, 6, 30)
+@pytest.fixture
+def fake_sources(company_registry: CompanyRegistry) -> IngestionSources:
+    return IngestionSources(
+        fetch_macro_panel=fake_macro_panel,
+        market=FakeMarketSource(),
+        fetch_sec_financials=fake_sec_financials,
+        registry=company_registry,
+    )
+
+
+def failing_macro_panel(_start: date, _end: date) -> pd.DataFrame:
+    msg = "macro source unavailable"
+    raise DataSourceUnavailableError(msg)
 
 
 def test_resolve_date_range_defaults_to_twenty_years() -> None:
@@ -154,22 +190,17 @@ def test_build_panel_skeleton_has_expected_columns_and_metadata(
     assert panel.loc[0, "ticker"] == "AMZN"
     assert panel.loc[0, "sector"] == "Consumer Cyclical"
     assert bool(panel.loc[0, "is_public"]) is True
-    assert pd.isna(panel.loc[0, "revenue_usd_m"])
+    assert panel["revenue_usd_m"].isna()[0]
 
 
 def test_merge_panel_fills_columns_from_every_source(
-    company_registry: CompanyRegistry,
+    fake_sources: IngestionSources,
 ) -> None:
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
-        sources=IngestionSources(
-            fred=FakeMacroSource(),
-            yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
-            registry=company_registry,
-        ),
+        sources=fake_sources,
     )
 
     assert list(panel.columns) == list(PANEL_COLUMNS)
@@ -181,38 +212,48 @@ def test_merge_panel_fills_columns_from_every_source(
     assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
 
 
-def test_merge_panel_derives_pe_ratio_from_price_and_earnings(
-    company_registry: CompanyRegistry,
+def test_a_written_panel_keeps_its_columns_and_dtypes_in_order(
+    tmp_path: Path,
+    snapshot: SnapshotAssertion,
+    fake_sources: IngestionSources,
 ) -> None:
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
-        sources=IngestionSources(
-            fred=FakeMacroSource(),
-            yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
-            registry=company_registry,
-        ),
+        sources=fake_sources,
+    )
+
+    written = pd.read_parquet(write_panel(panel, tmp_path / "AMZN_panel.parquet"))
+
+    assert [(column, str(dtype)) for column, dtype in written.dtypes.items()] == (
+        snapshot
+    )
+
+
+def test_merge_panel_derives_pe_ratio_from_price_and_earnings(
+    fake_sources: IngestionSources,
+) -> None:
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=fake_sources,
     )
 
     assert panel.loc[0, "pe_ratio"] == pytest.approx(EXPECTED_PE_RATIO)
-    assert pd.isna(panel.loc[1, "pe_ratio"])
+    assert panel["pe_ratio"].isna()[1]
 
 
 def test_merge_panel_fills_only_missing_sec_values_from_fallback(
-    company_registry: CompanyRegistry,
+    fake_sources: IngestionSources,
 ) -> None:
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
-        sources=IngestionSources(
-            fred=FakeMacroSource(),
-            yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
-            registry=company_registry,
-            financials_fallback=FakeFallbackFinancialsSource(),
+        sources=replace(
+            fake_sources, fetch_fallback_financials=fake_fallback_financials
         ),
     )
 
@@ -222,55 +263,233 @@ def test_merge_panel_fills_only_missing_sec_values_from_fallback(
     assert panel.loc[1, "eps"] == pytest.approx(2.0)
 
 
-def test_merge_panel_warns_when_gaps_remain_without_a_fallback(
-    company_registry: CompanyRegistry,
+def fake_fallback_with_gross_profit(
+    ticker: str,
+    start: date,
+    end: date,
+) -> pd.DataFrame:
+    return fake_fallback_financials(ticker, start, end).assign(
+        gross_profit_usd_m=[880.0, 930.0],
+        gross_margin=[0.98, 0.98],
+        opex_usd_m=[800.0, 850.0],
+        operating_income_usd_m=[80.0, 80.0],
+    )
+
+
+def test_merge_panel_leaves_cost_of_revenue_columns_empty_when_declared(
+    fake_sources: IngestionSources,
+) -> None:
+    """UNH files no cost of revenue; Alpha Vantage must not fill one in."""
+    panel = merge_panel(
+        ticker="UNH",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources, fetch_fallback_financials=fake_fallback_with_gross_profit
+        ),
+    )
+
+    assert panel[list(COST_OF_REVENUE_COLUMNS)].isna().all().all()
+    assert panel.loc[0, "revenue_usd_m"] == pytest.approx(EXPECTED_REVENUE)
+    assert panel["operating_income_usd_m"].tolist() == [80.0, 80.0]
+
+
+def test_merge_panel_leaves_only_opex_empty_when_opex_is_unreliable(
+    fake_sources: IngestionSources,
+) -> None:
+    """GE's opex cannot be rebuilt from SEC; its gross profit can."""
+    panel = merge_panel(
+        ticker="GE",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources, fetch_fallback_financials=fake_fallback_with_gross_profit
+        ),
+    )
+
+    assert panel["opex_usd_m"].isna().all()
+    assert panel["gross_profit_usd_m"].tolist() == [880.0, 930.0]
+
+
+def test_merge_panel_withholds_a_declared_quarter_even_from_the_fallback(
+    tmp_path: Path,
+    fake_sources: IngestionSources,
+) -> None:
+    """OXY 2025-Q4 mixes bases; Alpha Vantage must not fill it back in."""
+    registry_path = tmp_path / "companies.yaml"
+    registry_path.write_text(
+        """
+companies:
+  - tickers: [WHL]
+    panel:
+      company: Withheld
+      sector: Energy
+      is_public: true
+      withheld_quarters: {2020-03-31: full year minus nine months on another basis}
+    sec: {type: known_cik, cik: "0000000001"}
+    market: {type: from_ticker}
+""",
+        encoding="utf-8",
+    )
+
+    panel = merge_panel(
+        ticker="WHL",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources,
+            registry=CompanyRegistry.from_path(registry_path),
+            fetch_fallback_financials=fake_fallback_financials,
+        ),
+    )
+
+    assert panel.loc[0, list(FINANCIAL_COLUMNS)].isna().all()
+    assert panel.loc[1, "revenue_usd_m"] == pytest.approx(1_100.0)
+    assert panel.loc[0, "stock_price_usd"] == pytest.approx(EXPECTED_STOCK_PRICE)
+
+
+def test_merge_panel_keeps_fallback_gross_profit_for_other_companies(
+    fake_sources: IngestionSources,
+) -> None:
+    """The accepted risk: elsewhere Alpha Vantage still fills the gap."""
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources, fetch_fallback_financials=fake_fallback_with_gross_profit
+        ),
+    )
+
+    assert panel["gross_profit_usd_m"].tolist() == [880.0, 930.0]
+
+
+def complete_sec_financials_with_eps(eps: list[float]) -> FinancialsFetcher:
+    def fetch(ticker: str, start: date, end: date, splits: pd.Series) -> pd.DataFrame:
+        frame = fake_sec_financials(ticker, start, end, splits)
+        return frame.fillna(dict.fromkeys(FINANCIAL_COLUMNS, 1.0)).assign(eps=eps)
+
+    return fetch
+
+
+def test_a_gap_free_panel_still_repairs_a_split_restated_eps(
+    fake_sources: IngestionSources,
+) -> None:
+    """Positive net income with negative EPS is the GIS fiscal-2009 defect."""
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources,
+            fetch_sec_financials=complete_sec_financials_with_eps([0.25, -1.0]),
+            fetch_fallback_financials=fake_fallback_financials,
+        ),
+    )
+
+    assert panel["eps"].tolist() == [0.25, 2.0]
+    assert panel["ebitda_usd_m"].tolist() == [1.0, 1.0]
+
+
+def test_a_gap_free_consistent_panel_never_asks_the_fallback(
+    fake_sources: IngestionSources,
+) -> None:
+    calls: list[str] = []
+
+    def recording_fallback(ticker: str, start: date, end: date) -> pd.DataFrame:
+        calls.append(ticker)
+        return fake_fallback_financials(ticker, start, end)
+
+    merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(
+            fake_sources,
+            fetch_sec_financials=complete_sec_financials_with_eps([0.25, 0.3]),
+            fetch_fallback_financials=recording_fallback,
+        ),
+    )
+
+    assert not calls
+
+
+def test_an_unrepairable_inconsistent_eps_is_kept_and_reported(
     caplog: pytest.LogCaptureFixture,
+    fake_sources: IngestionSources,
+) -> None:
+    def fallback_without_positive_eps(
+        ticker: str, start: date, end: date
+    ) -> pd.DataFrame:
+        return fake_fallback_financials(ticker, start, end).assign(eps=[10.0, -2.0])
+
+    with caplog.at_level(logging.WARNING):
+        panel = merge_panel(
+            ticker="AMZN",
+            start=date(2020, 1, 1),
+            end=date(2020, 6, 30),
+            sources=replace(
+                fake_sources,
+                fetch_sec_financials=complete_sec_financials_with_eps([0.25, -1.0]),
+                fetch_fallback_financials=fallback_without_positive_eps,
+            ),
+        )
+
+    assert panel["eps"].tolist() == [0.25, -1.0]
+    assert "Keeping 1 inconsistent SEC EPS for AMZN" in caplog.text
+    assert "2020-06-30" in caplog.text
+
+
+def test_merge_panel_warns_when_gaps_remain_without_a_fallback(
+    caplog: pytest.LogCaptureFixture,
+    fake_sources: IngestionSources,
 ) -> None:
     with caplog.at_level(logging.WARNING):
         panel = merge_panel(
             ticker="AMZN",
             start=date(2020, 1, 1),
             end=date(2020, 6, 30),
-            sources=IngestionSources(
-                fred=FakeMacroSource(),
-                yfinance=FakeMarketSource(),
-                sec_edgar=FakeFinancialsSource(),
-                registry=company_registry,
-            ),
+            sources=fake_sources,
         )
 
-    assert pd.isna(panel.loc[0, "ebitda_usd_m"])
+    assert panel["ebitda_usd_m"].isna()[0]
     assert "No financials fallback configured for AMZN" in caplog.text
 
 
-def test_merge_panel_adjusts_eps_to_current_share_basis(
-    company_registry: CompanyRegistry,
+def test_merge_panel_hands_the_market_splits_to_the_sec_fetch(
+    monkeypatch: pytest.MonkeyPatch,
+    fake_sources: IngestionSources,
 ) -> None:
-    panel = merge_panel(
+    """SEC restates per-share figures on the current basis from these splits."""
+    amazon_splits = pd.Series([20.0], index=pd.DatetimeIndex(["2022-06-06"]))
+    market = FakeMarketSource()
+    monkeypatch.setattr(market, "fetch_splits", lambda _ticker: amazon_splits)
+    received: list[pd.Series] = []
+
+    def recording_sec_financials(
+        ticker: str, start: date, end: date, splits: pd.Series
+    ) -> pd.DataFrame:
+        received.append(splits)
+        return fake_sec_financials(ticker, start, end, splits)
+
+    merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
-        sources=IngestionSources(
-            fred=FakeMacroSource(),
-            yfinance=FakeMarketSource(),
-            sec_edgar=FakeFinancialsSource(),
-            registry=company_registry,
+        sources=replace(
+            fake_sources, market=market, fetch_sec_financials=recording_sec_financials
         ),
     )
 
-    assert panel.loc[0, "eps"] == pytest.approx(EXPECTED_ADJUSTED_EPS)
+    assert len(received) == 1
+    pd.testing.assert_series_equal(received[0], amazon_splits)
 
 
 def test_merge_panel_propagates_source_errors(
-    company_registry: CompanyRegistry,
+    fake_sources: IngestionSources,
 ) -> None:
     start, end = date(2020, 1, 1), date(2020, 6, 30)
-    sources = IngestionSources(
-        fred=FailingMacroSource(),
-        yfinance=FakeMarketSource(),
-        sec_edgar=FakeFinancialsSource(),
-        registry=company_registry,
-    )
+    sources = replace(fake_sources, fetch_macro_panel=failing_macro_panel)
 
     with pytest.raises(DataSourceUnavailableError, match="macro source unavailable"):
         merge_panel(ticker="AMZN", start=start, end=end, sources=sources)
@@ -279,18 +498,32 @@ def test_merge_panel_propagates_source_errors(
 @pytest.mark.vcr
 def test_merge_panel_returns_panel_after_all_sources_are_implemented(
     company_registry: CompanyRegistry,
+    sec_source: SecEdgarSource,
+    fred_source: FredSource,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    quarter_closes = pd.DataFrame(
+        {"Close": [90.0, 92.0, 94.0, 97.49, 137.94]},
+        index=pd.DatetimeIndex([
+            "2019-06-28",
+            "2019-09-30",
+            "2019-12-31",
+            "2020-03-31",
+            "2020-06-30",
+        ]),
+    )
+    monkeypatch.setattr(
+        "app.data.sources.yfinance_source.source.yf.Ticker",
+        lambda _ticker: FakeYahooTicker(history=quarter_closes),
+    )
     panel = merge_panel(
         ticker="AMZN",
         start=date(2020, 1, 1),
         end=date(2020, 6, 30),
         sources=IngestionSources(
-            fred=FredSource(api_key=Settings.FRED_API_KEY or "test-key"),
-            yfinance=YfinanceSource(registry=company_registry),
-            sec_edgar=SecEdgarSource(
-                user_agent=Settings.SEC_USER_AGENT or TEST_USER_AGENT,
-                registry=company_registry,
-            ),
+            fetch_macro_panel=fred_source.fetch_macro_panel,
+            market=YfinanceSource(registry=company_registry),
+            fetch_sec_financials=sec_source.fetch_financials_panel,
             registry=company_registry,
         ),
     )
@@ -302,3 +535,26 @@ def test_merge_panel_returns_panel_after_all_sources_are_implemented(
     assert panel["fed_funds"].notna().any()
     assert panel["eps"].notna().any()
     assert panel["pe_ratio"].notna().any()
+
+
+def test_merge_panel_records_how_far_a_period_end_sits_from_its_quarter(
+    fake_sources: IngestionSources,
+) -> None:
+    """A fiscal row must be identifiable from the panel without re-querying SEC."""
+    panel = merge_panel(
+        ticker="AMZN",
+        start=date(2020, 1, 1),
+        end=date(2020, 6, 30),
+        sources=replace(fake_sources, fetch_sec_financials=fake_fiscal_sec_financials),
+    )
+
+    assert panel["period_end_offset_days"].tolist() == [FISCAL_OFFSET_DAYS] * 2
+    assert panel["financials_provenance"].tolist() == ["native"] * 2
+
+
+def test_write_panel_creates_the_missing_directory(tmp_path: Path) -> None:
+    output_path = tmp_path / "data" / "processed" / "AAPL_panel.parquet"
+
+    write_panel(pd.DataFrame({"revenue_usd_m": [1.0]}), output_path)
+
+    assert output_path.is_file()

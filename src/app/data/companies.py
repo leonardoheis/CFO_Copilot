@@ -1,11 +1,16 @@
 from collections import Counter
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Literal, assert_never
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.data.dates import is_quarter_end
+from app.data.exceptions import ConfigError
+from app.data.schema import COST_OF_REVENUE_COLUMNS
 
 CIK_LENGTH = 10
 
@@ -15,6 +20,23 @@ class CompanyPanelMetadata:
     company: str
     sector: str
     is_public: bool
+    has_cost_of_revenue: bool = True
+    has_reliable_opex: bool = True
+    # Quarter end -> why its financials are withheld (two reporting bases mixed).
+    withheld_quarters: Mapping[date, str] = field(default_factory=dict)
+
+    def declared_empty_columns(self) -> dict[str, str]:
+        """Map each column declared empty for the whole history to its reason.
+
+        Returns:
+            Column name to reason; empty for a company with nothing declared.
+        """
+        declared: dict[str, str] = {}
+        if not self.has_reliable_opex:
+            declared["opex_usd_m"] = "unreliable_opex"
+        if not self.has_cost_of_revenue:
+            declared |= dict.fromkeys(COST_OF_REVENUE_COLUMNS, "no_cost_of_revenue")
+        return declared
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +79,26 @@ class _PanelConfig(BaseModel):
     company: str
     sector: str
     is_public: bool
+    has_cost_of_revenue: bool = True
+    has_reliable_opex: bool = True
+    withheld_quarters: dict[date, str] = {}
+
+    @field_validator("withheld_quarters")
+    @classmethod
+    def require_quarter_ends(cls, withheld: dict[date, str]) -> dict[date, str]:
+        """Reject a withheld date the panel has no row for.
+
+        Returns:
+            The validated mapping.
+
+        Raises:
+            ValueError: If a date is not a calendar quarter end.
+        """
+        for day in withheld:
+            if not is_quarter_end(day):
+                msg = f"withheld quarter {day} is not a quarter end"
+                raise ValueError(msg)
+        return withheld
 
 
 class _KnownCikConfig(BaseModel):
@@ -121,8 +163,12 @@ class _RegistryConfig(BaseModel):
     companies: tuple[_CompanyConfig, ...]
 
 
+def is_valid_cik(cik: str) -> bool:
+    return len(cik) == CIK_LENGTH and cik.isdigit()
+
+
 def _validate_cik(cik: str) -> str:
-    if len(cik) != CIK_LENGTH or not cik.isdigit():
+    if not is_valid_cik(cik):
         msg = f"CIK must contain exactly {CIK_LENGTH} digits"
         raise ValueError(msg)
     return cik
@@ -172,6 +218,9 @@ def _to_domain_company(config: _CompanyConfig) -> ScrapedCompany:
         company=config.panel.company,
         sector=config.panel.sector,
         is_public=config.panel.is_public,
+        has_cost_of_revenue=config.panel.has_cost_of_revenue,
+        has_reliable_opex=config.panel.has_reliable_opex,
+        withheld_quarters=config.panel.withheld_quarters,
     )
     return ScrapedCompany(
         tickers=config.tickers,
@@ -188,7 +237,7 @@ def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
         A tuple of validated company profiles.
 
     Raises:
-        ValueError: If the file is unreadable, malformed, or has duplicate tickers.
+        ConfigError: If the file is unreadable, malformed, or has duplicate tickers.
     """
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -196,7 +245,7 @@ def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
         companies = tuple(_to_domain_company(item) for item in config.companies)
     except (OSError, TypeError, ValueError, yaml.YAMLError) as error:
         msg = f"Invalid company registry {path}: {error}"
-        raise ValueError(msg) from error
+        raise ConfigError(msg) from error
 
     ticker_counts = Counter(
         ticker for company in companies for ticker in company.tickers
@@ -205,7 +254,7 @@ def load_company_registry(path: Path) -> tuple[ScrapedCompany, ...]:
     if duplicates:
         alias_list = ", ".join(duplicates)
         duplicate_msg = f"Duplicate company ticker aliases: {alias_list}"
-        raise ValueError(duplicate_msg)
+        raise ConfigError(duplicate_msg)
     return companies
 
 
@@ -295,15 +344,3 @@ class CompanyRegistry:
             case _ as unreachable:
                 assert_never(unreachable)
         return tuple(ciks)
-
-    def primary_sec_cik(
-        self,
-        ticker: str,
-        lookup_cik: Callable[[str], str],
-    ) -> str:
-        """Return the current SEC CIK for a ticker.
-
-        Returns:
-            The most recent CIK, which is the last entry for dual filers.
-        """
-        return self.sec_ciks(ticker, lookup_cik)[-1]

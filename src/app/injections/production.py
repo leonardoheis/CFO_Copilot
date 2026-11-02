@@ -1,6 +1,12 @@
 from dependency_injector import containers, providers
+from fredapi import Fred
 
 from app.data.companies import CompanyRegistry
+from app.data.feature_store import FeatureStore
+from app.data.ingestion_defects import load_ingestion_defects
+from app.data.panel_store import PanelStore
+from app.data.report_store import ReportStore
+from app.data.schema import MACRO_COLUMNS
 from app.data.sources import (
     AlphaVantageSource,
     FredSource,
@@ -8,7 +14,38 @@ from app.data.sources import (
     YfinanceSource,
 )
 from app.data.sources_bundle import IngestionSources
+from app.data.structural_breaks import load_structural_breaks
 from app.services import PredictionService, TrainingService
+from app.services.diagnostics import (
+    AutoProfiler,
+    CorrelationAnalyzer,
+    CorrelationSettings,
+    DecisionSettings,
+    DecisionTableBuilder,
+    DiagnosticsService,
+    DiagnosticsSettings,
+    EdaFigures,
+    FeatureAuditor,
+    FigureSettings,
+    MacroCorrelator,
+    OutlierRegister,
+    OutlierSettings,
+    ProfileSettings,
+    RegimeSettings,
+    SeasonalityRegimeClusterer,
+    SegmentProfiler,
+    SegmentSettings,
+    SeriesDiagnostician,
+    TransformComparer,
+)
+from app.services.features import (
+    FeatureBuilder,
+    FeatureService,
+    FeatureSpec,
+    LeakageSettings,
+    LookaheadGuard,
+)
+from app.services.tracking import WandbSettings, WandbTracker
 from app.settings import Settings
 
 
@@ -21,26 +58,94 @@ class Container(containers.DeclarativeContainer):
         Settings.COMPANY_REGISTRY_PATH,
     )
 
-    fred_source = providers.Factory(FredSource, api_key=Settings.FRED_API_KEY)
+    fred_source = providers.Factory(
+        FredSource, client=providers.Factory(Fred, api_key=Settings.FRED_API_KEY)
+    )
     yfinance_source = providers.Factory(YfinanceSource, registry=company_registry)
     sec_edgar_source = providers.Factory(
         SecEdgarSource,
         user_agent=Settings.SEC_USER_AGENT,
         registry=company_registry,
+        timeout=Settings.REQUEST_TIMEOUT,
     )
     alpha_vantage_source = providers.Factory(
         AlphaVantageSource,
         api_key=Settings.ALPHA_VANTAGE_API_KEY,
         cache_directory=Settings.DATA_DIRECTORY / "raw" / "alpha_vantage",
+        timeout=Settings.REQUEST_TIMEOUT,
     )
 
     ingestion_sources = providers.Factory(
-        IngestionSources,
+        IngestionSources.from_sources,
         fred=fred_source,
-        yfinance=yfinance_source,
+        market=yfinance_source,
         sec_edgar=sec_edgar_source,
         registry=company_registry,
-        financials_fallback=(
-            alpha_vantage_source if Settings.ALPHA_VANTAGE_API_KEY else None
+        alpha_vantage=alpha_vantage_source if Settings.ALPHA_VANTAGE_API_KEY else None,
+    )
+
+    panel_store = providers.Factory(PanelStore, directory=Settings.PROCESSED_DIRECTORY)
+    experiment_tracker = providers.Factory(
+        WandbTracker,
+        settings=WandbSettings(
+            project=Settings.WANDB_PROJECT,
+            entity=Settings.WANDB_ENTITY or None,
+            mode=Settings.WANDB_MODE,
+            api_key=Settings.WANDB_API_KEY,
+            run_directory=Settings.WANDB_DIR,
         ),
+    )
+    structural_breaks = providers.Singleton(
+        load_structural_breaks, Settings.STRUCTURAL_BREAKS_PATH
+    )
+    ingestion_defects = providers.Singleton(
+        load_ingestion_defects, Settings.INGESTION_DEFECTS_PATH
+    )
+
+    diagnostics_settings = providers.Singleton(DiagnosticsSettings)
+    outlier_settings = providers.Singleton(OutlierSettings)
+    outlier_register = providers.Factory(OutlierRegister, settings=outlier_settings)
+
+    diagnostics_service = providers.Factory(
+        DiagnosticsService,
+        diagnostician=providers.Factory(
+            SeriesDiagnostician, settings=diagnostics_settings
+        ),
+    )
+    seasonality_clusterer = providers.Factory(
+        SeasonalityRegimeClusterer, settings=RegimeSettings()
+    )
+    macro_correlator = providers.Factory(MacroCorrelator, macro_columns=MACRO_COLUMNS)
+    feature_service = providers.Factory(
+        FeatureService,
+        builder=providers.Factory(FeatureBuilder, spec=FeatureSpec()),
+        guard=providers.Factory(LookaheadGuard, settings=LeakageSettings()),
+    )
+    feature_store = providers.Factory(
+        FeatureStore, directory=Settings.DATA_DIRECTORY / "features"
+    )
+    correlation_analyzer = providers.Factory(
+        CorrelationAnalyzer, settings=CorrelationSettings()
+    )
+    eda_figures = providers.Factory(
+        EdaFigures,
+        settings=FigureSettings(),
+        outlier_register=outlier_register,
+        diagnostics_settings=diagnostics_settings,
+    )
+    segment_profiler = providers.Factory(SegmentProfiler, settings=SegmentSettings())
+    transform_comparer = providers.Factory(
+        TransformComparer, settings=diagnostics_settings
+    )
+    decision_table_builder = providers.Factory(
+        DecisionTableBuilder, settings=DecisionSettings()
+    )
+    feature_auditor = providers.Factory(
+        FeatureAuditor, correlations=correlation_analyzer
+    )
+    report_store = providers.Factory(
+        ReportStore, directory=Settings.DATA_DIRECTORY / "reports"
+    )
+    auto_profiler = providers.Factory(
+        AutoProfiler, store=report_store, settings=ProfileSettings()
     )

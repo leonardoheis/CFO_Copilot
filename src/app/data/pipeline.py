@@ -1,14 +1,16 @@
 import logging
+import math
 from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pandas as pd
 
 from app.data.companies import CompanyRegistry
-from app.data.dates import quarter_end_dates
+from app.data.dates import most_recent_completed_quarter, quarter_end_dates
 from app.data.schema import (
     FINANCIAL_COLUMNS,
     METADATA_COLUMNS,
+    MILLIONS_DIVISOR,
     PANEL_COLUMNS,
 )
 from app.data.sources_bundle import IngestionSources
@@ -16,21 +18,6 @@ from app.data.sources_bundle import IngestionSources
 logger = logging.getLogger(__name__)
 
 DEFAULT_HISTORY_YEARS = 20
-XBRL_HISTORY_START = date(2008, 4, 1)
-MILLIONS_DIVISOR = 1_000_000
-Q1_END_MONTH = 3
-Q2_END_MONTH = 6
-Q3_END_MONTH = 9
-
-
-def most_recent_completed_quarter(as_of: date) -> date:
-    if as_of.month <= Q1_END_MONTH:
-        return date(as_of.year - 1, 12, 31)
-    if as_of.month <= Q2_END_MONTH:
-        return date(as_of.year, 3, 31)
-    if as_of.month <= Q3_END_MONTH:
-        return date(as_of.year, 6, 30)
-    return date(as_of.year, 9, 30)
 
 
 def resolve_date_range(
@@ -81,8 +68,8 @@ def merge_panel(
         :,
         list(METADATA_COLUMNS),
     ]
-    splits = sources.yfinance.fetch_splits(ticker)
-    financials = sources.sec_edgar.fetch_financials_panel(
+    splits = sources.market.fetch_splits(ticker)
+    financials = sources.fetch_sec_financials(
         ticker,
         start,
         end,
@@ -95,9 +82,18 @@ def merge_panel(
         end,
         sources,
     )
-    market = sources.yfinance.fetch_market_panel(ticker, start, end)
-    macro = sources.fred.fetch_macro_panel(start, end)
-    index_returns = sources.yfinance.fetch_index_return_panel(start, end)
+    # After the fallback, or Alpha Vantage would refill what is blanked here.
+    metadata = sources.registry.company_metadata(ticker)
+    financials = financials.assign(
+        **dict.fromkeys(metadata.declared_empty_columns(), math.nan)
+    )
+    withheld = pd.to_datetime(financials["date"]).dt.date.isin(
+        metadata.withheld_quarters
+    )
+    financials.loc[withheld, list(FINANCIAL_COLUMNS)] = math.nan
+    market = sources.market.fetch_market_panel(ticker, start, end)
+    macro = sources.fetch_macro_panel(start, end)
+    index_returns = sources.market.fetch_index_return_panel(start, end)
 
     for source_panel in (financials, market, macro, index_returns):
         panel = panel.merge(source_panel, on="date", how="left")
@@ -109,7 +105,19 @@ def merge_panel(
         panel["stock_price_usd"],
         panel["eps"],
     )
+    panel["period_end_offset_days"] = _period_end_offset_days(panel)
     return panel.loc[:, list(PANEL_COLUMNS)]
+
+
+def _period_end_offset_days(panel: pd.DataFrame) -> pd.Series:
+    """Signed days between a row's own period end and the quarter it is filed under.
+
+    Returns:
+        A nullable integer series; zero for a calendar filer, non-zero for a
+        fiscal one, and null where no period end is known.
+    """
+    offset = pd.to_datetime(panel["period_end"]) - pd.to_datetime(panel["date"])
+    return offset.dt.days.astype("Int64")
 
 
 def _fill_missing_financials(
@@ -119,37 +127,59 @@ def _fill_missing_financials(
     end: date,
     sources: IngestionSources,
 ) -> pd.DataFrame:
-    fallback_source = sources.financials_fallback
+    fetch_fallback = sources.fetch_fallback_financials
     value_columns = [*FINANCIAL_COLUMNS, "shares_outstanding"]
     missing_count = int(financials[value_columns].isna().to_numpy().sum())
-    if missing_count == 0:
+    preferred = financials.set_index("date")
+    # Positive net income and non-positive EPS cannot describe the same common
+    # earnings period. This occurs when SEC annual EPS was split-restated but
+    # its nine-month comparator was not, producing a false negative Q4 value.
+    inconsistent_eps = preferred["net_income_usd_m"].gt(0) & preferred["eps"].le(0)
+    if missing_count == 0 and not inconsistent_eps.any():
         return financials
 
-    if fallback_source is None:
+    if fetch_fallback is None:
         # Without this the panel is written with the gaps still in it and no
         # trace of why, which reads as missing source data rather than as a
         # fallback that was never wired (an unset ALPHA_VANTAGE_API_KEY).
         logger.warning(
-            "No financials fallback configured for %s; leaving %d missing values",
+            "No financials fallback configured for %s; %d gaps, %d inconsistent EPS",
             ticker.upper(),
             missing_count,
+            int(inconsistent_eps.sum()),
         )
         return financials
 
-    fallback = fallback_source.fetch_financials_panel(ticker, start, end)
-    preferred = financials.set_index("date")
-    supplemental = fallback.set_index("date")
+    supplemental = fetch_fallback(ticker, start, end).set_index("date")
     combined = preferred.combine_first(supplemental)
-
-    # Positive net income and non-positive EPS cannot describe the same common
-    # earnings period. This occurs when SEC annual EPS was split-restated but
-    # its nine-month comparator was not, producing a false negative Q4 value.
-    # Prefer a positive fallback EPS only for that internally inconsistent case.
-    inconsistent_eps = preferred["net_income_usd_m"].gt(0) & preferred["eps"].le(0)
-    positive_fallback_eps = supplemental["eps"].where(supplemental["eps"].gt(0))
-    replacement_eps = positive_fallback_eps.loc[inconsistent_eps]
-    combined.loc[replacement_eps.dropna().index, "eps"] = replacement_eps.dropna()
+    combined.loc[:, "eps"] = _with_split_restated_eps_repaired(
+        combined["eps"], supplemental["eps"], inconsistent_eps, ticker
+    )
     return combined.reset_index()
+
+
+def _with_split_restated_eps_repaired(
+    eps: pd.Series,
+    fallback_eps: pd.Series,
+    inconsistent_eps: pd.Series,
+    ticker: str,
+) -> pd.Series:
+    """Take the fallback's EPS for inconsistent quarters, only where it is positive.
+
+    Returns:
+        The EPS series with the repairable quarters replaced.
+    """
+    inconsistent_dates = inconsistent_eps.index[inconsistent_eps]
+    replacement = fallback_eps.where(fallback_eps.gt(0)).reindex(inconsistent_dates)
+    unrepaired = replacement.index[replacement.isna()]
+    if len(unrepaired):
+        logger.warning(
+            "Keeping %d inconsistent SEC EPS for %s; no positive fallback: %s",
+            len(unrepaired),
+            ticker.upper(),
+            ", ".join(str(quarter) for quarter in unrepaired),
+        )
+    return eps.where(~eps.index.isin(replacement.dropna().index), replacement)
 
 
 def price_earnings_ratio(stock_price: pd.Series, eps: pd.Series) -> pd.Series:

@@ -229,13 +229,12 @@ src/app/data/
 ├── companies.py      # CompanyRegistry, loaded from config/companies.yaml
 ├── dates.py          # shared quarter/date helpers
 ├── splits.py         # shared split-adjustment helpers
-├── xbrl.py           # shared XBRL fact handling
 ├── pipeline.py       # panel assembly
 ├── schema.py         # FINANCIAL_COLUMNS and panel shape
 └── sources/          # one package per vendor
     ├── alpha_vantage/   # source.py + parsing.py
     ├── fred/            # source.py only — nothing pure to separate
-    ├── sec_edgar/       # source.py + parsing.py + concepts.py
+    ├── sec_edgar/       # source.py + parsing.py + chains.py + concepts.py + xbrl.py + xbrl_facts.py
     └── yfinance_source/ # source.py + fetching.py
 ```
 
@@ -244,8 +243,8 @@ The three rules worth knowing before you open CLAUDE.md:
 - **`source.py` imports from `parsing.py`, never the reverse.** Keep it acyclic.
 - **Vendor field names stay inside their package.** `fiscalDateEnding`,
   `totalRevenue` and us-gaap tags must not appear outside — this is an
-  Anti-Corruption Layer. Genuinely shared logic goes in `data/dates.py`,
-  `splits.py` or `xbrl.py`.
+  Anti-Corruption Layer. Genuinely shared logic goes in `data/dates.py` or
+  `splits.py`.
 - **Only `__init__.py` defines the public surface.** Import
   `from app.data.sources import SecEdgarSource`, never a submodule path.
 
