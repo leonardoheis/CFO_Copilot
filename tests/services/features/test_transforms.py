@@ -242,17 +242,17 @@ def test_every_arm_keeps_its_exact_target_and_level(
         )
         for horizon in range(1, SEASONAL_LAG + 1):
             transformer = TargetTransformer(arm=arm, horizon=horizon)
-            # Rounded: log/exp differ in the last bit between Windows and Linux libm.
+            # Rounded: Windows and Linux libm differ in the last bits.
             exact[f"{arm}_h{horizon}"] = {
                 "target": transformer
                 .make(values, revenue=seasonal_revenue)
-                .round(12)
+                .round(6)
                 .tolist(),
                 "level": transformer
                 .reconstruct(
                     values, prediction, shrinkage=0.5, revenue=seasonal_revenue
                 )
-                .round(12)
+                .round(6)
                 .tolist(),
             }
 

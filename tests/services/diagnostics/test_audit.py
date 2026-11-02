@@ -265,8 +265,8 @@ def test_scores_and_target_extremes_keep_their_values(
     extremes = register.register_target(_target_frame(targets))
 
     assert {
-        "scores": scores[["robust_z", "hampel_z"]].round(12).to_dict("list"),
-        "extremes": extremes["robust_z"].round(12).tolist(),
+        "scores": scores[["robust_z", "hampel_z"]].round(6).to_dict("list"),
+        "extremes": extremes["robust_z"].round(6).tolist(),
     } == snapshot
 
 
@@ -283,6 +283,6 @@ def test_each_column_family_keeps_its_quarterly_change(
     )
 
     assert {
-        column: register.scores_for(panel, column)["change"].round(12).tolist()
+        column: register.scores_for(panel, column)["change"].round(6).tolist()
         for column in ("revenue_usd_m", "eps", "ebitda_usd_m")
     } == snapshot

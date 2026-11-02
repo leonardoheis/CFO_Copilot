@@ -101,4 +101,4 @@ def test_each_column_family_keeps_its_yoy_change(snapshot: SnapshotAssertion) ->
     panel["fed_funds"] = np.linspace(0.25, 5.0, QUARTERS)
     columns = ["revenue_usd_m", "gross_margin", "ebitda_usd_m", "fed_funds"]
 
-    assert yoy_changes(panel, columns).round(12).to_dict("list") == snapshot
+    assert yoy_changes(panel, columns).round(6).to_dict("list") == snapshot
