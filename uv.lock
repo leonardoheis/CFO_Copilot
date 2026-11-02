@@ -69,6 +69,7 @@ dependencies = [
     { name = "requests" },
     { name = "scikit-learn" },
     { name = "scipy" },
+    { name = "seaborn" },
     { name = "statsmodels" },
     { name = "streamlit" },
     { name = "uvicorn", extra = ["standard"] },
@@ -94,7 +95,6 @@ lint = [
 ]
 research = [
     { name = "ipykernel" },
-    { name = "seaborn" },
     { name = "setuptools" },
     { name = "wandb" },
     { name = "ydata-profiling" },
@@ -127,6 +127,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.32.4" },
     { name = "scikit-learn", specifier = ">=1.7.1" },
     { name = "scipy", specifier = ">=1.16.1" },
+    { name = "seaborn", specifier = ">=0.13" },
     { name = "statsmodels", specifier = ">=0.15.0" },
     { name = "streamlit", specifier = ">=1.48.0" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.35.0" },
@@ -152,7 +153,6 @@ lint = [
 ]
 research = [
     { name = "ipykernel", specifier = ">=7.3.0" },
-    { name = "seaborn", specifier = ">=0.13" },
     { name = "setuptools", specifier = "<81" },
     { name = "wandb", specifier = ">=0.26.1" },
     { name = "ydata-profiling", specifier = ">=4.18.4" },
