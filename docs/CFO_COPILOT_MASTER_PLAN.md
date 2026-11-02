@@ -39,6 +39,8 @@
 | D22 | Significance testing: **HLN-corrected Diebold-Mariano + Model Confidence Set** | 81 quarters is a small sample, so uncorrected DM over-rejects [`harvey1997testing`]; MCS gives family-wise error control across many model families [`hansen2011mcs`] |
 | D23 | The residual-shrinkage design is framed as **forecast combination with a benchmark anchor** | Puts it in an established literature (FFORMA, M4 combination findings) rather than presenting it as ad hoc [`monteromanso2020fforma`, `makridakis2020m4`] |
 | D24 | Macro block expanded to 10 variables: +yield_spread_10y2y, +mfg_confidence, +sp500_return_lag1 | Yield spread and mfg_confidence are FRED, same pipeline as the existing 7; S&P500 is yfinance and must be lagged to avoid reverse causality with the panel's own constituents |
+| D25 | **One metric set, shared with the thesis:** RMSE, MAE and MASE for every target; MAPE for revenue only; R² as **out-of-sample R² against the baseline to beat**. Intervals: coverage, width, Winkler (CRPS/pinball when quantiles exist). Significance: HLN-corrected DM (D22). All on the per-target error scale of `docs/specs/nb02-evaluation-harness.md` (R5) | The thesis committed to RMSE, MAE, MAPE and R²; MASE is added. On the frozen data (2026-10-31) seasonal naive at h = 1 gives a level R² of 0.98 (company size, not skill) and MAPE means of 71 % (operating income) and 221 % (FCF), from near-zero quarters. Decided 2026-10-31 |
+| D26 | **Model roster: core = the thesis commitments, made concrete; the rest optional.** Core: baselines (NB02); ARIMA/SARIMA(X) and ETS via StatsForecast (NB03); linear regression (RidgeCV/ElasticNet) and LightGBM (NB04); LSTM (NB05); AutoGluon-TimeSeries (NB07); final ensemble (NB08). Optional: CatBoost, NHITS, N-BEATS, TFT, PatchTST, and the NB06 foundation models | Keeps the thesis contract (ARIMA/SARIMA, LSTM, AutoML, linear regression, ensemble) and makes each one runnable. AutoGluon replaces PyCaret, whose TS module is local-only and cannot pool 60 companies. Conformal intervals use MAPIE where it fits (named in the thesis). Decided 2026-10-31 |
 
 ### 0.2 Deferred — decide at the named point, not now
 
@@ -147,7 +149,7 @@ git_sha: ...
 seed: 42
 ```
 
-**Metrics** logged per run and per company (so the sector breakdown is queryable): MAE, RMSE, MASE, CRPS, coverage@{80,90,95}, mean interval width, Winkler, DM statistic vs seasonal naive.
+**Metrics** logged per run and per company (so the sector breakdown is queryable), per D25: MAE, RMSE, MASE, MAPE (revenue only), out-of-sample R² vs the baseline to beat, CRPS, coverage@{80,90,95}, mean interval width, Winkler, DM statistic vs the baseline to beat.
 
 **Artifacts with lineage:**
 
@@ -355,22 +357,21 @@ Panel-level (the chapter's best figures):
 - Transform comparison (O1): log vs sqrt vs Box-Cox vs per-sector, on variance stability and residual normality
 - **Exit:** every (company, variable) has a diagnostics record; macro heatmap shows clear sector differentiation
 
-### NB02 — Harness & feature store  ← KEYSTONE, build first
+### NB02 — Evaluation harness  ← KEYSTONE, build first
+Spec `docs/specs/nb02-evaluation-harness.md`, plan `docs/plans/nb02-evaluation-harness.md`. The feature builder, the transform round-trip test and the feature leakage check already shipped with NB01 (`data/features/`).
 - `evaluate()` per §4, both protocols
-- Feature builder: lags 1–5 + 8, rolling mean/std 4 and 8q, momentum, lag-1 margins, lag-1 macro, quarter dummy, ticker/sector/regime categoricals, covid/break/outlier flags
-- Transform + inverse with round-trip test
-- **Leakage assertions:** no feature references date ≥ origin; `is_projected` rows excluded; macro source recorded
-- **Metric computation lives here, not in model notebooks.** All errors converted to log-level of the variable at t+h before comparison — MAE on a QoQ target and MAE on a YoY target are different quantities
-- Baselines: seasonal naive, naive, drift
-- Conformal wrappers (EnbPI for A, cross-conformal for B)
-- **Exit:** `evaluate()` reproduces the seasonal-naive baseline bit-for-bit twice; all leakage assertions pass; **then freeze and tag `nb02-v1.0.0`**
+- **Training cut-off on the target date**, not the origin date (a row trains at origin t only if its target date ≤ t)
+- **Metric computation lives here, not in model notebooks** (D25). Errors go on one scale per target: log level for revenue; level error ÷ trailing four-quarter revenue for the three signed targets, which cross zero. MAE on a QoQ target and MAE on a YoY target are different quantities
+- Baselines: seasonal naive, seasonal naive with growth, naive, drift. The baseline to beat is the better seasonal one per target and horizon (at 60 companies, with growth wins only revenue h = 1)
+- Conformal wrappers (EnbPI/ACI for A, cross-conformal for B), via MAPIE where it fits
+- **Exit:** `evaluate()` reproduces the baselines bit-for-bit twice; all leakage assertions pass; spec acceptance A1–A7; **then freeze and tag `nb02-v1.0.0`**
 
 ### NB03 — Statistical
-Seasonal naive, drift, ETS, Theta, AutoARIMA, **SARIMAX + macro exog**, per company via `statsforecast`. Record each model's minimum viable H for Protocol B.
+The thesis's ARIMA/SARIMA arm (D26). ETS, Theta, AutoARIMA (SARIMA orders), **SARIMAX + macro exog**, per company via `statsforecast`; the baselines come from NB02. Record each model's minimum viable H for Protocol B.
 - **Exit:** SARIMAX beats seasonal naive on Protocol A at h=1, or a documented reason why not
 
 ### NB04 — Gradient boosting & linear
-Pooled LightGBM, CatBoost, RidgeCV, ElasticNet. Quantile regression for PI, bootstrap for CI.
+The thesis's linear-regression arm plus LightGBM (D26): pooled LightGBM, RidgeCV, ElasticNet; CatBoost optional. Quantile regression for PI, bootstrap for CI.
 
 **Three target arms** (measured at 7 companies, Appendix D; ranking changes with feature count so nothing is locked):
 
@@ -409,10 +410,12 @@ that's a sign of residual endogeneity rather than genuine macro signal, and the
 variable should be dropped or the lag lengthened.
 
 ### NB05 — Deep global
-LSTM (committed in TP5 — **performed regardless of outcome**), NHITS, N-BEATS, TFT, PatchTST via `neuralforecast`. Static covariates = ticker, sector, regime. 10-seed ensembles for CI. TFT variable importances → explainability artifact.
+LSTM (committed in TP5 — **performed regardless of outcome**; core per D26). NHITS, N-BEATS, TFT, PatchTST via `neuralforecast` are optional. Static covariates = ticker, sector, regime. 10-seed ensembles for CI. TFT variable importances → explainability artifact.
 - **Exit:** reported honestly even if LSTM loses to NHITS and to LightGBM. A documented negative result on deep learning under small-sample financial data is a legitimate finding.
 
-### NB06 — Foundation models
+### NB06 — Foundation models (optional, D26)
+Run only if time allows after NB05; NB07 and NB08 do not depend on it.
+
 **Inclusion criteria** — all four required: open weights, published pretraining corpus, version pinnable, no third-party data egress. Your series are the most redistributed numeric series on the internet, so an undisclosed corpus makes zero-shot claims unfalsifiable.
 
 Primary arms: **TabPFN-TS** (D20 — the primary cold-start baseline: 11M parameters, pretrained on synthetic tabular data only, so contamination-free on these series, and explicitly built for small data), **Chronos-2** (group attention gives zero-shot *covariate-informed* forecasting — directly relevant to the 7-variable macro block), **TimesFM-2.5**, **Moirai-2 / Moirai-MoE** (Any-Variate Attention takes the macro block as covariates).
@@ -422,12 +425,13 @@ Check the GIFT-Eval leaderboard before finalising; it moves monthly.
 - **Exit:** at least one foundation model beats pooled LightGBM at H=8 in Protocol B, or the cold-start hypothesis is falsified and documented. **Plot accuracy vs available history length and report the crossover point explicitly** — that curve is the most publishable single result in the thesis, and no published work gives it for firm-level quarterly fundamentals.
 
 ### NB07 — AutoML
-**AutoGluon-TimeSeries** (not PyCaret — its TS module is local-model-only and cannot do the global panel). Two configs to avoid circularity: `best_quality` (includes and ensembles Chronos — the *practitioner benchmark*) and foundation-models-excluded (the clean scientific arm).
+**AutoGluon-TimeSeries** (not PyCaret — its TS module is local-model-only and cannot do the global panel; the thesis records the switch, D26). Two configs to avoid circularity: `best_quality` (includes and ensembles Chronos — the *practitioner benchmark*) and foundation-models-excluded (the clean scientific arm).
 - **Exit:** both configs logged with preset recorded
 
 ### NB08 — Synthesis
-- Leaderboard: MAE / RMSE / MASE / CRPS / coverage / Winkler per model × variable × horizon × protocol × H-bin × sector
-- **Diebold-Mariano** vs seasonal naive for every model; corrected resampled t-test across companies
+- Leaderboard (D25): MAE / RMSE / MASE / MAPE (revenue) / out-of-sample R² / CRPS / coverage / Winkler per model × variable × horizon × protocol × H-bin × sector
+- **Final ensemble** (thesis commitment, D26): forecast combination with a benchmark anchor (D23), scored through the harness like any model
+- **Diebold-Mariano** vs the baseline to beat for every model; corrected resampled t-test across companies
 - Calibration curves; conformal coverage verification
 - **`policy_table.parquet`** with two winners per cell: `best_model` (thesis result) and `best_deployable_model` (fits 2 GB CPU — O3). **Report the accuracy gap between them** — the cost of deployment constraints is a finding, not something to hide
 - Model card per selected model
@@ -455,7 +459,8 @@ Altman Z / Z″ per company-quarter; ordinal target (distress <1.81 / grey / saf
 | Metric | Use | Note |
 |---|---|---|
 | MAE, RMSE | Point accuracy | Primary |
-| **MASE** | Scale-free | **Use instead of MAPE** — MAPE is undefined on negative, explodes near zero; FCF, net income, operating income all cross zero |
+| **MASE** | Scale-free | All targets; scaled by the company's in-sample seasonal-naive MAE. Below 1 = beats that baseline |
+| MAPE | Relative accuracy | **Revenue only** (D25). Undefined on negatives and explodes near zero; operating income, EBITDA and FCF cross zero (seasonal-naive MAPE means 71 % and 221 % for operating income and FCF) |
 | CRPS | Predictive distribution | Primary probabilistic metric |
 | Pinball loss | Per-quantile | |
 | Coverage @ 80/90/95 | Interval validity | Empirical only |
@@ -463,7 +468,7 @@ Altman Z / Z″ per company-quarter; ordinal target (distress <1.81 / grey / saf
 | Diebold-Mariano | Pairwise significance | vs seasonal naive, always. **Use the Harvey-Leybourne-Newbold small-sample correction** — 81 quarters makes uncorrected DM over-reject [`harvey1997testing`] |
 | **Model Confidence Set** | Family-wise model selection | Returns the set of statistically indistinguishable best models across all families, with error control [`hansen2011mcs`] |
 | Nadeau-Bengio corrected t | Resampled CV comparison | Accounts for overlapping folds in Protocol B [`nadeau2003inference`] |
-| R² | Reported but flagged | Near zero on differenced series even for useful models |
+| R² | Out-of-sample, vs the baseline to beat | `1 − SSE_model / SSE_baseline` [`campbell2008predicting`]; positive = beats the baseline. Never on levels (0.98 for seasonal naive, from company size) and never against the mean of a differenced target (≈ 0 by construction) |
 | QWK, macro-F1, Brier | NB11 distress | Ordinal-aware |
 
 **Never report only the cross-company mean.** TSLA (CV 124%) and PG (CV 10%) are not comparable. Every table breaks out by sector.
@@ -519,7 +524,7 @@ Notebooks orchestrate and visualise. Reusable code lives in `src/app/`. A notebo
 | Uncorrected DM over-rejects at 81 quarters | Medium | D22 — HLN correction + Model Confidence Set |
 | Macro revision look-ahead | High | D13 documented; vintages as O4 upgrade. Published evidence shows predictive-content conclusions can *reverse* under vintage data, so this is a real limitation, not a technicality |
 | Four notebooks, four splits | Critical | NB02 keystone, frozen and tagged |
-| Errors compared across target definitions | High | Harness converts everything to log-level before comparison. This mistake produced a 33% phantom improvement in early testing. |
+| Errors compared across target definitions | High | Harness puts every arm on one error scale per target (log level for revenue, level ÷ trailing revenue for signed targets) before comparison. This mistake produced a 33% phantom improvement in early testing. |
 | Macro is a time/regime proxy, not a macro effect | High | NB04 exit re-measures at 60 with sector-varying sensitivity |
 | Seasonal naive never beaten | High | Acceptable if documented; scaling to 60 is the mitigation |
 | Fiscal-calendar misalignment | High | NB00 audit first |

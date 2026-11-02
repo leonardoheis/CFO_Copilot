@@ -199,3 +199,18 @@ Candidates listed before the search, kept for the record:
 | Scraper problems / Mercado y macro | dividend yield description | the quarter-end fix: no false zero in 2006-Q3; missing, not zero, without a price |
 | Limitations | — | HON 2025-Q3 (withheld or accepted) and the data-freeze rule |
 | Figures | `correlacion_spearman`, `sensibilidad_macro_sector*`, `registro_atipicos_*`, `transformaciones_*` | refresh per step 5 |
+
+### 2026-10-31 — Metrics, roster and notebook numbering converged
+
+Not a data round: no freeze, no figures. The thesis and the master plan now
+agree on master plan D25 (metrics: RMSE, MAE and MASE for all targets, MAPE for
+revenue only, out-of-sample R² against the baseline to beat) and D26 (core
+roster; AutoGluon-TimeSeries replaces PyCaret; MAPIE for conformal intervals).
+The evidence is in the NB02 spec, "Facts".
+
+`main.tex`: the intro model list; the models and metrics section; `tab:notebooks`
+(NB02–NB10, NB06 optional); notebook references (validation → NB02, ablation →
+NB04, "NB02 a NB05" → "NB02 a NB08"); the acronyms MAE, MAPE, MASE and RMSE.
+`references.bib`: `campbell2008predicting`, `taquet2022mapie`. Compile: 95
+pages, no undefined references or citations. Summary for the author: section 6
+of `RESUMEN_ACTUALIZACION_2026-10-30.md`.
