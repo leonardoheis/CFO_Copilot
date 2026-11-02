@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.6.0 (2026-11-02)
+
+### Features
+
+- **dependencies**: Add seaborn to project dependencies
+  ([`961ccea`](https://github.com/leonardoheis/CFO_Copilot/commit/961ccea56703ec81d10ad79625c8368599ccc932))
+
+
 ## v0.5.0 (2026-11-02)
 
 ### Bug Fixes
