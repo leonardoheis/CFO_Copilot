@@ -120,7 +120,7 @@ def _missing_dates(
             missing.append(quarter_date)
             continue
         if any(
-            field not in panel.columns or pd.isna(panel.loc[quarter_timestamp, field])
+            field not in panel.columns or panel[field].isna()[quarter_timestamp]
             for field in fields
         ):
             missing.append(quarter_date)

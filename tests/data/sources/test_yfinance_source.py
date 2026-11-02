@@ -119,7 +119,7 @@ def test_a_quarter_without_a_price_has_no_dividend_yield(
         "KO", date(2020, 1, 1), date(2020, 6, 30)
     )
 
-    assert pd.isna(panel.loc[0, "dividend_yield"])
+    assert panel["dividend_yield"].isna()[0]
     assert panel.loc[1, "dividend_yield"] == pytest.approx(0.5 / 40.0)
 
 

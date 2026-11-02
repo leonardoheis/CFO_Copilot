@@ -24,7 +24,7 @@ from app.data.schema import MILLIONS_DIVISOR, FinancialQuarterValues, Financials
 logger = logging.getLogger(__name__)
 
 JsonObject = dict[str, object]
-_REPORT_LIST: Final = TypeAdapter(list[JsonObject])
+_REPORT_LIST: Final[TypeAdapter[list[JsonObject]]] = TypeAdapter(list[JsonObject])
 
 # Recorded in the panel's financials_provenance column so a vendor-sourced row
 # is distinguishable from one the filer's own XBRL produced.

@@ -190,7 +190,7 @@ def test_build_panel_skeleton_has_expected_columns_and_metadata(
     assert panel.loc[0, "ticker"] == "AMZN"
     assert panel.loc[0, "sector"] == "Consumer Cyclical"
     assert bool(panel.loc[0, "is_public"]) is True
-    assert pd.isna(panel.loc[0, "revenue_usd_m"])
+    assert panel["revenue_usd_m"].isna()[0]
 
 
 def test_merge_panel_fills_columns_from_every_source(
@@ -242,7 +242,7 @@ def test_merge_panel_derives_pe_ratio_from_price_and_earnings(
     )
 
     assert panel.loc[0, "pe_ratio"] == pytest.approx(EXPECTED_PE_RATIO)
-    assert pd.isna(panel.loc[1, "pe_ratio"])
+    assert panel["pe_ratio"].isna()[1]
 
 
 def test_merge_panel_fills_only_missing_sec_values_from_fallback(
@@ -452,7 +452,7 @@ def test_merge_panel_warns_when_gaps_remain_without_a_fallback(
             sources=fake_sources,
         )
 
-    assert pd.isna(panel.loc[0, "ebitda_usd_m"])
+    assert panel["ebitda_usd_m"].isna()[0]
     assert "No financials fallback configured for AMZN" in caplog.text
 
 

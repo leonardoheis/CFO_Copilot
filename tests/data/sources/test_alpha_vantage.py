@@ -1,14 +1,16 @@
 from datetime import date
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
-import pandas as pd
 import pytest
 
 from app.data.exceptions import DataSourceError, MalformedPayloadError
 from app.data.sources.alpha_vantage import AlphaVantageSource
 from app.data.sources.alpha_vantage.source import MIN_REQUEST_INTERVAL_SECONDS
 from app.settings import Settings
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 SLEEP_TARGET = "app.data.sources.alpha_vantage.source.time.sleep"
 GET_TARGET = "app.data.sources.alpha_vantage.source.requests.get"
@@ -381,7 +383,7 @@ def test_reported_zero_eps_with_positive_net_income_is_treated_as_missing(
 
     panel = source.fetch_financials_panel("COST", date(2006, 1, 1), date(2006, 3, 31))
 
-    assert pd.isna(panel.loc[0, "eps"])
+    assert panel["eps"].isna()[0]
     assert "treating it as missing" in caplog.text
 
 
@@ -406,8 +408,8 @@ def test_zero_revenue_quarter_yields_no_margins_instead_of_dividing(
 
     panel = source.fetch_financials_panel("AMZN", date(2006, 1, 1), date(2006, 3, 31))
 
-    assert pd.isna(panel.loc[0, "gross_margin"])
-    assert pd.isna(panel.loc[0, "net_margin"])
+    assert panel["gross_margin"].isna()[0]
+    assert panel["net_margin"].isna()[0]
 
 
 def test_unparsable_fiscal_date_raises_instead_of_dropping_the_quarter(

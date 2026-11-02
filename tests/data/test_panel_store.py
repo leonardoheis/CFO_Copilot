@@ -69,7 +69,7 @@ def test_gap_in_quarters_is_rejected(tmp_path: Path, make_panel: PanelFactory) -
 
 def test_duplicate_dates_are_rejected(tmp_path: Path, make_panel: PanelFactory) -> None:
     panel = make_panel(ticker="AAA")
-    panel.loc[3, "date"] = panel.loc[2, "date"]
+    panel.loc[3, "date"] = panel["date"][2]
     store = PanelStore(tmp_path)
     _write(store, panel)
 
