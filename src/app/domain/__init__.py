@@ -1,5 +1,5 @@
 from .base import BaseEntity
-from .forecast_target import TARGET_VARIABLES, TargetVariable
+from .forecast_target import TARGET_VARIABLES, EvaluationProtocol, TargetVariable
 from .ml_model import MLModel
 from .prediction_input import PredictionInput
 from .prediction_output import PredictionOutput
@@ -7,6 +7,7 @@ from .prediction_output import PredictionOutput
 __all__ = [
     "TARGET_VARIABLES",
     "BaseEntity",
+    "EvaluationProtocol",
     "MLModel",
     "PredictionInput",
     "PredictionOutput",

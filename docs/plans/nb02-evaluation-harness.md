@@ -112,13 +112,13 @@ results must reproduce the spec's baseline table to four decimals.
    record why in the spec.
    - *Tests:* exchangeable synthetic errors reach nominal coverage. A
      calibration error dated after the origin raises.
-10. **Interval metrics.** Coverage, mean width and Winkler; CRPS and pinball when
-    a forecaster supplies quantiles.
+10. **Interval metrics.** Coverage, mean width and Winkler, pooled and per
+    sector (R8); CRPS and pinball when a forecaster supplies quantiles.
     - *Tests:* known vectors.
 11. **Diebold–Mariano with the HLN correction**, against the baseline to beat
-    (R6, R9).
+    (R6, R9), on the per-origin mean loss difference.
     - *Tests:* identical forecasts give a statistic of 0; a published example
-      reproduces.
+      reproduces; the loss series has one value per origin, not per row.
 
 **Checkpoint 2 (A5).** Seasonal-naive coverage is within ±5 points of 80, 90 and
 95 %, pooled over Protocol A.

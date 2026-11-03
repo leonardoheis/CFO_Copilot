@@ -191,7 +191,9 @@ appears without its sector breakdown (master plan §7).
   rather than bend the rule.
 - A model that produces its own interval may report it alongside, never in
   place of the conformal one.
-- **Interval metrics:** empirical coverage, mean width and Winkler score.
+- **Interval metrics:** empirical coverage, mean width and Winkler score,
+  each reported per sector as well as pooled. Pooled coverage can sit at the
+  nominal level while volatile sectors under-cover and stable ones over-cover.
 - CRPS and pinball loss apply when a model supplies quantiles.
 - The confidence interval of the conditional mean (master plan §5.1) is the
   model family's responsibility. The harness stores it when supplied.
@@ -201,6 +203,13 @@ appears without its sector breakdown (master plan §7).
 - Each model is compared with the baseline to beat using the Diebold–Mariano
   test with the Harvey–Leybourne–Newbold small-sample correction (master plan
   D22).
+- The test runs on one loss difference per origin: model loss minus baseline
+  loss, averaged over the companies at that origin. Companies at one origin
+  share the same macro shocks, so their rows are not independent; treating the
+  ~960 test rows as independent observations would overstate significance.
+  With 16 origins the test has 16 observations, and its variance allows
+  autocorrelation up to lag h − 1, because forecasts from consecutive origins
+  overlap.
 - The Model Confidence Set across families is NB08's job, not the harness's.
 
 ### R10 — Results store
