@@ -17,11 +17,12 @@ class Split(NamedTuple):
 
 
 def protocol_a_splits(dataset: pd.DataFrame, n_origins: int) -> tuple[Split, ...]:
-    """Split a feature dataset at its last ``n_origins`` labelled origins (spec R2).
+    """Split a feature dataset for Protocol A at its last labelled origins.
 
-    A row trains at origin t only if its target date is on or before t, so
-    the rows with origins t - h + 1 ... t - 1, whose labels fall after t, never
-    train.
+    Protocol A scores companies the model was trained on. A row trains at
+    origin t only if its target date is on or before t, so the rows with
+    origins t - h + 1 ... t - 1, whose labels fall after t, never train
+    (``docs/specs/nb02-evaluation-harness.md``, requirement R2).
 
     Returns:
         One split per origin, oldest first.
@@ -32,9 +33,7 @@ def protocol_a_splits(dataset: pd.DataFrame, n_origins: int) -> tuple[Split, ...
     labelled = dataset["y"].notna()
     labelled_origins = sorted(dataset.loc[labelled, "origin_date"].unique())
     if len(labelled_origins) < n_origins:
-        raise TooFewOriginsError(
-            requested=n_origins, available=len(labelled_origins)
-        )
+        raise TooFewOriginsError(requested=n_origins, available=len(labelled_origins))
     return tuple(
         Split(
             origin=pd.Timestamp(origin),

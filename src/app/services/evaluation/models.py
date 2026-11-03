@@ -18,7 +18,11 @@ def _strictly_ascending[T: (float, int)](values: tuple[T, ...]) -> tuple[T, ...]
 
 
 class EvaluationSettings(BaseModel):
-    """The fixed choices every model is scored under (spec R2, R3, R8)."""
+    """The fixed choices every model is scored under.
+
+    Interval levels, origins, folds and history lengths come from
+    ``docs/specs/nb02-evaluation-harness.md`` (requirements R2, R3 and R8).
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -32,16 +36,19 @@ class EvaluationSettings(BaseModel):
         tuple[Annotated[int, Field(ge=1)], ...], AfterValidator(_strictly_ascending)
     ] = (8, 12, 20, 40)
     # Earlier origins whose errors calibrate an interval; it reaches back before
-    # the first reported origin so that origin already has errors (plan step 9).
+    # the first reported origin so that origin already has errors to use.
     calibration_window: int = Field(default=20, ge=1)
     seed: int = RANDOM_SEED
 
 
 class EvaluationRecord(BaseModel):
-    """One scored forecast at one interval level (spec R10).
+    """One scored forecast at one interval level: a row of the results store.
 
-    ``*_scaled`` values are on the error scale of spec R5; ``*_level`` values
-    are in the target's own units. A missing prediction stays ``None`` (R4).
+    ``*_scaled`` values are on the shared error scale (see ``on_error_scale``);
+    ``*_level`` values are in the target's own units. A missing prediction
+    stays ``None``: it counts as the model's failure instead of being dropped.
+    Fields follow ``docs/specs/nb02-evaluation-harness.md``, requirements R4
+    and R10.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid", use_enum_values=True)
