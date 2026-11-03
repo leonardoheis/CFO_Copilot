@@ -93,6 +93,8 @@ class EvaluationRecord(BaseModel):
     @model_validator(mode="after")
     def _target_follows_origin(self) -> Self:
         if self.target_date <= self.origin_date:
-            message = f"target {self.target_date} is not after origin {self.origin_date}"
+            message = (
+                f"target {self.target_date} is not after origin {self.origin_date}"
+            )
             raise ValueError(message)
         return self

@@ -3,7 +3,7 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: not started.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 in progress, steps 1–2 done.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -52,8 +52,10 @@ Each step ends with `uv run poe check` green.
 ### Phase 1 — Protocol A, point forecasts
 
 1. **Settings and record types.** Add `models.py` with `EvaluationSettings`
-   (`ConfigDict(frozen=True, extra="forbid")`; validators: levels in (0, 1),
-   folds divide the company count), `Protocol` and the result record.
+   (`ConfigDict(frozen=True, extra="forbid")`; validators: levels in (0, 1)
+   and ascending, histories ascending), `EvaluationProtocol` (in `domain/`) and
+   the result record. Whether the folds divide the company count is checked in
+   step 12, where the companies are known.
    - *Tests:* settings validation.
 2. **Splits.** Protocol A origins (the last *n* labelled origins per horizon,
    D1) and the training mask (`target_date <= origin`).
@@ -125,8 +127,9 @@ results must reproduce the spec's baseline table to four decimals.
 
 ### Phase 3 — Protocol B
 
-12. **Folds and truncation.** Seeded fold assignment spread across sectors, 12 × 5.
-    History cut to H; features that need more history become NaN.
+12. **Folds and truncation.** Seeded fold assignment spread across sectors, 12 × 5;
+    it raises when the companies do not split evenly into the folds. History
+    cut to H; features that need more history become NaN.
     - *Tests:* folds are disjoint and cover all 60 companies; no held-out company
       is in its fold's training rows; at H = 8, `growth_yoy_lag8` is NaN.
 13. **Cross-conformal** across held-out companies at the same H.
@@ -167,6 +170,9 @@ all.
     (protocols, error scale, baselines, intervals) and a results section with
     the baseline table by sector. The baseline to beat per target and horizon
     becomes the reference that NB03–NB08 results are measured against.
+    The methods subsection explains why there is no validation set, from
+    `docs/notes/validation-set-rationale.md`; add its "to add" sources to
+    `references.bib`.
 18. **Freeze.** Set the harness version to `nb02-v1.0.0` in the settings. Then
     ask before creating the git tag; tagging needs explicit permission.
 
