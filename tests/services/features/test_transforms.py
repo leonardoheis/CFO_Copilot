@@ -52,6 +52,27 @@ def test_round_trip_recovers_the_actual_level(
     np.testing.assert_allclose(rebuilt[known], actual[known], rtol=1e-9)
 
 
+@pytest.mark.parametrize("arm", list(TargetArm))
+@pytest.mark.parametrize("horizon", [1, 2, 3, 4])
+def test_target_for_inverts_reconstruct(
+    seasonal_revenue: pd.Series, arm: TargetArm, horizon: int
+) -> None:
+    transformer = TargetTransformer(arm=arm, horizon=horizon)
+    prediction = pd.Series(
+        np.random.default_rng(horizon).normal(0.0, 0.05, size=QUARTERS),
+        index=seasonal_revenue.index,
+    )
+    level = transformer.reconstruct(
+        seasonal_revenue, prediction, revenue=seasonal_revenue
+    )
+
+    target = transformer.target_for(seasonal_revenue, level, revenue=seasonal_revenue)
+
+    known = target.notna()
+    assert known.sum() > 0
+    np.testing.assert_allclose(target[known], prediction[known], atol=1e-12)
+
+
 @pytest.mark.parametrize("horizon", [1, 2, 3, 4])
 def test_zero_prediction_on_residual_arm_is_seasonal_naive_growth(
     seasonal_revenue: pd.Series, horizon: int

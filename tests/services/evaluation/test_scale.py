@@ -23,7 +23,9 @@ def panel() -> pd.DataFrame:
     })
 
 
-def _true_target(panel: pd.DataFrame, arm: TargetArm, variable: TargetVariable) -> pd.Series:
+def _true_target(
+    panel: pd.DataFrame, arm: TargetArm, variable: TargetVariable
+) -> pd.Series:
     target = TargetTransformer(arm=arm, horizon=HORIZON).make(
         panel[variable], revenue=panel[TargetVariable.REVENUE]
     )
@@ -43,10 +45,14 @@ def test_a_signed_target_is_scored_per_unit_of_trailing_revenue(
 ) -> None:
     revenue = panel[TargetVariable.REVENUE]
 
-    scaled = on_error_scale(TargetVariable.EBITDA, panel[TargetVariable.EBITDA], revenue)
+    scaled = on_error_scale(
+        TargetVariable.EBITDA, panel[TargetVariable.EBITDA], revenue
+    )
 
     origin = 7
-    expected = panel[TargetVariable.EBITDA][origin] / revenue[origin - 3 : origin + 1].sum()
+    expected = (
+        panel[TargetVariable.EBITDA][origin] / revenue[origin - 3 : origin + 1].sum()
+    )
     assert scaled[origin] == pytest.approx(expected, rel=1e-12)
     assert scaled[:3].isna().all()
 
@@ -89,9 +95,7 @@ def test_a_revenue_scaled_error_is_its_target_space_error(panel: pd.DataFrame) -
 
 def test_an_origin_without_a_prediction_stays_missing(panel: pd.DataFrame) -> None:
     arm = TargetArm.LOG_DIFF4
-    prediction = _true_target(panel, arm, TargetVariable.REVENUE).drop(
-        panel["date"][8]
-    )
+    prediction = _true_target(panel, arm, TargetVariable.REVENUE).drop(panel["date"][8])
 
     scored = reconstruct_on_error_scale(
         panel,
@@ -101,5 +105,5 @@ def test_an_origin_without_a_prediction_stays_missing(panel: pd.DataFrame) -> No
         prediction=prediction,
     )
 
-    assert np.isnan(scored.loc[8, "y_hat_scaled"])
-    assert not np.isnan(scored.loc[8, "y_scaled"])
+    assert scored["y_hat_scaled"].isna()[8]
+    assert scored["y_scaled"].notna()[8]

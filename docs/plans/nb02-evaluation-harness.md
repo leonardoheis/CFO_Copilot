@@ -3,7 +3,7 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 in progress, steps 1–2 done.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 in progress, steps 1–4 done.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
