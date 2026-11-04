@@ -41,6 +41,25 @@ class EvaluationSettings(BaseModel):
     seed: int = RANDOM_SEED
 
 
+class PointMetrics(BaseModel):
+    """One group's point metrics on the shared error scale; MAPE on levels.
+
+    A group with a missing prediction keeps its counts and has NaN metrics:
+    scoring a model on fewer rows than the baselines would flatter it.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    rows: int = Field(ge=0)
+    missing: int = Field(ge=0)
+    mae: float
+    rmse: float
+    mase: float
+    oos_r2: float
+    # Revenue only: a signed target can be zero, where a percentage explodes.
+    mape: float | None = None
+
+
 class EvaluationRecord(BaseModel):
     """One scored forecast at one interval level: a row of the results store.
 

@@ -3,7 +3,7 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 in progress, steps 1–4 done.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 in progress, steps 1–5 done.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -171,8 +171,10 @@ all.
     the baseline table by sector. The baseline to beat per target and horizon
     becomes the reference that NB03–NB08 results are measured against.
     The methods subsection explains why there is no validation set, from
-    `docs/notes/validation-set-rationale.md`; add its "to add" sources to
-    `references.bib`.
+    `docs/notes/validation-set-rationale.md`, and why MASE is computed in the
+    harness and R² only out of sample, from
+    `docs/notes/metric-choices-rationale.md`. Every source both notes cite is
+    already in the thesis repo's `references.bib`.
 18. **Freeze.** Set the harness version to `nb02-v1.0.0` in the settings. Then
     ask before creating the git tag; tagging needs explicit permission.
 

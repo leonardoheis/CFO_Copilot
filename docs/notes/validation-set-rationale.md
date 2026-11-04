@@ -61,10 +61,14 @@ used for no choice. To decide in NB08's spec.
 | Training data estimates the parameters; test data is not used in fitting | Same book, §5.8, <https://otexts.com/fpp3/accuracy.html> (checked 2026-11-02) | `hyndman2021fpp` |
 | Rolling origin as the reference design for out-of-sample evaluation | Tashman (2000), *International Journal of Forecasting* 16(4), 437–450 | `tashman2000outofsample` |
 | Cross-validation and validation sets for time series | Bergmeir & Benítez (2012), *Information Sciences* 191, 192–213; Bergmeir, Hyndman & Koo (2018), *CSDA* 120, 70–83 | `bergmeir2012cv`, `bergmeir2018note` |
-| Time series cannot be split at random | scikit-learn User Guide §3.1.2.6, <https://scikit-learn.org/stable/modules/cross_validation.html> (checked 2026-11-02) | to add |
-| A validation set costs training data: three sets "drastically reduce the number of samples which can be used for learning the model" | scikit-learn User Guide §3.1 (same page) | to add |
-| After tuning, the best settings build the final estimator "on the whole dataset" | scikit-learn User Guide §3.2, <https://scikit-learn.org/stable/modules/grid_search.html> (checked 2026-11-02) | to add |
-| Selecting a model on the evaluation data inflates its score | Cawley & Talbot (2010), *JMLR* 11, 2079–2107; Varma & Simon (2006), *BMC Bioinformatics* 7:91 | to add |
+| Time series cannot be split at random | scikit-learn User Guide §3.1.2.6, <https://scikit-learn.org/stable/modules/cross_validation.html> (checked 2026-11-02) | `pedregosa2011scikit` |
+| A validation set costs training data: three sets "drastically reduce the number of samples which can be used for learning the model" | scikit-learn User Guide §3.1 (same page) | `pedregosa2011scikit` |
+| After tuning, the best settings build the final estimator "on the whole dataset" | scikit-learn User Guide §3.2, <https://scikit-learn.org/stable/modules/grid_search.html> (checked 2026-11-02) | `pedregosa2011scikit` |
+| Selecting a model on the evaluation data inflates its score | Cawley & Talbot (2010), *JMLR* 11, 2079–2107; Varma & Simon (2006), *BMC Bioinformatics* 7:91 | `cawley2010overfitting`, `varma2006bias` |
+
+Bib keys refer to the thesis repo's `references.bib`
+(`cfo-copilot-thesis/references.bib`). The scikit-learn rows cite the
+software paper; quote the User Guide by URL in a footnote.
 
 Point 3 is this project's own inference from two sourced facts (a
 time-series validation set must be the latest data; a validation set removes

@@ -91,9 +91,7 @@ def test_a_history_too_short_gives_no_forecast(
     assert levels[first_defined:].notna().all()
 
 
-@pytest.mark.parametrize(
-    "variable", [TargetVariable.REVENUE, TargetVariable.EBITDA]
-)
+@pytest.mark.parametrize("variable", [TargetVariable.REVENUE, TargetVariable.EBITDA])
 @pytest.mark.parametrize("baseline", list(Baseline))
 def test_the_forecaster_path_scores_the_baselines_own_levels(
     panel: pd.DataFrame, variable: TargetVariable, baseline: Baseline
