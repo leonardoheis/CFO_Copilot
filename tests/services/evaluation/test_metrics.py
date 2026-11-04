@@ -30,7 +30,7 @@ def scored() -> pd.DataFrame:
 def test_pooled_metrics_match_hand_computed_values(scored: pd.DataFrame) -> None:
     pooled = point_metrics(scored, variable=TargetVariable.REVENUE).iloc[0]
 
-    assert pooled["rows"] == 4
+    assert pooled["rows"] == len(scored)
     assert pooled["missing"] == 0
     assert pooled["mae"] == pytest.approx(0.15)
     assert pooled["rmse"] == pytest.approx(np.sqrt(0.14 / 4))
@@ -57,7 +57,7 @@ def test_a_forecaster_against_itself_has_zero_out_of_sample_r2(
 
     pooled = point_metrics(itself, variable=TargetVariable.REVENUE).iloc[0]
 
-    assert pooled["oos_r2"] == 0.0
+    assert pooled["oos_r2"] == pytest.approx(0.0)
 
 
 def test_seasonal_naive_on_its_own_training_rows_has_a_mase_of_one() -> None:
@@ -100,7 +100,7 @@ def test_a_missing_prediction_voids_the_groups_metrics(scored: pd.DataFrame) -> 
     ).set_index("sector")
 
     assert by_sector.loc["Energy", "missing"] == 1
-    assert np.isnan(by_sector.loc["Energy", "mae"])
+    assert by_sector["mae"].isna()["Energy"]
     assert by_sector.loc["Technology", "mae"] == pytest.approx(0.15)
 
 

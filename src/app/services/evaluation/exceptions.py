@@ -1,8 +1,21 @@
 from dataclasses import dataclass
 
+import pandas as pd
+
 
 class EvaluationError(Exception):
     """Base error for the evaluation harness."""
+
+
+@dataclass
+class EvaluationLeakageError(EvaluationError):
+    """Raised when a model could see data from after the origin it forecasts from."""
+
+    origin: pd.Timestamp
+    reason: str
+
+    def __str__(self) -> str:
+        return f"look-ahead at origin {self.origin:%Y-%m-%d}: {self.reason}"
 
 
 @dataclass

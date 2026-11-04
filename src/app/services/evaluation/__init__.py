@@ -1,5 +1,11 @@
 from .baselines import Baseline, BaselineForecaster, baseline_levels
-from .exceptions import EvaluationError, TooFewOriginsError, UndefinedMetricError
+from .exceptions import (
+    EvaluationError,
+    EvaluationLeakageError,
+    TooFewOriginsError,
+    UndefinedMetricError,
+)
+from .leakage import check_no_look_ahead
 from .metrics import (
     PointMetricTables,
     in_sample_scale,
@@ -15,6 +21,7 @@ __all__ = [
     "Baseline",
     "BaselineForecaster",
     "EvaluationError",
+    "EvaluationLeakageError",
     "EvaluationRecord",
     "EvaluationSettings",
     "PointMetricTables",
@@ -23,6 +30,7 @@ __all__ = [
     "TooFewOriginsError",
     "UndefinedMetricError",
     "baseline_levels",
+    "check_no_look_ahead",
     "in_sample_scale",
     "mape",
     "on_error_scale",

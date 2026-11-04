@@ -231,8 +231,9 @@ appears without its sector breakdown (master plan §7).
 ### R12 — No look-ahead
 
 - **Training rows:** every training row's target date is on or before its origin.
-- **Test rows:** every test row's origin is after every training row's target
-  date.
+- **Test rows:** every test row's origin is on or after every training row's
+  target date (a row trained at origin t may have its target on t), and the
+  rows a model predicts from carry no label.
 - **Protocol B:** no held-out company appears in its fold's training rows.
 - **Conformal calibration:** no calibration error comes from a target date after
   the origin.

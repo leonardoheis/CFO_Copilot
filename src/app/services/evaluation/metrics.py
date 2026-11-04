@@ -78,7 +78,9 @@ def _group_metrics(rows: pd.DataFrame, variable: TargetVariable) -> PointMetrics
         mase=float(mean_absolute_error(y / scale, y_hat / scale)),
         # Campbell and Thompson (2008): r2_score would compare with the mean of y.
         oos_r2=float(
-            1 - mean_squared_error(y, y_hat) / mean_squared_error(y, rows["baseline_scaled"])
+            1
+            - mean_squared_error(y, y_hat)
+            / mean_squared_error(y, rows["baseline_scaled"])
         ),
         mape=mape(rows["y_level"], rows["y_hat_level"], variable) if has_mape else None,
     )
@@ -99,7 +101,9 @@ def point_metrics(
         ``rmse``, ``mase``, ``oos_r2``, and ``mape`` for revenue.
     """
     if not by:
-        return pd.DataFrame([_group_metrics(scored, variable).model_dump(exclude_none=True)])
+        return pd.DataFrame([
+            _group_metrics(scored, variable).model_dump(exclude_none=True)
+        ])
     return pd.DataFrame([
         dict(zip(by, keys, strict=True))
         | _group_metrics(group, variable).model_dump(exclude_none=True)

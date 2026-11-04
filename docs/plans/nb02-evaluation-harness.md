@@ -3,7 +3,7 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 in progress, steps 1–5 done.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 in progress, steps 1–6 done.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -79,9 +79,14 @@ Each step ends with `uv run poe check` green.
    - *Tests:* known vectors; MASE equals 1 for seasonal naive on its own
      training rows; out-of-sample R² of a forecaster against itself is 0 (A8);
      MAPE on operating income raises.
-6. **Leakage assertions** (R12). Run them inside `evaluate`.
-   - *Tests (A3):* a forecaster that reads test labels, and one trained with an
-     `origin_date` cut-off. Both make `evaluate` raise `EvaluationLeakageError`.
+6. **Leakage assertions** (R12). `check_no_look_ahead(train, test, origin)`
+   checks the frames handed to `fit` and `predict`; step 7 runs it inside
+   `evaluate` before every fit. The test frame has its labels (`y`,
+   `target_level`) dropped, so a model cannot read them; the check refuses a
+   test frame that still has them. The held-out-company rule waits for
+   Protocol B (step 14), the calibration rule for step 9.
+   - *Tests (A3):* an `origin_date` cut-off, test rows with labels, and test
+     rows from before a training target all raise `EvaluationLeakageError`.
 7. **Harness, Protocol A.** `evaluate(forecaster, variable, arm, horizons)`:
    1. build the test set (R2);
    2. fit per origin;
