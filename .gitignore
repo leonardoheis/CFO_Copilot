@@ -221,5 +221,7 @@ data/backups/
 # Generated feature exports; the copies of record live in W&B. The EDA reports
 # under data/reports/ are committed so the auto-EDA can be shown without a run.
 data/features/
+# Evaluation results; rebuilt identically from the frozen data (NB02 spec, A2).
+data/results/
 docs/references.bib
 wandb/

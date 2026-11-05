@@ -43,6 +43,10 @@ class FeaturesNotFoundError(PanelStoreError):
     """Raised when no feature file exists for a target variable and horizon."""
 
 
+class ResultsNotFoundError(PanelStoreError):
+    """Raised when the results store is read before anything was appended."""
+
+
 class MalformedPanelError(PanelStoreError):
     """Raised when a stored panel breaks the schema or the quarterly calendar."""
 

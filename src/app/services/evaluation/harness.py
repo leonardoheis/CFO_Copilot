@@ -11,7 +11,12 @@ from app.services.evaluation.metrics import (
     in_sample_scale,
     point_metric_tables,
 )
-from app.services.evaluation.models import EvaluationSettings, ForecastTask
+from app.services.evaluation.models import (
+    EvaluationRecord,
+    EvaluationSettings,
+    ForecastTask,
+    RunProvenance,
+)
 from app.services.evaluation.scale import on_error_scale, reconstruct_on_error_scale
 from app.services.evaluation.splits import Split, protocol_a_splits
 
@@ -35,10 +40,31 @@ SCORED_COLUMNS: Final = [
 class Evaluation(NamedTuple):
     """A forecaster scored on one target, arm and horizon."""
 
+    task: ForecastTask
     baseline_to_beat: Baseline
     # One row per test row, missing predictions included as NaN.
     scored: pd.DataFrame
     metrics: PointMetricTables
+
+    def records(self, *, model: str, provenance: RunProvenance) -> pd.DataFrame:
+        """Validate every scored row as an ``EvaluationRecord`` for the results store.
+
+        Returns:
+            One record per test row, as a frame.
+        """
+        shared = {
+            "model": model,
+            "variable": self.task.variable,
+            "arm": self.task.arm,
+            "protocol": "A",
+            "horizon": self.task.horizon,
+            **provenance.model_dump(),
+        }
+        rows = self.scored.drop(columns=["baseline_scaled", "mase_scale"])
+        return pd.DataFrame([
+            EvaluationRecord.model_validate(row | shared).model_dump()
+            for row in rows.to_dict("records")
+        ])
 
 
 def _predictions_at(
@@ -143,6 +169,7 @@ class EvaluationHarness:
         scored["baseline_scaled"] = scored[f"{baseline_to_beat}_scaled"]
         scored = scored[SCORED_COLUMNS]
         return Evaluation(
+            task=task,
             baseline_to_beat=baseline_to_beat,
             scored=scored,
             metrics=point_metric_tables(scored, variable=task.variable),

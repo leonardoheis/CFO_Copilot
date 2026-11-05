@@ -39,6 +39,18 @@ class EvaluationSettings(BaseModel):
     # the first reported origin so that origin already has errors to use.
     calibration_window: int = Field(default=20, ge=1)
     seed: int = RANDOM_SEED
+    # Bumped to nb02-v1.0.0 when the harness is frozen (plan, step 18).
+    harness_version: str = "nb02-v0.1.0"
+
+
+class RunProvenance(BaseModel):
+    """What a stored result was produced with, so it can be reproduced."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    harness_version: str
+    data_freeze: str
+    git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
 
 
 class ForecastTask(BaseModel):
@@ -101,7 +113,8 @@ class EvaluationRecord(BaseModel):
     origin_date: date
     target_date: date
     horizon: int = Field(ge=1, le=MAX_HORIZON)
-    level: UnitInterval
+    # The interval level; None for a point forecast without an interval.
+    level: UnitInterval | None = None
     y_scaled: float
     y_level: float
     y_hat_scaled: float | None

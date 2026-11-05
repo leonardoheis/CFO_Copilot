@@ -12,6 +12,7 @@ from app.services.evaluation import (
     EvaluationHarness,
     EvaluationSettings,
     ForecastTask,
+    RunProvenance,
 )
 from app.services.features import TargetArm, TargetTransformer
 
@@ -171,6 +172,29 @@ def test_missing_predictions_are_counted_not_dropped(
     by_company = evaluation.metrics.by_company.set_index("ticker")
     assert by_company["mae"].notna()["AAA"]
     assert by_company["mae"].isna()["BBB"]
+
+
+def test_every_scored_row_becomes_a_record_with_its_provenance(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    provenance = RunProvenance(
+        harness_version="nb02-v0.1.0",
+        data_freeze="thesis_2026-10-30-0123456789ab",
+        git_commit="0" * 40,
+    )
+    evaluation = harness.evaluate(
+        SilentOnOneCompany("BBB"), dataset, panels=panels, task=TASK
+    )
+
+    records = evaluation.records(model="silent", provenance=provenance)
+
+    assert len(records) == len(evaluation.scored)
+    assert set(records["git_commit"]) == {"0" * 40}
+    assert set(records["arm"]) == {TASK.arm.value}
+    assert records["level"].isna().all()
+    assert records.loc[records["ticker"] == "BBB", "y_hat_scaled"].isna().all()
 
 
 def test_a_task_refuses_an_arm_its_variable_cannot_use() -> None:

@@ -6,6 +6,7 @@ from app.data.feature_store import FeatureStore
 from app.data.ingestion_defects import load_ingestion_defects
 from app.data.panel_store import PanelStore
 from app.data.report_store import ReportStore
+from app.data.results_store import ResultsStore
 from app.data.schema import MACRO_COLUMNS
 from app.data.sources import (
     AlphaVantageSource,
@@ -152,4 +153,7 @@ class Container(containers.DeclarativeContainer):
     )
     evaluation_harness = providers.Factory(
         EvaluationHarness, settings=EvaluationSettings()
+    )
+    results_store = providers.Factory(
+        ResultsStore, directory=Settings.DATA_DIRECTORY / "results"
     )

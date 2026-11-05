@@ -3,7 +3,7 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 in progress, steps 1–7 done.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 code done (steps 1–8); Checkpoint 1 next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -105,11 +105,18 @@ Each step ends with `uv run poe check` green.
    - *Tests (A4):* a forecaster returning NaN for one company; a forecaster
      never sees `y` or `target_level`; the baseline to beat scores out-of-sample
      R² 0 (A8).
-8. **Results store.** `ResultsStore` with append and read. It turns the scored
-   rows into `EvaluationRecord`s. Every record carries the harness version, the
-   data-freeze identifier (the backup directory name plus a hash of the feature
-   files) and the git commit.
-   - *Tests:* round-trip; appending twice keeps both runs.
+8. **Results store.** `ResultsStore` (`app/data/`) appends to and reads
+   `data/results/`, a parquet dataset partitioned by model; each append writes
+   new files. `Evaluation.records(model=, provenance=)` validates the scored
+   rows as `EvaluationRecord`s; `level` is None until Phase 2 adds intervals.
+   `RunProvenance` carries the harness version (in `EvaluationSettings`), the
+   data freeze (`data_freeze_id`: the backup directory name plus a SHA-256 of
+   its feature files) and the full git commit (`head_commit`, read from `.git`
+   rather than by running git). `data/results/` is gitignored: A2 makes it
+   reproducible.
+   - *Tests:* round-trip; appending twice keeps both runs; the freeze id
+     changes with a feature file; the commit is read from a loose ref, a packed
+     ref and a detached HEAD; every scored row becomes a record.
 
 **Checkpoint 1 (A1).** In the notebook, run the four baselines on Protocol A. The
 results must reproduce the spec's baseline table to four decimals.

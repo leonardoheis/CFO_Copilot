@@ -14,7 +14,13 @@ from .metrics import (
     point_metric_tables,
     point_metrics,
 )
-from .models import EvaluationRecord, EvaluationSettings, ForecastTask, PointMetrics
+from .models import (
+    EvaluationRecord,
+    EvaluationSettings,
+    ForecastTask,
+    PointMetrics,
+    RunProvenance,
+)
 from .scale import on_error_scale, reconstruct_on_error_scale
 from .splits import Split, protocol_a_splits
 
@@ -30,6 +36,7 @@ __all__ = [
     "ForecastTask",
     "PointMetricTables",
     "PointMetrics",
+    "RunProvenance",
     "Split",
     "TooFewOriginsError",
     "UndefinedMetricError",

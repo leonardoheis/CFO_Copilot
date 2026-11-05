@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.domain import TargetVariable
-from app.services.evaluation import EvaluationRecord, EvaluationSettings
+from app.services.evaluation import EvaluationRecord, EvaluationSettings, RunProvenance
 from app.services.features import TargetArm
 
 RECORD: dict[str, Any] = {
@@ -37,6 +37,7 @@ def test_defaults_are_the_specs_values() -> None:
         "histories": (8, 12, 20, 40),
         "calibration_window": 20,
         "seed": 42,
+        "harness_version": "nb02-v0.1.0",
     }
 
 
@@ -71,6 +72,17 @@ def test_a_record_keeps_plain_strings_for_the_results_store() -> None:
 
     assert dumped["variable"] == "revenue_usd_m"
     assert dumped["arm"] == "seasnaive_residual"
+
+
+def test_a_point_forecast_has_no_interval_level() -> None:
+    record = EvaluationRecord(**{**RECORD, "level": None})
+
+    assert record.level is None
+
+
+def test_provenance_needs_a_full_commit_hash() -> None:
+    with pytest.raises(ValidationError, match="git_commit"):
+        RunProvenance(harness_version="nb02", data_freeze="x", git_commit="2949c0d")
 
 
 def test_a_missing_prediction_is_recorded_not_refused() -> None:
