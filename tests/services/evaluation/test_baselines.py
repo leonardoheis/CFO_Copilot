@@ -6,6 +6,7 @@ from app.domain import Forecaster, TargetVariable
 from app.services.evaluation import (
     Baseline,
     BaselineForecaster,
+    ForecastTask,
     baseline_levels,
     reconstruct_on_error_scale,
 )
@@ -98,7 +99,9 @@ def test_the_forecaster_path_scores_the_baselines_own_levels(
 ) -> None:
     for arm in arms_for(variable):
         forecaster: Forecaster = BaselineForecaster(
-            baseline, panels={"AAA": panel}, variable=variable, arm=arm, horizon=1
+            baseline,
+            panels={"AAA": panel},
+            task=ForecastTask(variable=variable, arm=arm, horizon=1),
         )
         test = panel.rename(columns={"date": "origin_date"})
         prediction = forecaster.fit(test).predict(test)["y_hat"]
@@ -137,9 +140,7 @@ def test_a_baseline_is_zero_in_the_arm_built_around_it(
     forecaster = BaselineForecaster(
         baseline,
         panels={"AAA": panel},
-        variable=TargetVariable.REVENUE,
-        arm=arm,
-        horizon=1,
+        task=ForecastTask(variable=TargetVariable.REVENUE, arm=arm, horizon=1),
     )
     test = panel.rename(columns={"date": "origin_date"})
 
@@ -152,9 +153,9 @@ def test_a_company_without_a_panel_gets_no_prediction(panel: pd.DataFrame) -> No
     forecaster = BaselineForecaster(
         Baseline.NAIVE,
         panels={"AAA": panel},
-        variable=TargetVariable.REVENUE,
-        arm=TargetArm.LOG_DIFF1,
-        horizon=1,
+        task=ForecastTask(
+            variable=TargetVariable.REVENUE, arm=TargetArm.LOG_DIFF1, horizon=1
+        ),
     )
     test = pd.DataFrame(
         {"ticker": ["AAA", "ZZZ"], "origin_date": [panel["date"][ORIGIN]] * 2},

@@ -141,11 +141,7 @@ def test_the_baseline_to_beat_has_zero_out_of_sample_r2(
     panels: dict[str, pd.DataFrame],
 ) -> None:
     forecaster = BaselineForecaster(
-        Baseline.SEASONAL_NAIVE_GROWTH,
-        panels=panels,
-        variable=TASK.variable,
-        arm=TASK.arm,
-        horizon=TASK.horizon,
+        Baseline.SEASONAL_NAIVE_GROWTH, panels=panels, task=TASK
     )
 
     evaluation = harness.evaluate(forecaster, dataset, panels=panels, task=TASK)

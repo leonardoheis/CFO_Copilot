@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 
 from app.domain import TargetVariable
+from app.services.evaluation.models import ForecastTask
 from app.services.features.transforms import (
     SEASONAL_LAG,
-    TargetArm,
     TargetFamily,
     TargetTransformer,
     log_level,
@@ -73,11 +73,9 @@ class BaselineForecaster:
 
     Usage::
 
-        forecaster = BaselineForecaster(
-            Baseline.SEASONAL_NAIVE, panels=panels, variable=variable,
-            arm=TargetArm.SEASNAIVE_RESIDUAL, horizon=1,
-        )
-        y_hat = forecaster.fit(train).predict(test)["y_hat"]
+        task = ForecastTask(variable=variable, arm=TargetArm.LOG_DIFF4, horizon=1)
+        naive = BaselineForecaster(Baseline.SEASONAL_NAIVE, panels=panels, task=task)
+        y_hat = naive.fit(train).predict(test)["y_hat"]
     """
 
     def __init__(
@@ -85,17 +83,18 @@ class BaselineForecaster:
         baseline: Baseline,
         *,
         panels: Mapping[str, pd.DataFrame],
-        variable: TargetVariable,
-        arm: TargetArm,
-        horizon: int,
+        task: ForecastTask,
     ) -> None:
-        transformer = TargetTransformer(arm=arm, horizon=horizon)
+        transformer = TargetTransformer(arm=task.arm, horizon=task.horizon)
         self._targets = pd.concat([
             pd.Series(
                 transformer.target_for(
-                    panel[variable],
+                    panel[task.variable],
                     baseline_levels(
-                        panel, variable=variable, horizon=horizon, baseline=baseline
+                        panel,
+                        variable=task.variable,
+                        horizon=task.horizon,
+                        baseline=baseline,
                     ),
                     revenue=panel[TargetVariable.REVENUE],
                 ).to_numpy(),
