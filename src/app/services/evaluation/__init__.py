@@ -5,6 +5,7 @@ from .exceptions import (
     TooFewOriginsError,
     UndefinedMetricError,
 )
+from .harness import Evaluation, EvaluationHarness
 from .leakage import check_no_look_ahead
 from .metrics import (
     PointMetricTables,
@@ -13,17 +14,20 @@ from .metrics import (
     point_metric_tables,
     point_metrics,
 )
-from .models import EvaluationRecord, EvaluationSettings, PointMetrics
+from .models import EvaluationRecord, EvaluationSettings, ForecastTask, PointMetrics
 from .scale import on_error_scale, reconstruct_on_error_scale
 from .splits import Split, protocol_a_splits
 
 __all__ = [
     "Baseline",
     "BaselineForecaster",
+    "Evaluation",
     "EvaluationError",
+    "EvaluationHarness",
     "EvaluationLeakageError",
     "EvaluationRecord",
     "EvaluationSettings",
+    "ForecastTask",
     "PointMetricTables",
     "PointMetrics",
     "Split",

@@ -10,6 +10,7 @@ from app.services.diagnostics import (
     OutlierRegister,
     SeasonalityRegimeClusterer,
 )
+from app.services.evaluation import EvaluationHarness
 from app.services.features import (
     FeatureGroup,
     FeatureService,
@@ -34,6 +35,7 @@ def test_services_resolve_to_their_types() -> None:
     assert isinstance(container.feature_store(), FeatureStore)
     assert isinstance(container.feature_auditor(), FeatureAuditor)
     assert isinstance(container.decision_table_builder(), DecisionTableBuilder)
+    assert isinstance(container.evaluation_harness(), EvaluationHarness)
 
 
 def test_feature_store_lives_under_the_data_directory() -> None:

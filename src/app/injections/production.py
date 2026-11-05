@@ -38,6 +38,7 @@ from app.services.diagnostics import (
     SeriesDiagnostician,
     TransformComparer,
 )
+from app.services.evaluation import EvaluationHarness, EvaluationSettings
 from app.services.features import (
     FeatureBuilder,
     FeatureService,
@@ -148,4 +149,7 @@ class Container(containers.DeclarativeContainer):
     )
     auto_profiler = providers.Factory(
         AutoProfiler, store=report_store, settings=ProfileSettings()
+    )
+    evaluation_harness = providers.Factory(
+        EvaluationHarness, settings=EvaluationSettings()
     )

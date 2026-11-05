@@ -4,7 +4,7 @@ from typing import Annotated, Self
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 from app.domain import EvaluationProtocol, TargetVariable
-from app.services.features.transforms import MAX_HORIZON, TargetArm
+from app.services.features.transforms import MAX_HORIZON, TargetArm, arms_for
 from app.settings import RANDOM_SEED
 
 UnitInterval = Annotated[float, Field(gt=0.0, lt=1.0)]
@@ -39,6 +39,23 @@ class EvaluationSettings(BaseModel):
     # the first reported origin so that origin already has errors to use.
     calibration_window: int = Field(default=20, ge=1)
     seed: int = RANDOM_SEED
+
+
+class ForecastTask(BaseModel):
+    """What one evaluation scores: a target variable, in one arm, at one horizon."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    variable: TargetVariable
+    arm: TargetArm
+    horizon: int = Field(ge=1, le=MAX_HORIZON)
+
+    @model_validator(mode="after")
+    def _arm_belongs_to_variable(self) -> Self:
+        if self.arm not in arms_for(self.variable):
+            message = f"{self.variable} cannot be forecast in the {self.arm} arm"
+            raise ValueError(message)
+        return self
 
 
 class PointMetrics(BaseModel):

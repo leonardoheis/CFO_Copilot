@@ -3,7 +3,7 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 in progress, steps 1–6 done.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 in progress, steps 1–7 done.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -87,19 +87,28 @@ Each step ends with `uv run poe check` green.
    Protocol B (step 14), the calibration rule for step 9.
    - *Tests (A3):* an `origin_date` cut-off, test rows with labels, and test
      rows from before a training target all raise `EvaluationLeakageError`.
-7. **Harness, Protocol A.** `evaluate(forecaster, variable, arm, horizons)`:
-   1. build the test set (R2);
-   2. fit per origin;
-   3. predict;
-   4. reconstruct and scale;
-   5. score;
-   6. return records.
+7. **Harness, Protocol A.** `EvaluationHarness.evaluate(forecaster, dataset,
+   panels=, task=)`, one call per horizon: a forecaster is built for one
+   horizon, so the notebook loops. `ForecastTask` holds the variable, arm and
+   horizon, and refuses an arm the variable cannot use.
+   1. build the splits (R2);
+   2. per origin: check R12, fit on the training rows, predict the test rows
+      without their labels;
+   3. reconstruct and scale;
+   4. add the baseline to beat (the seasonal baseline with the lower MAE over
+      the test rows, R6) and each company's MASE scale at the origin;
+   5. score.
 
-   Missing predictions are counted, not dropped (R4).
-   - *Tests (A4):* a forecaster returning NaN for some rows.
-8. **Results store.** `ResultsStore` with append and read. Every record carries
-   the harness version, the data-freeze identifier (the backup directory name
-   plus a hash of the feature files) and the git commit.
+   It returns the baseline to beat, the scored test rows and the metric tables.
+   Missing predictions are counted, not dropped (R4). Records come in step 8,
+   where the harness version, data freeze and commit are known.
+   - *Tests (A4):* a forecaster returning NaN for one company; a forecaster
+     never sees `y` or `target_level`; the baseline to beat scores out-of-sample
+     R² 0 (A8).
+8. **Results store.** `ResultsStore` with append and read. It turns the scored
+   rows into `EvaluationRecord`s. Every record carries the harness version, the
+   data-freeze identifier (the backup directory name plus a hash of the feature
+   files) and the git commit.
    - *Tests:* round-trip; appending twice keeps both runs.
 
 **Checkpoint 1 (A1).** In the notebook, run the four baselines on Protocol A. The
