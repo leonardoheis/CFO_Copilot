@@ -20,8 +20,6 @@ from app.services.evaluation.models import (
 from app.services.evaluation.scale import on_error_scale, reconstruct_on_error_scale
 from app.services.evaluation.splits import Split, protocol_a_splits
 
-# The candidates for the baseline to beat (spec R6).
-SEASONAL_BASELINES: Final = (Baseline.SEASONAL_NAIVE, Baseline.SEASONAL_NAIVE_GROWTH)
 KEYS: Final = ["ticker", "origin_date"]
 SCORED_COLUMNS: Final = [
     "ticker",
@@ -102,7 +100,7 @@ def _company_rows(
                 ),
                 panel[TargetVariable.REVENUE],
             )
-            for baseline in SEASONAL_BASELINES
+            for baseline in Baseline
         },
     )
 
@@ -160,11 +158,16 @@ class EvaluationHarness:
         scored["mase_scale"] = scales.reindex(
             pd.MultiIndex.from_frame(scored[["origin_date", "ticker"]])
         ).to_numpy()
-        baseline_to_beat = min(
-            SEASONAL_BASELINES,
-            key=lambda baseline: float(
-                (scored[f"{baseline}_scaled"] - scored["y_scaled"]).abs().mean()
-            ),
+        # Every baseline competes (spec R6): naive beats both seasonal ones on
+        # the margin-like targets at h = 1. Baseline(...) because mypy 1.15
+        # (the nbqa hook) types a StrEnum's members as str.
+        baseline_to_beat = Baseline(
+            min(
+                Baseline,
+                key=lambda baseline: float(
+                    (scored[f"{baseline}_scaled"] - scored["y_scaled"]).abs().mean()
+                ),
+            )
         )
         scored["baseline_scaled"] = scored[f"{baseline_to_beat}_scaled"]
         scored = scored[SCORED_COLUMNS]

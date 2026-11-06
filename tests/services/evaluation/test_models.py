@@ -36,6 +36,7 @@ def test_defaults_are_the_specs_values() -> None:
         "n_folds": 12,
         "histories": (8, 12, 20, 40),
         "calibration_window": 20,
+        "aci_step": 0.05,
         "seed": 42,
         "harness_version": "nb02-v0.1.0",
     }

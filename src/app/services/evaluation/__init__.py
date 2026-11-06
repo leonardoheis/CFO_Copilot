@@ -1,4 +1,5 @@
 from .baselines import Baseline, BaselineForecaster, baseline_levels
+from .conformal import rolling_half_widths
 from .exceptions import (
     EvaluationError,
     EvaluationLeakageError,
@@ -49,4 +50,5 @@ __all__ = [
     "point_metrics",
     "protocol_a_splits",
     "reconstruct_on_error_scale",
+    "rolling_half_widths",
 ]

@@ -3,7 +3,8 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 code done (steps 1–8); Checkpoint 1 next.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Step 9a (the
+conformal rule) done; 9b (wiring it into the harness) next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -95,8 +96,8 @@ Each step ends with `uv run poe check` green.
    2. per origin: check R12, fit on the training rows, predict the test rows
       without their labels;
    3. reconstruct and scale;
-   4. add the baseline to beat (the seasonal baseline with the lower MAE over
-      the test rows, R6) and each company's MASE scale at the origin;
+   4. add the baseline to beat (the baseline with the lowest MAE over the test
+      rows, R6) and each company's MASE scale at the origin;
    5. score.
 
    It returns the baseline to beat, the scored test rows and the metric tables.
@@ -121,6 +122,18 @@ Each step ends with `uv run poe check` green.
 **Checkpoint 1 (A1).** In the notebook, run the four baselines on Protocol A. The
 results must reproduce the spec's baseline table to four decimals.
 
+- **Passed 2026-11-05** (`02_evaluation_harness.ipynb`): 18 of 18 MAEs match;
+  revenue has 956 test rows at h = 1 and 958 at h = 4; the baseline to beat is
+  seasonal naive with growth for revenue at h = 1 and seasonal naive elsewhere.
+- **Finding:** at h = 1, naive and drift beat both seasonal baselines on
+  operating income (0.0150 against 0.0163) and EBITDA (0.0150 against
+  0.0164). R6 picked the baseline to beat among the seasonal two only, so there
+  a model could beat it while still losing to naive.
+- **Settled 2026-11-05:** the baseline to beat is now the best of all four
+  baselines (spec R6, revised). This changes three cases: naive for operating
+  income and EBITDA at h = 1, and drift for EBITDA at h = 4. The notebook's
+  assertion lists them.
+
 ### Phase 2 — Intervals
 
 9. **Conformal, Protocol A.** Rolling calibration over earlier origins (window in
@@ -128,13 +141,24 @@ results must reproduce the spec's baseline table to four decimals.
    before the origin. The window starts before the 16 reported origins, so the
    first reported origin already has calibration errors.
 
-   MAPIE is not a dependency yet: `uv add mapie` (ask first; it changes
-   `uv.lock`). Try MAPIE's time-series regressor first (EnbPI with partial fit). Keep it
-   only if it can be fed exactly the calibration errors allowed by R8; if it
-   insists on its own resampling, compute the quantiles in `conformal.py` and
-   record why in the spec.
-   - *Tests:* exchangeable synthetic errors reach nominal coverage. A
-     calibration error dated after the origin raises.
+   MAPIE does not fit Protocol A (it refits its own estimator and takes
+   target-space residuals), so `conformal.py` computes the quantiles; the
+   reason is recorded in spec R8. No `uv add mapie`.
+
+   - **9a. The rule.** `rolling_half_widths(errors, origins, level=, window=,
+     step=)`: at origin t, the split-conformal quantile of the absolute errors
+     whose target date is on or before t, from the latest `window` origins;
+     ACI moves the miscoverage by `step` (`EvaluationSettings.aci_step`, 0.05)
+     times the gap to every earlier interval's observed miss rate. Too few
+     errors give an unbounded interval rather than a false promise.
+     - *Tests:* exchangeable synthetic errors reach nominal coverage at 80, 90
+       and 95 %; an error whose target is after the origin does not change
+       the width (filtered by construction, so nothing to raise); ACI beats a
+       static window after the errors triple; too few errors give infinity.
+   - **9b. Into the harness.** Refit the model at `calibration_window` + h − 1
+     origins before the 16 reported ones, so the first reported origin
+     already has errors; add `lower_scaled`, `upper_scaled` per level to the
+     scored rows and records.
 10. **Interval metrics.** Coverage, mean width and Winkler, pooled and per
     sector (R8); CRPS and pinball when a forecaster supplies quantiles.
     - *Tests:* known vectors.

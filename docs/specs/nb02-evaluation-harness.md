@@ -80,16 +80,22 @@ labelled origins, all 60 companies.
 - "Seasonal naive with growth" also repeats the year-over-year change observed
   at the origin.
 
-| Target | h | Seasonal naive | Seasonal naive with growth | Naive (last level) |
-|---|---|---|---|---|
-| Revenue | 1 | 0.0906 | **0.0574** | 0.0813 |
-| Revenue | 4 | **0.0906** | 0.1223 | 0.0906 |
-| Operating income | 1 | **0.0163** | 0.0182 | — |
-| Operating income | 4 | **0.0170** | 0.0262 | — |
-| EBITDA | 1 | **0.0164** | 0.0179 | — |
-| EBITDA | 4 | **0.0172** | 0.0258 | — |
-| FCF | 1 | **0.0200** | 0.0237 | — |
-| FCF | 4 | **0.0209** | 0.0333 | — |
+| Target | h | Seasonal naive | Seasonal naive with growth | Naive (last level) | Drift |
+|---|---|---|---|---|---|
+| Revenue | 1 | 0.0906 | **0.0574** | 0.0813 | 0.0810 |
+| Revenue | 4 | **0.0906** | 0.1223 | 0.0906 | 0.0953 |
+| Operating income | 1 | 0.0163 | 0.0182 | **0.0150** | 0.0150 |
+| Operating income | 4 | **0.0170** | 0.0262 | 0.0170 | 0.0171 |
+| EBITDA | 1 | 0.0164 | 0.0179 | **0.0150** | 0.0150 |
+| EBITDA | 4 | 0.0172 | 0.0258 | 0.0172 | **0.0171** |
+| FCF | 1 | **0.0200** | 0.0237 | 0.0269 | 0.0271 |
+| FCF | 4 | **0.0209** | 0.0333 | 0.0209 | 0.0215 |
+
+Bold marks the baseline to beat (R6). At h = 4, naive and seasonal naive make
+the same forecast, and the tie goes to seasonal naive. Where two values look
+equal, the unrounded MAEs decide: operating income at h = 1 is 0.01498 for naive
+against 0.01503 for drift, and EBITDA at h = 4 is 0.01708 for drift against
+0.01719.
 
 At 7 companies (master plan, Appendix D) seasonal naive with growth was the
 only baseline reported as "seasonal naive" (0.0400). At 60 companies it is the
@@ -156,11 +162,22 @@ The harness provides four baselines, and every report includes all of them:
 - naive;
 - drift.
 
-"The baseline to beat" for a target and horizon is whichever of the two seasonal
-baselines has the lower MAE in Protocol A. On the frozen data that is the one in
-bold in the table above. This keeps master plan D6 (the seasonal baseline is
-mandatory and reported even when it wins), without picking the weaker one by
-name.
+"The baseline to beat" for a target and horizon is whichever of the four
+baselines has the lowest MAE in Protocol A (bold in the table above). Seasonal
+naive is still reported in
+every table, which keeps master plan D6 (the seasonal baseline is mandatory and
+reported even when it wins).
+
+Revised at Checkpoint 1 (2026-11-05). The rule first chose between the two
+seasonal baselines only, but at h = 1 naive and drift beat both on operating
+income (0.0150 against 0.0163) and EBITDA (0.0150 against 0.0164), and drift
+narrowly wins EBITDA at h = 4. These
+targets are scaled by revenue, so they behave like margins: slow-moving and
+only weakly seasonal, so last quarter is a better forecast than the same
+quarter a year earlier. Under the old rule, a model could get a positive
+out-of-sample R² while losing to "next quarter equals this quarter". Choosing
+among four baselines on the test rows favours the baseline, which makes the
+models look worse, never better.
 
 ### R7 — Point metrics
 
@@ -189,6 +206,13 @@ appears without its sector breakdown (master plan §7).
 - MAPIE (named in the thesis) is the implementation where its API fits the
   calibration rule above. Where it does not, the harness calibrates itself
   rather than bend the rule.
+  - **Protocol A does not fit (2026-11-05).** MAPIE's time-series regressor
+    wraps a scikit-learn estimator, refits it on its own resamples, and takes
+    residuals in target space. The harness's calibration errors come from its
+    own refit at each origin and exist only on the R5 scale, after
+    reconstruction. So the harness computes the split-conformal quantile and
+    the ACI correction itself (Gibbs and Candès, 2021), with no MAPIE
+    dependency. Protocol B is decided at step 13.
 - A model that produces its own interval may report it alongside, never in
   place of the conformal one.
 - **Interval metrics:** empirical coverage, mean width and Winkler score,

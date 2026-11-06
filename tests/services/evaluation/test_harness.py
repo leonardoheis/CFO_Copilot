@@ -52,9 +52,10 @@ class SilentOnOneCompany:
 
 
 @pytest.fixture
-def panels() -> dict[str, pd.DataFrame]:
+def panels(request: pytest.FixtureRequest) -> dict[str, pd.DataFrame]:
     # Steady year-over-year growth plus 1 % noise: seasonal naive with growth
     # beats seasonal naive, which misses the whole year's growth.
+    season = getattr(request, "param", SEASON)
     rng = np.random.default_rng(0)
     return {
         ticker: pd.DataFrame({
@@ -62,7 +63,7 @@ def panels() -> dict[str, pd.DataFrame]:
             "sector": sector,
             "date": QUARTERS,
             REVENUE: 100.0
-            * SEASON
+            * season
             * growth ** (np.arange(len(QUARTERS)) / 4)
             * np.exp(rng.normal(0.0, 0.01, len(QUARTERS))),
         })
@@ -125,7 +126,7 @@ def test_the_forecaster_never_sees_a_test_label(
     assert not spy.columns_seen & {"y", "target_level"}
 
 
-def test_the_baseline_to_beat_is_the_seasonal_baseline_with_the_lower_mae(
+def test_the_baseline_to_beat_is_the_baseline_with_the_lowest_mae(
     harness: EvaluationHarness,
     dataset: pd.DataFrame,
     panels: dict[str, pd.DataFrame],
@@ -133,6 +134,18 @@ def test_the_baseline_to_beat_is_the_seasonal_baseline_with_the_lower_mae(
     evaluation = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
 
     assert evaluation.baseline_to_beat is Baseline.SEASONAL_NAIVE_GROWTH
+
+
+@pytest.mark.parametrize("panels", [np.ones(len(QUARTERS))], indirect=True)
+def test_a_non_seasonal_baseline_can_be_the_one_to_beat(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    evaluation = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
+
+    # Without seasonality, last quarter is fresher than the same quarter a year ago.
+    assert evaluation.baseline_to_beat in {Baseline.NAIVE, Baseline.DRIFT}
 
 
 def test_the_baseline_to_beat_has_zero_out_of_sample_r2(
