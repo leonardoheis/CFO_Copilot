@@ -8,8 +8,10 @@ from app.services.evaluation.baselines import Baseline, baseline_levels
 from app.services.evaluation.conformal import rolling_half_widths
 from app.services.evaluation.leakage import LABEL_COLUMNS, check_no_look_ahead
 from app.services.evaluation.metrics import (
+    IntervalMetricTables,
     PointMetricTables,
     in_sample_scale,
+    interval_metric_tables,
     point_metric_tables,
 )
 from app.services.evaluation.models import (
@@ -46,6 +48,7 @@ class Evaluation(NamedTuple):
     # One row per test row and interval level: lower_scaled, upper_scaled.
     intervals: pd.DataFrame
     metrics: PointMetricTables
+    interval_metrics: IntervalMetricTables
 
     def records(self, *, model: str, provenance: RunProvenance) -> pd.DataFrame:
         """Validate every scored row at every level as an ``EvaluationRecord``.
@@ -227,10 +230,14 @@ class EvaluationHarness:
         )
         scored["baseline_scaled"] = scored[f"{baseline_to_beat}_scaled"]
         scored = scored[SCORED_COLUMNS]
+        intervals = _intervals(forecasts, reported_origins, settings)
         return Evaluation(
             task=task,
             baseline_to_beat=baseline_to_beat,
             scored=scored,
-            intervals=_intervals(forecasts, reported_origins, settings),
+            intervals=intervals,
             metrics=point_metric_tables(scored, variable=task.variable),
+            interval_metrics=interval_metric_tables(
+                intervals.merge(scored[[*KEYS, "sector", "y_scaled"]], on=KEYS)
+            ),
         )

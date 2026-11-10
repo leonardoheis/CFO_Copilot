@@ -230,6 +230,24 @@ def test_every_scored_row_has_an_ordered_finite_interval_at_each_level(
     assert (intervals["lower_scaled"] <= intervals["upper_scaled"]).all()
 
 
+def test_the_intervals_are_scored_at_each_level_pooled_and_by_sector(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    evaluation = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
+
+    pooled = evaluation.interval_metrics.pooled
+    assert list(pooled["level"]) == list(LEVELS)
+    assert (pooled["rows"] == len(evaluation.scored)).all()
+    assert pooled["coverage"].between(0.0, 1.0).all()
+    assert (pooled["mean_winkler_score"] >= pooled["mean_width"]).all()
+    assert set(evaluation.interval_metrics.by_sector["sector"]) == {
+        "Technology",
+        "Energy",
+    }
+
+
 def test_a_higher_level_is_never_narrower(
     harness: EvaluationHarness,
     dataset: pd.DataFrame,

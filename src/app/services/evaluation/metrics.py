@@ -1,8 +1,9 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
+from pydantic import BaseModel
 from sklearn.metrics import (
     mean_absolute_error,
     mean_absolute_percentage_error,
@@ -12,7 +13,7 @@ from sklearn.metrics import (
 
 from app.domain import TargetVariable
 from app.services.evaluation.exceptions import UndefinedMetricError
-from app.services.evaluation.models import PointMetrics
+from app.services.evaluation.models import IntervalMetrics, PointMetrics
 from app.services.features.transforms import TargetFamily, target_family
 
 
@@ -22,6 +23,13 @@ class PointMetricTables(NamedTuple):
     pooled: pd.DataFrame
     by_sector: pd.DataFrame
     by_company: pd.DataFrame
+
+
+class IntervalMetricTables(NamedTuple):
+    """Interval metrics per level, pooled and per sector."""
+
+    pooled: pd.DataFrame
+    by_sector: pd.DataFrame
 
 
 def in_sample_scale(
@@ -86,6 +94,19 @@ def _group_metrics(rows: pd.DataFrame, variable: TargetVariable) -> PointMetrics
     )
 
 
+def _by_group(
+    frame: pd.DataFrame,
+    by: Sequence[str],
+    score: Callable[[pd.DataFrame], BaseModel],
+) -> pd.DataFrame:
+    if not by:
+        return pd.DataFrame([score(frame).model_dump(exclude_none=True)])
+    return pd.DataFrame([
+        dict(zip(by, keys, strict=True)) | score(group).model_dump(exclude_none=True)
+        for keys, group in frame.groupby(list(by), observed=True)
+    ])
+
+
 def point_metrics(
     scored: pd.DataFrame, *, variable: TargetVariable, by: Sequence[str] = ()
 ) -> pd.DataFrame:
@@ -100,15 +121,62 @@ def point_metrics(
         One row per group: the ``by`` columns, ``rows``, ``missing``, ``mae``,
         ``rmse``, ``mase``, ``oos_r2``, and ``mape`` for revenue.
     """
-    if not by:
-        return pd.DataFrame([
-            _group_metrics(scored, variable).model_dump(exclude_none=True)
-        ])
-    return pd.DataFrame([
-        dict(zip(by, keys, strict=True))
-        | _group_metrics(group, variable).model_dump(exclude_none=True)
-        for keys, group in scored.groupby(list(by), observed=True)
-    ])
+    return _by_group(scored, by, lambda rows: _group_metrics(rows, variable))
+
+
+def winkler_score(intervals: pd.DataFrame) -> pd.Series:
+    """Interval width plus 2 / (1 - level) per unit by which ``y`` falls outside.
+
+    Winkler (1972); Gneiting and Raftery (2007, §6.2) call it the interval
+    score. ``intervals`` holds ``level``, ``lower_scaled``, ``upper_scaled``
+    and ``y_scaled``.
+
+    Returns:
+        The score per row; lower is better.
+    """
+    y, lower, upper = (
+        intervals["y_scaled"],
+        intervals["lower_scaled"],
+        intervals["upper_scaled"],
+    )
+    outside = (lower - y).clip(lower=0) + (y - upper).clip(lower=0)
+    return (upper - lower) + 2 / (1 - intervals["level"]) * outside
+
+
+def _interval_group_metrics(rows: pd.DataFrame) -> IntervalMetrics:
+    missing = int(rows[["lower_scaled", "upper_scaled"]].isna().any(axis=1).sum())
+    if missing:
+        return IntervalMetrics(
+            rows=len(rows),
+            missing=missing,
+            coverage=np.nan,
+            mean_width=np.nan,
+            mean_winkler_score=np.nan,
+        )
+    y = rows["y_scaled"]
+    return IntervalMetrics(
+        rows=len(rows),
+        missing=0,
+        coverage=float(y.between(rows["lower_scaled"], rows["upper_scaled"]).mean()),
+        mean_width=float((rows["upper_scaled"] - rows["lower_scaled"]).mean()),
+        mean_winkler_score=float(winkler_score(rows).mean()),
+    )
+
+
+def interval_metrics(
+    intervals: pd.DataFrame, *, by: Sequence[str] = ()
+) -> pd.DataFrame:
+    """Score intervals per level on the shared error scale, grouped by ``by``.
+
+    ``intervals`` holds one row per test row and level: ``level``,
+    ``lower_scaled``, ``upper_scaled`` and ``y_scaled``. A group with a
+    missing interval is reported with its count and no metrics.
+
+    Returns:
+        One row per level and group: ``level``, the ``by`` columns, ``rows``,
+        ``missing``, ``coverage``, ``mean_width`` and ``mean_winkler_score``.
+    """
+    return _by_group(intervals, ["level", *by], _interval_group_metrics)
 
 
 def point_metric_tables(
@@ -123,4 +191,16 @@ def point_metric_tables(
         pooled=point_metrics(scored, variable=variable),
         by_sector=point_metrics(scored, variable=variable, by=["sector"]),
         by_company=point_metrics(scored, variable=variable, by=["sector", "ticker"]),
+    )
+
+
+def interval_metric_tables(intervals: pd.DataFrame) -> IntervalMetricTables:
+    """Score intervals pooled and per sector in one call (spec R8).
+
+    Returns:
+        The two tables; pooled coverage can hide sectors that under-cover.
+    """
+    return IntervalMetricTables(
+        pooled=interval_metrics(intervals),
+        by_sector=interval_metrics(intervals, by=["sector"]),
     )

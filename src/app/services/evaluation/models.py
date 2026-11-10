@@ -92,6 +92,25 @@ class PointMetrics(BaseModel):
     mape: float | None = None
 
 
+class IntervalMetrics(BaseModel):
+    """One group's interval metrics at one level, on the shared error scale.
+
+    A group with a missing interval keeps its counts and has NaN metrics, as in
+    ``PointMetrics``.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    rows: int = Field(ge=0)
+    missing: int = Field(ge=0)
+    # Share of actual values inside their interval; nominal is the level.
+    coverage: float
+    mean_width: float
+    # Width plus 2 / (1 - level) per unit the actual value falls outside, so a
+    # narrow interval that misses pays for it (Winkler, 1972); lower is better.
+    mean_winkler_score: float
+
+
 class EvaluationRecord(BaseModel):
     """One scored forecast at one interval level: a row of the results store.
 

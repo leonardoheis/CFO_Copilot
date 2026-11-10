@@ -3,9 +3,9 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Step 9 (conformal
-intervals, normalized per company) done 2026-11-10; step 10 (interval metrics)
-next.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Steps 9 (conformal
+intervals, normalized per company) and 10 (interval metrics) done 2026-11-10;
+step 11 (Diebold–Mariano) next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -172,9 +172,17 @@ results must reproduce the spec's baseline table to four decimals.
        finite, ordered bounds; a higher level is never narrower; width over
        MASE scale is the same for every company at an origin; records carry
        each level.
-10. **Interval metrics.** Coverage, mean width and Winkler, pooled and per
-    sector (R8); CRPS and pinball when a forecaster supplies quantiles.
-    - *Tests:* known vectors.
+10. **Interval metrics.** Coverage, mean width and Winkler (the interval score
+    of Gneiting and Raftery, 2007), per level, pooled and per sector (R8), in
+    `Evaluation.interval_metrics`. As with point metrics, a missing interval
+    voids its group's metrics.
+    - *Tests:* known vectors; a missing interval voids only its group; the
+      harness scores every level.
+    - **CRPS and pinball are deferred (2026-11-10).** No forecaster supplies
+      quantiles yet: `Forecaster.predict` returns `y_hat` only. Add them with
+      the first quantile model (NB04 LightGBM or NB07 AutoGluon). That model
+      also needs its quantiles reconstructed onto the error scale, which only
+      becomes testable once one exists.
 11. **Diebold–Mariano with the HLN correction**, against the baseline to beat
     (R6, R9), on the per-origin mean loss difference.
     - *Tests:* identical forecasts give a statistic of 0; a published example

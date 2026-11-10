@@ -9,16 +9,21 @@ from .exceptions import (
 from .harness import Evaluation, EvaluationHarness
 from .leakage import check_no_look_ahead
 from .metrics import (
+    IntervalMetricTables,
     PointMetricTables,
     in_sample_scale,
+    interval_metric_tables,
+    interval_metrics,
     mape,
     point_metric_tables,
     point_metrics,
+    winkler_score,
 )
 from .models import (
     EvaluationRecord,
     EvaluationSettings,
     ForecastTask,
+    IntervalMetrics,
     PointMetrics,
     RunProvenance,
 )
@@ -35,6 +40,8 @@ __all__ = [
     "EvaluationRecord",
     "EvaluationSettings",
     "ForecastTask",
+    "IntervalMetricTables",
+    "IntervalMetrics",
     "PointMetricTables",
     "PointMetrics",
     "RunProvenance",
@@ -44,6 +51,8 @@ __all__ = [
     "baseline_levels",
     "check_no_look_ahead",
     "in_sample_scale",
+    "interval_metric_tables",
+    "interval_metrics",
     "mape",
     "on_error_scale",
     "point_metric_tables",
@@ -51,4 +60,5 @@ __all__ = [
     "protocol_a_splits",
     "reconstruct_on_error_scale",
     "rolling_half_widths",
+    "winkler_score",
 ]

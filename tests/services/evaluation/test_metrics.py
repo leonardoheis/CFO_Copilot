@@ -6,9 +6,12 @@ from app.domain import TargetVariable
 from app.services.evaluation import (
     UndefinedMetricError,
     in_sample_scale,
+    interval_metric_tables,
+    interval_metrics,
     mape,
     point_metric_tables,
     point_metrics,
+    winkler_score,
 )
 
 
@@ -24,6 +27,18 @@ def scored() -> pd.DataFrame:
         "mase_scale": [0.2, 0.2, 0.1, 0.1],
         "y_level": [100.0, 200.0, 50.0, 100.0],
         "y_hat_level": [110.0, 180.0, 60.0, 100.0],
+    })
+
+
+@pytest.fixture
+def intervals() -> pd.DataFrame:
+    # The interval [-1, 1] at both levels: y inside, 1 above, 2 below, inside.
+    return pd.DataFrame({
+        "sector": ["Technology", "Technology", "Energy", "Energy"] * 2,
+        "level": [0.8] * 4 + [0.9] * 4,
+        "y_scaled": [0.0, 2.0, -3.0, 0.5] * 2,
+        "lower_scaled": -1.0,
+        "upper_scaled": 1.0,
     })
 
 
@@ -112,3 +127,45 @@ def test_the_tables_score_pooled_by_sector_and_by_company(
     assert len(tables.pooled) == 1
     assert sorted(tables.by_sector["sector"]) == ["Energy", "Technology"]
     assert sorted(tables.by_company["ticker"]) == ["AAA", "BBB"]
+
+
+def test_the_winkler_score_charges_2_over_alpha_per_unit_outside(
+    intervals: pd.DataFrame,
+) -> None:
+    at_80_percent = intervals.head(4)
+
+    np.testing.assert_allclose(winkler_score(at_80_percent), [2.0, 12.0, 22.0, 2.0])
+
+
+def test_pooled_interval_metrics_match_hand_computed_values(
+    intervals: pd.DataFrame,
+) -> None:
+    pooled = interval_metrics(intervals).set_index("level")
+
+    np.testing.assert_allclose(pooled["coverage"], [0.5, 0.5])
+    np.testing.assert_allclose(pooled["mean_width"], [2.0, 2.0])
+    # Misses cost 2 / 0.2 = 10 per unit at 80 %, 2 / 0.1 = 20 per unit at 90 %.
+    np.testing.assert_allclose(pooled["mean_winkler_score"], [38.0 / 4, 68.0 / 4])
+
+
+def test_a_missing_interval_voids_the_groups_metrics(intervals: pd.DataFrame) -> None:
+    intervals.loc[2, "lower_scaled"] = np.nan
+
+    by_sector = interval_metrics(intervals, by=["sector"]).set_index([
+        "level",
+        "sector",
+    ])
+
+    assert by_sector.loc[(0.8, "Energy"), "missing"] == 1
+    assert by_sector["coverage"].isna()[0.8, "Energy"]
+    assert by_sector.loc[(0.8, "Technology"), "coverage"] == pytest.approx(0.5)
+    assert by_sector.loc[(0.9, "Energy"), "missing"] == 0
+
+
+def test_the_interval_tables_score_each_level_pooled_and_by_sector(
+    intervals: pd.DataFrame,
+) -> None:
+    tables = interval_metric_tables(intervals)
+
+    assert list(tables.pooled["level"]) == [0.8, 0.9]
+    assert len(tables.by_sector) == 2 * 2
