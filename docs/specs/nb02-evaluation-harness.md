@@ -201,6 +201,20 @@ appears without its sector breakdown (master plan §7).
 - **Protocol A:** calibration uses only errors whose target date is on or before
   the origin, from a rolling window of earlier origins. Coverage is corrected
   adaptively (EnbPI or ACI).
+  - **Each company's errors are normalized by its own scale (2026-11-10).**
+    Each error is divided by the company's in-sample seasonal-naive MAE at its
+    origin, the MASE scale of R7, which uses training rows only. The interval's
+    half-width is the conformal quantile of those ratios times the company's
+    scale. This is locally weighted conformal prediction (Lei et al., 2018),
+    and the coverage guarantee holds because the ratios are as exchangeable as
+    the raw errors.
+  - Without this, one pooled width would serve all 60 companies. At h = 1,
+    seasonal-naive MAE differs ×3.0–3.6 between the calmest and the most
+    volatile sector, and ×4.7–6.1 between the 10th and the 90th percentile
+    company. One width would be too wide for stable companies and too narrow
+    for volatile ones, while pooled coverage still looked nominal.
+  - Calibrating each sector separately was rejected. It leaves the ×5–6 spread
+    within sectors and only about 100 errors per sector to calibrate on.
 - **Protocol B:** calibration uses the errors of the other folds' held-out
   companies at the same H.
 - MAPIE (named in the thesis) is the implementation where its API fits the

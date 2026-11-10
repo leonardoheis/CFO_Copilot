@@ -3,8 +3,9 @@
 Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
-**Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Step 9a (the
-conformal rule) done; 9b (wiring it into the harness) next.** Decisions D1–D4 of the spec were confirmed on
+**Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Step 9 (conformal
+intervals, normalized per company) done 2026-11-10; step 10 (interval metrics)
+next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -155,10 +156,22 @@ results must reproduce the spec's baseline table to four decimals.
        and 95 %; an error whose target is after the origin does not change
        the width (filtered by construction, so nothing to raise); ACI beats a
        static window after the errors triple; too few errors give infinity.
-   - **9b. Into the harness.** Refit the model at `calibration_window` + h − 1
-     origins before the 16 reported ones, so the first reported origin
-     already has errors; add `lower_scaled`, `upper_scaled` per level to the
-     scored rows and records.
+   - **9b. Into the harness.**
+     - Refit the model at `calibration_window` + h − 1 origins before the 16
+       reported ones, so the first reported origin already has errors. Those
+       origins calibrate only and are never scored. On the frozen data that
+       reaches back to 2017-06 (h = 1) and 2015-12 (h = 4), with all 60
+       companies.
+     - Normalize each error by the company's MASE scale at its origin, and
+       multiply the width back by the scale at the reported origin (spec R8,
+       decided 2026-11-10).
+     - `Evaluation.intervals` holds one row per scored row and level, with
+       `lower_scaled` and `upper_scaled`. Records become one per scored row
+       and level.
+     - *Tests:* calibration origins are never scored; every interval has
+       finite, ordered bounds; a higher level is never narrower; width over
+       MASE scale is the same for every company at an origin; records carry
+       each level.
 10. **Interval metrics.** Coverage, mean width and Winkler, pooled and per
     sector (R8); CRPS and pinball when a forecaster supplies quantiles.
     - *Tests:* known vectors.

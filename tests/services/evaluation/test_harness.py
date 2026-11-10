@@ -19,6 +19,9 @@ from app.services.features import TargetArm, TargetTransformer
 REVENUE = TargetVariable.REVENUE
 TASK = ForecastTask(variable=REVENUE, arm=TargetArm.LOG_DIFF4, horizon=1)
 N_ORIGINS = 4
+# Two companies give 20 errors per calibration window: enough for a finite
+# quantile at these levels, not at 0.95.
+LEVELS = (0.5, 0.8)
 QUARTERS = pd.date_range("2020-03-31", periods=20, freq="QE")
 SEASON = np.tile([1.0, 1.2, 1.1, 1.3], 5)
 
@@ -95,7 +98,11 @@ def dataset(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 @pytest.fixture
 def harness() -> EvaluationHarness:
-    return EvaluationHarness(settings=EvaluationSettings(n_origins=N_ORIGINS))
+    return EvaluationHarness(
+        settings=EvaluationSettings(
+            n_origins=N_ORIGINS, calibration_window=10, interval_levels=LEVELS
+        )
+    )
 
 
 def test_every_company_is_scored_at_each_of_the_last_labelled_origins(
@@ -199,11 +206,64 @@ def test_every_scored_row_becomes_a_record_with_its_provenance(
 
     records = evaluation.records(model="silent", provenance=provenance)
 
-    assert len(records) == len(evaluation.scored)
+    assert len(records) == len(evaluation.scored) * len(LEVELS)
     assert set(records["git_commit"]) == {"0" * 40}
     assert set(records["arm"]) == {TASK.arm.value}
-    assert records["level"].isna().all()
-    assert records.loc[records["ticker"] == "BBB", "y_hat_scaled"].isna().all()
+    assert set(records["level"]) == set(LEVELS)
+    silent = records[records["ticker"] == "BBB"]
+    assert silent[["y_hat_scaled", "lower_scaled", "upper_scaled"]].isna().all().all()
+
+
+def test_every_scored_row_has_an_ordered_finite_interval_at_each_level(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    evaluation = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
+
+    intervals = evaluation.intervals
+    assert len(intervals) == len(evaluation.scored) * len(LEVELS)
+    # The calibration origins are refit but never reported.
+    assert set(intervals["origin_date"]) == set(evaluation.scored["origin_date"])
+    bounds = intervals[["lower_scaled", "upper_scaled"]]
+    assert np.isfinite(bounds.to_numpy()).all()
+    assert (intervals["lower_scaled"] <= intervals["upper_scaled"]).all()
+
+
+def test_a_higher_level_is_never_narrower(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    evaluation = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
+
+    width = evaluation.intervals.assign(
+        width=lambda f: f["upper_scaled"] - f["lower_scaled"]
+    ).pivot_table(index=["ticker", "origin_date"], columns="level", values="width")
+    assert (width[LEVELS[1]] >= width[LEVELS[0]]).all()
+
+
+def test_each_company_s_interval_scales_with_its_own_errors(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    evaluation = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
+
+    intervals = evaluation.intervals.merge(
+        evaluation.scored[["ticker", "origin_date", "mase_scale"]]
+    )
+    width = intervals["upper_scaled"] - intervals["lower_scaled"]
+    # AAA grows twice as fast, so its errors and its interval are wider than BBB's.
+    relative = (width / intervals["mase_scale"]).groupby([
+        intervals["origin_date"],
+        intervals["level"],
+    ])
+    np.testing.assert_allclose(relative.max(), relative.min())
+    assert (
+        width[intervals["ticker"] == "AAA"].mean()
+        > width[intervals["ticker"] == "BBB"].mean()
+    )
 
 
 def test_a_task_refuses_an_arm_its_variable_cannot_use() -> None:
