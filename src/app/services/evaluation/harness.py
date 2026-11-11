@@ -10,11 +10,13 @@ from app.services.evaluation.leakage import LABEL_COLUMNS, check_no_look_ahead
 from app.services.evaluation.metrics import (
     IntervalMetricTables,
     PointMetricTables,
+    diebold_mariano,
     in_sample_scale,
     interval_metric_tables,
     point_metric_tables,
 )
 from app.services.evaluation.models import (
+    DieboldMarianoTest,
     EvaluationRecord,
     EvaluationSettings,
     ForecastTask,
@@ -49,6 +51,7 @@ class Evaluation(NamedTuple):
     intervals: pd.DataFrame
     metrics: PointMetricTables
     interval_metrics: IntervalMetricTables
+    significance: DieboldMarianoTest
 
     def records(self, *, model: str, provenance: RunProvenance) -> pd.DataFrame:
         """Validate every scored row at every level as an ``EvaluationRecord``.
@@ -56,7 +59,7 @@ class Evaluation(NamedTuple):
         Returns:
             One record per test row and interval level, as a frame.
         """
-        shared = {
+        shared: dict[str, object] = {
             "model": model,
             "variable": self.task.variable,
             "arm": self.task.arm,
@@ -86,7 +89,7 @@ def _predictions_at(
 def _company_rows(
     panel: pd.DataFrame, predictions: pd.DataFrame, task: ForecastTask
 ) -> pd.DataFrame:
-    own = predictions[predictions["ticker"] == panel["ticker"].iloc[0]]
+    own = predictions[predictions["ticker"].eq(panel["ticker"].iloc[0])]
     rows = reconstruct_on_error_scale(
         panel,
         variable=task.variable,
@@ -142,7 +145,7 @@ def _intervals(
         / forecasts["mase_scale"]
     )
     reported = forecasts[forecasts["origin_date"].isin(reported_origins)]
-    by_level = []
+    by_level: list[pd.DataFrame] = []
     for level in settings.interval_levels:
         ratio = rolling_half_widths(
             normalized,
@@ -192,8 +195,8 @@ class EvaluationHarness:
         reported interval; those are never scored.
 
         Returns:
-            The baseline to beat, the scored test rows, their intervals and
-            their metric tables.
+            The baseline to beat, the scored test rows, their intervals, their
+            metric tables and the Diebold-Mariano test against the baseline.
         """
         settings = self._settings
         splits = protocol_a_splits(
@@ -240,4 +243,5 @@ class EvaluationHarness:
             interval_metrics=interval_metric_tables(
                 intervals.merge(scored[[*KEYS, "sector", "y_scaled"]], on=KEYS)
             ),
+            significance=diebold_mariano(scored, horizon=task.horizon),
         )

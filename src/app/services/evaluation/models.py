@@ -111,6 +111,21 @@ class IntervalMetrics(BaseModel):
     mean_winkler_score: float
 
 
+class DieboldMarianoTest(BaseModel):
+    """A model's absolute errors against the baseline to beat's (spec R9).
+
+    NaN when a prediction is missing, as in ``PointMetrics``.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    origins: int = Field(ge=0)
+    # Negative when the model's errors are smaller.
+    statistic: float
+    # Two-sided, on Student's t with origins - 1 degrees of freedom.
+    p_value: float
+
+
 class EvaluationRecord(BaseModel):
     """One scored forecast at one interval level: a row of the results store.
 

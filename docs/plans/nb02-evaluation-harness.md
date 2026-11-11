@@ -4,8 +4,8 @@ Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 (hard gate before NB03).
 
 **Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Steps 9 (conformal
-intervals, normalized per company) and 10 (interval metrics) done 2026-11-10;
-step 11 (Diebold–Mariano) next.** Decisions D1–D4 of the spec were confirmed on
+intervals, normalized per company), 10 (interval metrics) and 11
+(Diebold–Mariano) done 2026-11-10; Checkpoint 2 next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -184,9 +184,14 @@ results must reproduce the spec's baseline table to four decimals.
       also needs its quantiles reconstructed onto the error scale, which only
       becomes testable once one exists.
 11. **Diebold–Mariano with the HLN correction**, against the baseline to beat
-    (R6, R9), on the per-origin mean loss difference.
-    - *Tests:* identical forecasts give a statistic of 0; a published example
-      reproduces; the loss series has one value per origin, not per row.
+    (R6, R9), on the per-origin mean absolute-error difference, in
+    `Evaluation.significance`. statsmodels' `diebold_mariano_test` does the
+    statistics; the harness only averages per origin.
+    - *Tests:* identical forecasts give a statistic of 0; at h = 1 it matches
+      `scipy.stats.ttest_1samp` (the reference in place of a published
+      example); two companies per origin test the same as their per-origin
+      mean; one value per origin, not per row; a missing prediction voids the
+      test.
 
 **Checkpoint 2 (A5).** Seasonal-naive coverage is within ±5 points of 80, 90 and
 95 %, pooled over Protocol A.

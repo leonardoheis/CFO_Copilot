@@ -164,6 +164,23 @@ Say it in the name, not in a paragraph above it.
   could not infer, removes genuinely duplicated logic (not a repeated call), or
   a framework requires it.
 
+## Metrics and statistical tests: library first
+
+Before writing a metric, a score or a statistical test, look for an
+established implementation in this order:
+
+1. An installed library: scikit-learn, scipy, statsmodels.
+2. A maintained package on PyPI, added with `uv add`.
+3. Only then, your own implementation. Say in its docstring why no library
+   fits, and test it against a reference value.
+
+A library's version has been reviewed and is cited by others; a hand-written
+one is a second place for a bug to hide. Keep only the project's own rules in
+the wrapper (which rows, which loss, how missing values count), and note in
+the spec where the library's method differs from the paper's.
+`diebold_mariano` in `services/evaluation/metrics.py` is the example: it
+averages per origin and leaves the test to statsmodels.
+
 ## Lint suppressions
 
 - **Do not silence a linter to make code pass.** `# noqa` and `# ruff: ignore`

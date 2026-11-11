@@ -1,10 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
+from scipy import stats
 
 from app.domain import TargetVariable
 from app.services.evaluation import (
     UndefinedMetricError,
+    diebold_mariano,
     in_sample_scale,
     interval_metric_tables,
     interval_metrics,
@@ -21,6 +23,7 @@ def scored() -> pd.DataFrame:
     return pd.DataFrame({
         "ticker": ["AAA", "AAA", "BBB", "BBB"],
         "sector": ["Technology", "Technology", "Energy", "Energy"],
+        "origin_date": pd.to_datetime(["2024-03-31", "2024-06-30"] * 2),
         "y_scaled": [1.0, 2.0, 0.0, 1.0],
         "y_hat_scaled": [1.1, 1.8, 0.3, 1.0],
         "baseline_scaled": [1.2, 2.0, 0.0, 0.5],
@@ -169,3 +172,66 @@ def test_the_interval_tables_score_each_level_pooled_and_by_sector(
 
     assert list(tables.pooled["level"]) == [0.8, 0.9]
     assert len(tables.by_sector) == 2 * 2
+
+
+def test_identical_forecasts_give_a_diebold_mariano_statistic_of_zero(
+    scored: pd.DataFrame,
+) -> None:
+    itself = scored.assign(y_hat_scaled=scored["baseline_scaled"])
+
+    test = diebold_mariano(itself, horizon=1)
+
+    assert test.statistic == pytest.approx(0.0)
+    assert test.p_value == pytest.approx(1.0)
+
+
+def test_at_horizon_one_diebold_mariano_is_a_one_sample_t_test() -> None:
+    # The HLN factor turns DM's 1/n variance into the sample variance.
+    rng = np.random.default_rng(0)
+    scored = pd.DataFrame({
+        "origin_date": pd.date_range("2020-03-31", periods=16, freq="QE"),
+        "y_scaled": 0.0,
+        "y_hat_scaled": rng.normal(size=16),
+        "baseline_scaled": rng.normal(size=16),
+    })
+    reference = stats.ttest_1samp(
+        scored["y_hat_scaled"].abs() - scored["baseline_scaled"].abs(), 0.0
+    )
+
+    test = diebold_mariano(scored, horizon=1)
+
+    assert test.statistic == pytest.approx(reference.statistic)
+    assert test.p_value == pytest.approx(reference.pvalue)
+
+
+def test_diebold_mariano_averages_the_companies_at_each_origin() -> None:
+    origins = pd.date_range("2020-03-31", periods=8, freq="QE")
+    by_origin = np.array([1.0, 1.5, 3.0, 2.5, 0.5, 2.0, 1.0, 3.5])
+    one_row_per_origin = pd.DataFrame({
+        "origin_date": origins,
+        "y_scaled": 0.0,
+        "y_hat_scaled": by_origin,
+        "baseline_scaled": 0.0,
+    })
+    two_companies = pd.DataFrame({
+        "origin_date": np.tile(origins, 2),
+        "y_scaled": 0.0,
+        "y_hat_scaled": np.concatenate([by_origin + 0.5, by_origin - 0.5]),
+        "baseline_scaled": 0.0,
+    })
+
+    test = diebold_mariano(two_companies, horizon=2)
+
+    assert test.origins == len(origins)
+    assert test == diebold_mariano(one_row_per_origin, horizon=2)
+
+
+def test_a_missing_prediction_voids_the_diebold_mariano_test(
+    scored: pd.DataFrame,
+) -> None:
+    scored.loc[2, "y_hat_scaled"] = np.nan
+
+    test = diebold_mariano(scored, horizon=1)
+
+    assert np.isnan(test.statistic)
+    assert np.isnan(test.p_value)

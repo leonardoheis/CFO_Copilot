@@ -11,6 +11,7 @@ from .leakage import check_no_look_ahead
 from .metrics import (
     IntervalMetricTables,
     PointMetricTables,
+    diebold_mariano,
     in_sample_scale,
     interval_metric_tables,
     interval_metrics,
@@ -20,6 +21,7 @@ from .metrics import (
     winkler_score,
 )
 from .models import (
+    DieboldMarianoTest,
     EvaluationRecord,
     EvaluationSettings,
     ForecastTask,
@@ -33,6 +35,7 @@ from .splits import Split, protocol_a_splits
 __all__ = [
     "Baseline",
     "BaselineForecaster",
+    "DieboldMarianoTest",
     "Evaluation",
     "EvaluationError",
     "EvaluationHarness",
@@ -50,6 +53,7 @@ __all__ = [
     "UndefinedMetricError",
     "baseline_levels",
     "check_no_look_ahead",
+    "diebold_mariano",
     "in_sample_scale",
     "interval_metric_tables",
     "interval_metrics",

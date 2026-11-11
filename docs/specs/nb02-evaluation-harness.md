@@ -248,6 +248,17 @@ appears without its sector breakdown (master plan §7).
   With 16 origins the test has 16 observations, and its variance allows
   autocorrelation up to lag h − 1, because forecasts from consecutive origins
   overlap.
+- The loss is the absolute error on the R5 scale (decided 2026-11-10): the
+  baseline to beat is chosen by MAE, so the test asks whether a model beats it
+  on the same loss. The corrected statistic is compared with Student's t on
+  16 − 1 degrees of freedom, two-sided.
+- The test is statsmodels' `diebold_mariano_test` (decided 2026-11-11), with
+  `lags = h − 1`. Its Newey–West variance weights the lags with a declining
+  (Bartlett) kernel, where Harvey et al. (1997) weight them equally. The
+  Newey–West variance can never be negative; the equally weighted one can
+  be at h > 1. At h = 1 the two coincide, and the statistic equals a
+  one-sample t-test on the 16 loss differences.
+- A missing prediction voids the test, as it voids the point metrics.
 - The Model Confidence Set across families is NB08's job, not the harness's.
 
 ### R10 — Results store

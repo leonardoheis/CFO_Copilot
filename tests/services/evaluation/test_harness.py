@@ -118,6 +118,7 @@ def test_every_company_is_scored_at_each_of_the_last_labelled_origins(
     assert sorted(scored["origin_date"].unique()) == list(QUARTERS[-5:-1])
     assert (scored["target_date"] > scored["origin_date"]).all()
     assert scored["mase_scale"].notna().all()
+    assert evaluation.significance.origins == N_ORIGINS
 
 
 def test_the_forecaster_never_sees_a_test_label(

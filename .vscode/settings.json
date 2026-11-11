@@ -15,6 +15,18 @@
     "python.analysis.diagnosticSeverityOverrides": {
         "reportMissingTypeStubs": "none"
     },
+    "cSpell.words": [
+        "actuals",
+        "diebold",
+        "gneiting",
+        "mase",
+        "nbqa",
+        "newey",
+        "pvalue",
+        "raftery",
+        "stattools",
+        "winkler"
+    ],
     "files.autoSaveDelay": 1000,
     "notebook.lineNumbers": "on",
     "gitlens.mode.active": "review",

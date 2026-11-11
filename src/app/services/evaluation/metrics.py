@@ -10,10 +10,15 @@ from sklearn.metrics import (
     mean_squared_error,
     root_mean_squared_error,
 )
+from statsmodels.tsa.stattools import diebold_mariano_test
 
 from app.domain import TargetVariable
 from app.services.evaluation.exceptions import UndefinedMetricError
-from app.services.evaluation.models import IntervalMetrics, PointMetrics
+from app.services.evaluation.models import (
+    DieboldMarianoTest,
+    IntervalMetrics,
+    PointMetrics,
+)
 from app.services.features.transforms import TargetFamily, target_family
 
 
@@ -177,6 +182,44 @@ def interval_metrics(
         ``missing``, ``coverage``, ``mean_width`` and ``mean_winkler_score``.
     """
     return _by_group(intervals, ["level", *by], _interval_group_metrics)
+
+
+def diebold_mariano(scored: pd.DataFrame, *, horizon: int) -> DieboldMarianoTest:
+    """Diebold-Mariano against the baseline to beat, with the HLN correction.
+
+    statsmodels' test on each origin's MAE, averaged over the companies at
+    that origin since they share macro shocks (spec R9). Its Newey-West
+    variance allows autocorrelation up to lag ``horizon - 1``, where
+    consecutive origins' forecasts overlap.
+
+    Returns:
+        The test on one loss difference per origin.
+    """
+    y = scored["y_scaled"]
+    absolute_errors = pd.DataFrame({
+        "model": (scored["y_hat_scaled"] - y).abs(),
+        "baseline": (scored["baseline_scaled"] - y).abs(),
+    })
+    mae_by_origin = absolute_errors.groupby(scored["origin_date"]).mean()
+    origins = len(mae_by_origin)
+    if absolute_errors["model"].isna().any():
+        return DieboldMarianoTest(origins=origins, statistic=np.nan, p_value=np.nan)
+    if mae_by_origin["model"].equals(mae_by_origin["baseline"]):
+        return DieboldMarianoTest(origins=origins, statistic=0.0, p_value=1.0)
+    # An MAE's absolute error against zero is the MAE itself, so the test
+    # differences the two per-origin MAEs.
+    test = diebold_mariano_test(
+        np.zeros(origins),
+        mae_by_origin["model"],
+        mae_by_origin["baseline"],
+        criterion="mae",
+        lags=horizon - 1,
+        harvey_adj=True,
+        horizon=horizon,
+    )
+    return DieboldMarianoTest(
+        origins=origins, statistic=float(test.statistic), p_value=float(test.pvalue)
+    )
 
 
 def point_metric_tables(
