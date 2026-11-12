@@ -5,7 +5,8 @@ Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 
 **Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Steps 9 (conformal
 intervals, normalized per company), 10 (interval metrics) and 11
-(Diebold–Mariano) done 2026-11-10; Checkpoint 2 next.** Decisions D1–D4 of the spec were confirmed on
+(Diebold–Mariano) done 2026-11-10; Checkpoint 2 passed 2026-11-11; step 12
+next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -195,6 +196,11 @@ results must reproduce the spec's baseline table to four decimals.
 
 **Checkpoint 2 (A5).** Seasonal-naive coverage is within ±5 points of 80, 90 and
 95 %, pooled over Protocol A.
+
+- **Passed 2026-11-11**, checked per target and h = 1–4 in NB02, after the
+  calibration window went from 20 to 12 origins and the ACI step from 0.05 to
+  0.2 (spec R8 has the evidence). The first settings over-covered revenue by
+  up to 8.8 points. Worst cell now: free cash flow h = 4 at 80 %, +3.5.
 
 ### Phase 3 — Protocol B
 

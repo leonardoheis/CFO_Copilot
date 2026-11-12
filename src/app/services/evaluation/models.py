@@ -37,10 +37,10 @@ class EvaluationSettings(BaseModel):
     ] = (8, 12, 20, 40)
     # Earlier origins whose errors calibrate an interval; it reaches back before
     # the first reported origin so that origin already has errors to use.
-    calibration_window: int = Field(default=20, ge=1)
+    calibration_window: int = Field(default=12, ge=1)
     # ACI's gamma. Gibbs and Candès use 0.005 over thousands of steps; 16
     # origins need a larger step to correct anything.
-    aci_step: float = Field(default=0.05, gt=0.0, lt=1.0)
+    aci_step: float = Field(default=0.2, gt=0.0, lt=1.0)
     seed: int = RANDOM_SEED
     # Bumped to nb02-v1.0.0 when the harness is frozen (plan, step 18).
     harness_version: str = "nb02-v0.1.0"
