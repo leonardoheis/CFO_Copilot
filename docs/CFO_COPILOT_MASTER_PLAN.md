@@ -273,7 +273,7 @@ evaluate(
 ) -> pd.DataFrame
 ```
 
-One row per `(model, ticker, origin_date, horizon, level)` with point, actual, bounds, fold id. All notebooks append to `results.parquet`.
+One row per `(model, ticker, origin_date, horizon, level)` with point, actual, bounds. All notebooks append to `results.parquet`.
 
 ### Protocol A — temporal (known company) — FIRST
 
@@ -283,7 +283,7 @@ One row per `(model, ticker, origin_date, horizon, level)` with point, actual, b
 
 ### Protocol B — cold start (new company) — SECOND
 
-- GroupKFold on ticker, 12 folds × 5 companies. Held-out companies appear in zero training rows.
+- Leave one company out (`LeaveOneGroupOut` on ticker): 60 folds, each trains on the other 59. Held-out companies appear in zero training rows. Replaces 12 folds × 5 (2026-11-12): no stratified splitter spreads 9 sectors of 3–9 companies over 12 folds (NB02 spec R3)
 - Truncate each held-out company's own history to H ∈ {8, 12, 20, 40, all} and forecast from there
 - Produces the accuracy-vs-history-length surface that becomes the app's routing policy
 
@@ -321,10 +321,10 @@ Store as `conformal_residuals.parquet` keyed by `(model, variable, horizon, H_bi
 
 | | Protocol A | Protocol B |
 |---|---|---|
-| PI method | EnbPI / ACI on own history | Cross-conformal across held-out companies |
+| PI method | EnbPI / ACI on own history | Jackknife+ across held-out companies |
 | PI validity | Approximate, adaptively corrected | **Exact marginal coverage** |
 | PI meaning | "Given your 20 years of filings…" | "Given companies like you…" |
-| CI method | Analytic or ensemble | Spread across the 12 group folds |
+| CI method | Analytic or ensemble | Spread across the 60 leave-one-company-out fits |
 | CI meaning | Parameter uncertainty — narrow | "We don't know you yet" — **wide, must narrow as H grows** |
 
 The Protocol B CI narrowing with H is a **test, not an assumption**. If it doesn't narrow, the calibration is wrong and the dashboard number is decorative.
@@ -739,7 +739,7 @@ Every design decision in this plan now has a citation. Full BibTeX in `reference
 | §3.4 macro revisions | D13, O4 | `croushore2001realtime`, `croushore2011frontiers` (predictive content can **vanish** in real time), `stark2002forecasting` (inflation forecasts most revision-sensitive — so CPI is the covariate to worry about) |
 | §7 metrics | MASE over MAPE | `hyndman2006another` (MASE; MAPE degenerate near zero — FCF and operating income cross zero), `gneiting2007proper` (CRPS, MSIS), `gneiting2014probabilistic` |
 | §7 significance | D22 | `diebold1995comparing`, `harvey1997testing`, `hansen2011mcs`, `nadeau2003inference` |
-| §4 protocols | Rolling origin, group CV | `tashman2000outofsample`, `bergmeir2012cv` (blocked CV is safe and more robust than single hold-out), `bergmeir2018note`, `deprado2018advances` (purging/embargo) |
+| §4 protocols | Rolling origin, group CV | `muller2016introduction` (k-fold, stratified k-fold, leave-one-out, group CV), `tashman2000outofsample`, `bergmeir2012cv` (blocked CV is safe and more robust than single hold-out), `bergmeir2018note`, `deprado2018advances` (purging/embargo) |
 | §5.3–5.4 conformal | D9, the Protocol B design | **`barber2023beyond`** (conformal beyond exchangeability — the theoretical licence for cross-conformal on the company axis), `gibbs2021aci`, `xu2021enbpi`, `romano2019cqr`, `barber2021jackknife`, `vovk2005algorithmic` |
 | §5.1 PI vs CI | D8 | `kendall2017uncertainties`, `lakshminarayanan2017ensembles`, `gal2016dropout`, `huellermeier2021aleatoric` |
 | §6 NB05 | Deep arms, and the expected negative result | `salinas2020deepar`, `oreshkin2020nbeats`, `challu2023nhits`, `lim2021tft`, `nie2023patchtst`, `zeng2023transformers` (DLinear beats many transformers) |

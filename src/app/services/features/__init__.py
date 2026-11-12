@@ -1,4 +1,5 @@
 from .builder import (
+    QUARTERS_READ_BY_FEATURE,
     FeatureBuilder,
     FeatureGroup,
     FeatureSpec,
@@ -30,6 +31,7 @@ from .transforms import (
 )
 
 __all__ = [
+    "QUARTERS_READ_BY_FEATURE",
     "SEASONAL_LAG",
     "FeatureBuilder",
     "FeatureError",

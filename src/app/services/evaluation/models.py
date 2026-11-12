@@ -20,7 +20,7 @@ def _strictly_ascending[T: (float, int)](values: tuple[T, ...]) -> tuple[T, ...]
 class EvaluationSettings(BaseModel):
     """The fixed choices every model is scored under.
 
-    Interval levels, origins, folds and history lengths come from
+    Interval levels, origins and history lengths come from
     ``docs/specs/nb02-evaluation-harness.md`` (requirements R2, R3 and R8).
     """
 
@@ -30,7 +30,6 @@ class EvaluationSettings(BaseModel):
         tuple[UnitInterval, ...], AfterValidator(_strictly_ascending)
     ] = (0.80, 0.90, 0.95)
     n_origins: int = Field(default=16, ge=1)
-    n_folds: int = Field(default=12, ge=2)
     # Quarters of the held-out company's own history; "all" is not truncated.
     histories: Annotated[
         tuple[Annotated[int, Field(ge=1)], ...], AfterValidator(_strictly_ascending)
@@ -142,9 +141,9 @@ class EvaluationRecord(BaseModel):
     variable: TargetVariable
     arm: TargetArm
     protocol: EvaluationProtocol
-    # Protocol B only: quarters of history kept, None for all of it.
+    # Protocol B only: quarters of history kept, None for all of it. The
+    # held-out company is the record's own ticker.
     history: int | None = Field(default=None, ge=1)
-    fold: int | None = Field(default=None, ge=0)
     ticker: str
     sector: str
     origin_date: date
@@ -163,12 +162,9 @@ class EvaluationRecord(BaseModel):
     git_commit: str
 
     @model_validator(mode="after")
-    def _fold_and_history_belong_to_protocol_b(self) -> Self:
-        if self.protocol == "A" and (self.fold is not None or self.history is not None):
-            message = "Protocol A has no fold and no history truncation"
-            raise ValueError(message)
-        if self.protocol == "B" and self.fold is None:
-            message = "a Protocol B record needs the fold of its held-out company"
+    def _history_belongs_to_protocol_b(self) -> Self:
+        if self.protocol == "A" and self.history is not None:
+            message = "Protocol A has no history truncation"
             raise ValueError(message)
         return self
 

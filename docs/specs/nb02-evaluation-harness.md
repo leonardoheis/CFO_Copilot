@@ -126,9 +126,26 @@ metrics. A model notebook never filters rows for testing.
 
 ### R3 — Protocol B (new company)
 
-- **Folds.** The 60 companies form 12 folds of 5. Assignment is seeded,
-  deterministic and spread across sectors. A held-out company is in no
-  training row of its fold.
+- **Leave one company out.** Each of the 60 companies is held out once, and
+  the model trains on the other 59. A held-out company is in no training row
+  of its fold. This is leave-one-out cross-validation (Müller and Guido,
+  2016, ch. 5) with the company, not the row, as the unit: a row held out
+  alone would leave its company's other quarters in training.
+  - **Why not 12 folds of 5 (decided 2026-11-12).** The folds were to be
+    spread across sectors, so a held-out company's peers stay in training as
+    they would in production. Stratified group k-fold cannot do that:
+    scikit-learn's `StratifiedKFold` and `StratifiedGroupKFold` refuse when
+    every sector is smaller than the fold count (checked in 1.7.1 and
+    1.9.1), and the largest sector has 9 companies for 12 folds. Plain
+    `GroupKFold(12, shuffle=True)` ignores sectors: over 200 seeds, 67 % put
+    two companies of Materials, Utilities or Energy in one fold, and 35 %
+    leave one of those sectors with at most one training company.
+    `StratifiedKFold(6)` keeps the small sectors but trains on 50 companies.
+    Holding out one company removes the problem: every sector keeps all but
+    the tested company, and training is the closest to production's 60.
+  - **Cost.** 60 fits per origin instead of 12, about 5× for models trained
+    on the panel. Zero-shot foundation models are not trained on it, so
+    holding a company out costs them nothing.
 - **History.** Each held-out company is forecast from its own history cut to
   H ∈ {8, 12, 20, 40, all} quarters before the origin. Features that need more
   history than H are missing, not imputed.
@@ -243,8 +260,9 @@ appears without its sector breakdown (master plan §7).
   - Per sector, some cells still under-cover by 13–18 points under every
     setting tried (Materials free cash flow, Utilities revenue at 80 %). A5
     is pooled, so this is reported as a finding, not a failure.
-- **Protocol B:** calibration uses the errors of the other folds' held-out
-  companies at the same H.
+- **Protocol B:** calibration uses the errors of the other held-out
+  companies at the same H. With one company per fold this is the jackknife+
+  (Barber et al., 2021).
 - MAPIE (named in the thesis) is the implementation where its API fits the
   calibration rule above. Where it does not, the harness calibrates itself
   rather than bend the rule.
@@ -293,7 +311,8 @@ appears without its sector breakdown (master plan §7).
 
 - One record per model, target, arm, protocol, H, company, origin, horizon and
   level. Each record holds: the point prediction, the actual, both on the R5
-  scale and as levels; the interval bounds; and the fold.
+  scale and as levels; and the interval bounds. Under Protocol B the
+  held-out company is the record's own ticker, so no fold is stored.
 - Each record also carries the harness version, the data-freeze identifier and
   the git commit.
 - All notebooks append to the same store.
@@ -311,7 +330,7 @@ appears without its sector breakdown (master plan §7).
 - **Test rows:** every test row's origin is on or after every training row's
   target date (a row trained at origin t may have its target on t), and the
   rows a model predicts from carry no label.
-- **Protocol B:** no held-out company appears in its fold's training rows.
+- **Protocol B:** no held-out company appears in its own training rows.
 - **Conformal calibration:** no calibration error comes from a target date after
   the origin.
 

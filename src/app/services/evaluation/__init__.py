@@ -30,7 +30,13 @@ from .models import (
     RunProvenance,
 )
 from .scale import on_error_scale, reconstruct_on_error_scale
-from .splits import Split, protocol_a_splits
+from .splits import (
+    HeldOutCompany,
+    Split,
+    protocol_a_splits,
+    protocol_b_splits,
+    truncate_history,
+)
 
 __all__ = [
     "Baseline",
@@ -43,6 +49,7 @@ __all__ = [
     "EvaluationRecord",
     "EvaluationSettings",
     "ForecastTask",
+    "HeldOutCompany",
     "IntervalMetricTables",
     "IntervalMetrics",
     "PointMetricTables",
@@ -62,7 +69,9 @@ __all__ = [
     "point_metric_tables",
     "point_metrics",
     "protocol_a_splits",
+    "protocol_b_splits",
     "reconstruct_on_error_scale",
     "rolling_half_widths",
+    "truncate_history",
     "winkler_score",
 ]

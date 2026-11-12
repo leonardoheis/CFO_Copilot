@@ -5,8 +5,9 @@ Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 
 **Status: Phase 1 done, Checkpoint 1 passed (2026-11-05). Steps 9 (conformal
 intervals, normalized per company), 10 (interval metrics) and 11
-(Diebold–Mariano) done 2026-11-10; Checkpoint 2 passed 2026-11-11; step 12
-next.** Decisions D1–D4 of the spec were confirmed on
+(Diebold–Mariano) done 2026-11-10; Checkpoint 2 passed and step 12 (folds and
+truncation) done 2026-11-11, folds changed to leave-one-company-out
+2026-11-12; step 13 (cross-conformal) next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -27,8 +28,8 @@ New service package `src/app/services/evaluation/`, following the
 
 | File | Holds |
 |---|---|
-| `models.py` | `EvaluationSettings`: levels 0.80/0.90/0.95, 16 origins, 12 folds, histories 8/12/20/40/all, the calibration window and seed. Also `Protocol` (A, B) and the result record type |
-| `splits.py` | Protocol A origins and training masks; Protocol B folds and history truncation |
+| `models.py` | `EvaluationSettings`: levels 0.80/0.90/0.95, 16 origins, histories 8/12/20/40/all, the calibration window and seed. Also `Protocol` (A, B) and the result record type |
+| `splits.py` | Protocol A origins and training masks; Protocol B leave-one-company-out splits and history truncation |
 | `scale.py` | Error scale per target (R5): log level for revenue, level over trailing revenue otherwise; level reconstruction via `TargetTransformer.reconstruct` |
 | `baselines.py` | Seasonal naive, seasonal naive with growth, naive, drift |
 | `metrics.py` | MAE, RMSE, MASE, MAPE (revenue only), out-of-sample R² against the baseline to beat (master plan D25); coverage, width, Winkler; CRPS and pinball when quantiles exist; HLN-corrected Diebold–Mariano |
@@ -57,8 +58,7 @@ Each step ends with `uv run poe check` green.
 1. **Settings and record types.** Add `models.py` with `EvaluationSettings`
    (`ConfigDict(frozen=True, extra="forbid")`; validators: levels in (0, 1)
    and ascending, histories ascending), `EvaluationProtocol` (in `domain/`) and
-   the result record. Whether the folds divide the company count is checked in
-   step 12, where the companies are known.
+   the result record.
    - *Tests:* settings validation.
 2. **Splits.** Protocol A origins (the last *n* labelled origins per horizon,
    D1) and the training mask (`target_date <= origin`).
@@ -204,12 +204,23 @@ results must reproduce the spec's baseline table to four decimals.
 
 ### Phase 3 — Protocol B
 
-12. **Folds and truncation.** Seeded fold assignment spread across sectors, 12 × 5;
-    it raises when the companies do not split evenly into the folds. History
-    cut to H; features that need more history become NaN.
-    - *Tests:* folds are disjoint and cover all 60 companies; no held-out company
-      is in its fold's training rows; at H = 8, `growth_yoy_lag8` is NaN.
-13. **Cross-conformal** across held-out companies at the same H.
+12. **Folds and truncation.** Leave one company out (scikit-learn's
+    `LeaveOneGroupOut` on the ticker). History cut to H; features that need
+    more history become NaN.
+    - *Tests:* each company is held out once; a held-out company is in none of
+      its training rows and is the only one tested; the held-out companies
+      test every Protocol A test row once; at H = 8, `growth_yoy_lag8` is NaN.
+    - **Done 2026-11-11, folds changed 2026-11-12.** First built as 12 seeded
+      folds of 5 dealt across sectors; replaced by leave-one-company-out (spec
+      R3 has the evidence). `EvaluationSettings.n_folds` and the record's
+      `fold` went with it: the held-out company is the record's ticker.
+      `protocol_b_splits` and `truncate_history` in `splits.py`. The quarters
+      each growth feature reads live beside the builder
+      (`QUARTERS_READ_BY_FEATURE`), tested against the builder's own
+      output. Only H = 8 blanks anything: lags 5 and 8 and the 8-quarter
+      rolling mean and std; at H ≥ 12 every feature fits.
+13. **Cross-conformal** across held-out companies at the same H: with one
+    company per fold, the jackknife+ (Barber et al., 2021).
     - *Tests:* calibration never uses the company being scored.
 14. **Harness, Protocol B.** `evaluate(..., protocol=B, histories=...)`.
 

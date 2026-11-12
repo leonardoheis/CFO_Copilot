@@ -2,7 +2,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from app.services.evaluation import TooFewOriginsError, protocol_a_splits
+from app.services.evaluation import (
+    TooFewOriginsError,
+    protocol_a_splits,
+    protocol_b_splits,
+    truncate_history,
+)
 
 HORIZON = 4
 QUARTERS = pd.date_range("2020-03-31", periods=12, freq="QE")
@@ -80,3 +85,58 @@ def test_asking_for_more_origins_than_are_labelled_is_refused(
 ) -> None:
     with pytest.raises(TooFewOriginsError, match="asked for 9 labelled origins"):
         protocol_a_splits(dataset, n_origins=LABELLED_ORIGINS + 1)
+
+
+def test_each_company_is_held_out_once(dataset: pd.DataFrame) -> None:
+    held_out_companies = protocol_b_splits(dataset, n_origins=LABELLED_ORIGINS)
+
+    assert [company.ticker for company in held_out_companies] == ["AAA", "BBB"]
+
+
+def test_a_held_out_company_never_trains_and_is_the_only_one_tested(
+    dataset: pd.DataFrame,
+) -> None:
+    held_out_companies = protocol_b_splits(dataset, n_origins=LABELLED_ORIGINS)
+
+    for company in held_out_companies:
+        for split in company.splits:
+            assert company.ticker not in set(dataset.loc[split.train, "ticker"])
+            assert set(dataset.loc[split.test, "ticker"]) <= {company.ticker}
+
+
+def test_the_held_out_companies_test_every_protocol_a_test_row_once(
+    dataset: pd.DataFrame,
+) -> None:
+    held_out_companies = protocol_b_splits(dataset, n_origins=LABELLED_ORIGINS)
+
+    tested_per_origin = [
+        pd.concat(
+            [company.splits[i].test for company in held_out_companies], axis=1
+        ).sum(axis=1)
+        for i in range(LABELLED_ORIGINS)
+    ]
+    for split, tested in zip(
+        protocol_a_splits(dataset, LABELLED_ORIGINS), tested_per_origin, strict=True
+    ):
+        assert tested.equals(split.test.astype(int))
+
+
+def test_eight_quarters_of_history_blank_the_features_that_read_more() -> None:
+    features = pd.DataFrame({
+        "growth_yoy_lag4": [0.1],
+        "growth_yoy_lag5": [0.1],
+        "growth_yoy_lag8": [0.1],
+        "growth_yoy_mean_8q": [0.1],
+        "operating_margin": [0.2],
+    })
+
+    truncated = truncate_history(features, history=8)
+
+    # Lag 4 reads 8 quarters; lag 5 and the 8-quarter mean read 9 and 12.
+    assert truncated.columns[truncated.isna().all()].tolist() == [
+        "growth_yoy_lag5",
+        "growth_yoy_lag8",
+        "growth_yoy_mean_8q",
+    ]
+    assert truncate_history(features, history=12).equals(features)
+    assert features.notna().all().all()

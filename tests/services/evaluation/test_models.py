@@ -33,7 +33,6 @@ def test_defaults_are_the_specs_values() -> None:
     assert EvaluationSettings().model_dump() == {
         "interval_levels": (0.80, 0.90, 0.95),
         "n_origins": 16,
-        "n_folds": 12,
         "histories": (8, 12, 20, 40),
         "calibration_window": 12,
         "aci_step": 0.2,
@@ -92,19 +91,13 @@ def test_a_missing_prediction_is_recorded_not_refused() -> None:
     assert record.y_hat_scaled is None
 
 
-@pytest.mark.parametrize("extra", [{"fold": 3}, {"history": 8}])
-def test_protocol_a_has_no_fold_or_history(extra: dict[str, int]) -> None:
+def test_protocol_a_has_no_history_truncation() -> None:
     with pytest.raises(ValidationError, match="Protocol A"):
-        EvaluationRecord(**{**RECORD, **extra})
-
-
-def test_protocol_b_needs_its_fold() -> None:
-    with pytest.raises(ValidationError, match="fold"):
-        EvaluationRecord(**{**RECORD, "protocol": "B", "history": 8})
+        EvaluationRecord(**{**RECORD, "history": 8})
 
 
 def test_protocol_b_with_all_history_has_no_history_value() -> None:
-    record = EvaluationRecord(**{**RECORD, "protocol": "B", "fold": 3})
+    record = EvaluationRecord(**{**RECORD, "protocol": "B"})
 
     assert record.history is None
 
