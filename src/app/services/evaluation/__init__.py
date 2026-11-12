@@ -1,5 +1,5 @@
 from .baselines import Baseline, BaselineForecaster, baseline_levels
-from .conformal import rolling_half_widths
+from .conformal import jackknife_half_widths, rolling_half_widths
 from .exceptions import (
     EvaluationError,
     EvaluationLeakageError,
@@ -64,6 +64,7 @@ __all__ = [
     "in_sample_scale",
     "interval_metric_tables",
     "interval_metrics",
+    "jackknife_half_widths",
     "mape",
     "on_error_scale",
     "point_metric_tables",

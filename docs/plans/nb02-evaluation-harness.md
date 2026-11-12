@@ -7,7 +7,8 @@ Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 intervals, normalized per company), 10 (interval metrics) and 11
 (Diebold–Mariano) done 2026-11-10; Checkpoint 2 passed and step 12 (folds and
 truncation) done 2026-11-11, folds changed to leave-one-company-out
-2026-11-12; step 13 (cross-conformal) next.** Decisions D1–D4 of the spec were confirmed on
+2026-11-12; step 13 (jackknife intervals) done 2026-11-12; step 14 (harness,
+Protocol B) next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -220,8 +221,16 @@ results must reproduce the spec's baseline table to four decimals.
       output. Only H = 8 blanks anything: lags 5 and 8 and the 8-quarter
       rolling mean and std; at H ≥ 12 every feature fits.
 13. **Cross-conformal** across held-out companies at the same H: with one
-    company per fold, the jackknife+ (Barber et al., 2021).
-    - *Tests:* calibration never uses the company being scored.
+    company per fold, the jackknife (Barber et al., 2021), not the jackknife+
+    (spec R8).
+    - *Tests:* calibration never uses the company being scored; other
+      companies' errors whose target is after the origin never calibrate;
+      exchangeable companies reach nominal coverage.
+    - **Done 2026-11-12.** `jackknife_half_widths` in `conformal.py` runs
+      `rolling_half_widths` once per company on the other companies' errors.
+      No MAPIE (spec R8). `rolling_half_widths` now filters NumPy arrays
+      instead of frames: the jackknife's 40-company coverage test went from
+      23 s to under 1 s, with Protocol A's results unchanged.
 14. **Harness, Protocol B.** `evaluate(..., protocol=B, histories=...)`.
 
 **Checkpoint 3 (A6).** Seasonal-naive Protocol B intervals narrow from H = 8 to
@@ -261,8 +270,11 @@ all.
     The methods subsection explains why there is no validation set, from
     `docs/notes/validation-set-rationale.md`, and why MASE is computed in the
     harness and R² only out of sample, from
-    `docs/notes/metric-choices-rationale.md`. Every source both notes cite is
-    already in the thesis repo's `references.bib`.
+    `docs/notes/metric-choices-rationale.md`, and why the jackknife and
+    Diebold–Mariano, from `docs/notes/interval-and-significance-rationale.md`.
+    Every source the first two notes cite is already in the thesis repo's
+    `references.bib`; the third needs Kim et al. (2020), Diebold (2015) and
+    Giacomini & White (2006) added.
 18. **Freeze.** Set the harness version to `nb02-v1.0.0` in the settings. Then
     ask before creating the git tag; tagging needs explicit permission.
 

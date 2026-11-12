@@ -321,8 +321,8 @@ Store as `conformal_residuals.parquet` keyed by `(model, variable, horizon, H_bi
 
 | | Protocol A | Protocol B |
 |---|---|---|
-| PI method | EnbPI / ACI on own history | Jackknife+ across held-out companies |
-| PI validity | Approximate, adaptively corrected | **Exact marginal coverage** |
+| PI method | EnbPI / ACI on own history | Jackknife across held-out companies (not jackknife+: its other models trained on the scored company) |
+| PI validity | Approximate, adaptively corrected | Marginal coverage when the model is stable; no worst-case guarantee, so measured |
 | PI meaning | "Given your 20 years of filings…" | "Given companies like you…" |
 | CI method | Analytic or ensemble | Spread across the 60 leave-one-company-out fits |
 | CI meaning | Parameter uncertainty — narrow | "We don't know you yet" — **wide, must narrow as H grows** |

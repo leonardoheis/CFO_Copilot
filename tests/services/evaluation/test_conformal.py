@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from app.services.evaluation import rolling_half_widths
+from app.services.evaluation import jackknife_half_widths, rolling_half_widths
 
 ORIGINS = pd.date_range("1996-03-31", periods=120, freq="QE")
 COMPANIES = 40
@@ -16,6 +16,7 @@ def _errors(scale: np.ndarray) -> pd.DataFrame:
     rng = np.random.default_rng(0)
     origin_dates = np.repeat(ORIGINS, COMPANIES)
     return pd.DataFrame({
+        "ticker": np.tile([f"T{i:02d}" for i in range(COMPANIES)], len(ORIGINS)),
         "origin_date": origin_dates,
         "target_date": origin_dates + pd.offsets.QuarterEnd(1),
         "error": rng.normal(0.0, np.repeat(scale, COMPANIES)),
@@ -78,3 +79,49 @@ def test_too_few_calibration_errors_give_an_unbounded_interval() -> None:
     )
 
     assert math.isinf(half_widths[ORIGINS[1]])
+
+
+def test_a_held_out_company_is_never_calibrated_on_its_own_errors() -> None:
+    errors = _errors(np.ones(len(ORIGINS)))
+    before = jackknife_half_widths(
+        errors, TEST_ORIGINS, level=0.9, window=WINDOW, step=0.05
+    )
+
+    errors.loc[errors["ticker"] == "T00", "error"] = 1e6
+
+    after = jackknife_half_widths(
+        errors, TEST_ORIGINS, level=0.9, window=WINDOW, step=0.05
+    )
+    assert after.loc["T00"].equals(before.loc["T00"])
+    assert (after.loc["T01"] > before.loc["T01"]).any()
+
+
+def test_other_companies_errors_after_the_origin_never_calibrate() -> None:
+    errors = _errors(np.ones(len(ORIGINS)))
+    origin = TEST_ORIGINS[0]
+    before = jackknife_half_widths(
+        errors, [origin], level=0.9, window=WINDOW, step=0.05
+    )
+
+    # The origin's own errors have their target a quarter after it.
+    errors.loc[errors["origin_date"] == origin, "error"] = 1e6
+
+    after = jackknife_half_widths(errors, [origin], level=0.9, window=WINDOW, step=0.05)
+    assert after.equals(before)
+
+
+@pytest.mark.parametrize("level", [0.80, 0.90, 0.95])
+def test_exchangeable_companies_reach_nominal_coverage(level: float) -> None:
+    errors = _errors(np.ones(len(ORIGINS)))
+
+    half_widths = jackknife_half_widths(
+        errors, TEST_ORIGINS, level=level, window=WINDOW, step=0.05
+    )
+
+    tested = errors[errors["origin_date"].isin(TEST_ORIGINS)]
+    width = half_widths.reindex(
+        pd.MultiIndex.from_frame(tested[["ticker", "origin_date"]])
+    )
+    assert float((tested["error"].abs().to_numpy() <= width.to_numpy()).mean()) == (
+        pytest.approx(level, abs=0.02)
+    )

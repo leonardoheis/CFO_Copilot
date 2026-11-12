@@ -261,8 +261,18 @@ appears without its sector breakdown (master plan §7).
     setting tried (Materials free cash flow, Utilities revenue at 80 %). A5
     is pooled, so this is reported as a finding, not a failure.
 - **Protocol B:** calibration uses the errors of the other held-out
-  companies at the same H. With one company per fold this is the jackknife+
-  (Barber et al., 2021).
+  companies at the same H, with Protocol A's time rule, window and ACI step.
+  The interval is centred on the prediction of the model fit without the
+  company: the jackknife (Barber et al., 2021), decided 2026-11-12.
+  - **Not the jackknife+.** It centres on every other leave-one-out model's
+    prediction, and each of those trained on the company being scored, so the
+    company would no longer be unseen. A clean jackknife+ needs a model fit
+    without both companies, 60 × 59 fits per origin.
+  - The jackknife has no worst-case coverage guarantee (the jackknife+ has
+    1 − 2α); it covers well when the model is stable. Coverage is measured,
+    not assumed.
+  - A production app could use the jackknife+: a genuinely new company is in
+    none of the 60 models.
 - MAPIE (named in the thesis) is the implementation where its API fits the
   calibration rule above. Where it does not, the harness calibrates itself
   rather than bend the rule.
@@ -272,7 +282,11 @@ appears without its sector breakdown (master plan §7).
     own refit at each origin and exist only on the R5 scale, after
     reconstruction. So the harness computes the split-conformal quantile and
     the ACI correction itself (Gibbs and Candès, 2021), with no MAPIE
-    dependency. Protocol B is decided at step 13.
+    dependency.
+  - **Protocol B does not fit either (2026-11-12).** MAPIE's
+    `CrossConformalRegressor` also refits a scikit-learn estimator itself,
+    on its own folds; the harness's held-out errors come from its own
+    leave-one-company-out refits at each origin, on the R5 scale.
 - A model that produces its own interval may report it alongside, never in
   place of the conformal one.
 - **Interval metrics:** empirical coverage, mean width and Winkler score,
