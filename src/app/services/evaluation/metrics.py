@@ -82,19 +82,30 @@ def _group_metrics(rows: pd.DataFrame, variable: TargetVariable) -> PointMetrics
             mape=np.nan if has_mape else None,
         )
     y, y_hat, scale = rows["y_scaled"], rows["y_hat_scaled"], rows["mase_scale"]
+    # A zero scale (an error-free history) has no MASE; its rows still count
+    # in MAE and RMSE.
+    scaled = scale.gt(0)
+    mase = np.nan
+    if scaled.any():
+        # Mean of |error| / the company's scale: MAE of the rescaled values.
+        mase = float(
+            mean_absolute_error(
+                y[scaled] / scale[scaled], y_hat[scaled] / scale[scaled]
+            )
+        )
+    # Campbell and Thompson (2008): r2_score would compare with the mean of y.
+    # A baseline with no error leaves nothing to explain, so R² is undefined.
+    baseline_mse = float(mean_squared_error(y, rows["baseline_scaled"]))
+    oos_r2 = np.nan
+    if baseline_mse > 0:
+        oos_r2 = 1 - float(mean_squared_error(y, y_hat)) / baseline_mse
     return PointMetrics(
         rows=len(rows),
         missing=0,
         mae=float(mean_absolute_error(y, y_hat)),
         rmse=float(root_mean_squared_error(y, y_hat)),
-        # Mean of |error| / the company's scale: MAE of the rescaled values.
-        mase=float(mean_absolute_error(y / scale, y_hat / scale)),
-        # Campbell and Thompson (2008): r2_score would compare with the mean of y.
-        oos_r2=float(
-            1
-            - mean_squared_error(y, y_hat)
-            / mean_squared_error(y, rows["baseline_scaled"])
-        ),
+        mase=mase,
+        oos_r2=oos_r2,
         mape=mape(rows["y_level"], rows["y_hat_level"], variable) if has_mape else None,
     )
 

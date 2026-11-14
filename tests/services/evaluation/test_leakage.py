@@ -4,6 +4,7 @@ import pytest
 
 from app.services.evaluation import (
     EvaluationLeakageError,
+    check_held_out,
     check_no_look_ahead,
     protocol_a_splits,
 )
@@ -71,3 +72,17 @@ def test_test_rows_from_before_a_training_target_are_refused(
 
     with pytest.raises(EvaluationLeakageError, match="1 test rows forecast from"):
         check_no_look_ahead(train, earlier.drop(columns=["y", "target_level"]), origin)
+
+
+def test_a_held_out_company_in_its_own_training_rows_is_refused(
+    dataset: pd.DataFrame, origin: pd.Timestamp
+) -> None:
+    train = pd.concat([
+        dataset[dataset["target_date"] <= origin],
+        dataset[dataset["target_date"] <= origin].assign(ticker="BBB"),
+    ])
+    test = dataset[dataset["origin_date"] == origin].drop(columns=["y", "target_level"])
+
+    check_held_out(train[train["ticker"] == "BBB"], test, origin)
+    with pytest.raises(EvaluationLeakageError, match="in training: AAA"):
+        check_held_out(train, test, origin)

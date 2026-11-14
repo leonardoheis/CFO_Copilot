@@ -19,6 +19,9 @@ from app.services.features import TargetArm, TargetTransformer
 REVENUE = TargetVariable.REVENUE
 TASK = ForecastTask(variable=REVENUE, arm=TargetArm.LOG_DIFF4, horizon=1)
 N_ORIGINS = 4
+# Protocol B's histories: the settings' four, then all of it.
+HISTORIES = (8, 12, 20, 40, None)
+KEYS = ["ticker", "origin_date"]
 # Two companies give 20 errors per calibration window: enough for a finite
 # quantile at these levels, not at 0.95.
 LEVELS = (0.5, 0.8)
@@ -37,6 +40,22 @@ class SpyForecaster:
 
     def predict(self, test: pd.DataFrame, /) -> pd.DataFrame:
         self.columns_seen |= set(test.columns)
+        return pd.DataFrame({"y_hat": 0.0}, index=test.index)
+
+
+class RecordingForecaster:
+    """Predicts zero change and keeps every frame it was fit on or shown."""
+
+    def __init__(self) -> None:
+        self.trained: list[pd.DataFrame] = []
+        self.shown: list[pd.DataFrame] = []
+
+    def fit(self, train: pd.DataFrame, /) -> Self:
+        self.trained.append(train)
+        return self
+
+    def predict(self, test: pd.DataFrame, /) -> pd.DataFrame:
+        self.shown.append(test)
         return pd.DataFrame({"y_hat": 0.0}, index=test.index)
 
 
@@ -79,6 +98,10 @@ def panels(request: pytest.FixtureRequest) -> dict[str, pd.DataFrame]:
 
 @pytest.fixture
 def dataset(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    return _features(panels)
+
+
+def _features(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
     transformer = TargetTransformer(arm=TASK.arm, horizon=TASK.horizon)
     return pd.concat(
         [
@@ -283,6 +306,168 @@ def test_each_company_s_interval_scales_with_its_own_errors(
         width[intervals["ticker"] == "AAA"].mean()
         > width[intervals["ticker"] == "BBB"].mean()
     )
+
+
+def test_protocol_b_scores_every_company_at_each_history(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    evaluations = harness.evaluate_new_companies(
+        SpyForecaster(), dataset, panels=panels, task=TASK
+    )
+
+    assert [evaluation.history for evaluation in evaluations] == list(HISTORIES)
+    for evaluation in evaluations:
+        assert evaluation.protocol == "B"
+        assert len(evaluation.scored) == len(panels) * N_ORIGINS
+        assert len(evaluation.intervals) == len(evaluation.scored) * len(LEVELS)
+        bounds = evaluation.intervals
+        assert (bounds["lower_scaled"] <= bounds["upper_scaled"]).all()
+
+
+def test_a_new_company_is_never_in_the_rows_its_model_trained_on(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    forecaster = RecordingForecaster()
+
+    harness.evaluate_new_companies(forecaster, dataset, panels=panels, task=TASK)
+
+    # One fit per company and origin serves every history.
+    assert len(forecaster.shown) == len(forecaster.trained) * len(HISTORIES)
+    for call, test in enumerate(forecaster.shown):
+        train = forecaster.trained[call // len(HISTORIES)]
+        assert not set(train["ticker"]) & set(test["ticker"])
+
+
+def test_protocol_b_models_never_see_the_seasonality_regime(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    forecaster = RecordingForecaster()
+
+    harness.evaluate_new_companies(
+        forecaster, dataset.assign(seasonality_regime=0), panels=panels, task=TASK
+    )
+
+    frames = forecaster.trained + forecaster.shown
+    assert not any("seasonality_regime" in frame.columns for frame in frames)
+
+
+def test_only_eight_quarters_of_history_blank_the_eighth_growth_lag(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    forecaster = RecordingForecaster()
+
+    harness.evaluate_new_companies(
+        forecaster, dataset.assign(growth_yoy_lag8=0.1), panels=panels, task=TASK
+    )
+
+    blank = [bool(test["growth_yoy_lag8"].isna().all()) for test in forecaster.shown]
+    fits = len(forecaster.trained)
+    assert blank == [True, False, False, False, False] * fits
+
+
+def test_with_all_its_history_a_new_company_gets_protocol_a_s_forecasts(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    protocol_a = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
+
+    all_history = harness.evaluate_new_companies(
+        SpyForecaster(), dataset, panels=panels, task=TASK
+    )[-1]
+
+    # Only the error scale differs: Protocol B blends it with the peers'.
+    pd.testing.assert_frame_equal(
+        all_history.scored.drop(columns="mase_scale").sort_values(
+            KEYS, ignore_index=True
+        ),
+        protocol_a.scored.drop(columns="mase_scale").sort_values(
+            KEYS, ignore_index=True
+        ),
+    )
+
+
+def test_a_short_history_changes_the_error_scale(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    evaluations = harness.evaluate_new_companies(
+        SpyForecaster(), dataset, panels=panels, task=TASK
+    )
+
+    eight_quarters, all_history = evaluations[0].scored, evaluations[-1].scored
+    assert eight_quarters["mase_scale"].notna().all()
+    assert not np.allclose(eight_quarters["mase_scale"], all_history["mase_scale"])
+
+
+def test_a_short_history_interval_leans_on_its_peers_error_size(
+    dataset: pd.DataFrame, panels: dict[str, pd.DataFrame]
+) -> None:
+    def eight_quarter_widths(prior_errors: int) -> pd.Series:
+        harness = EvaluationHarness(
+            settings=EvaluationSettings(
+                n_origins=N_ORIGINS,
+                calibration_window=10,
+                interval_levels=LEVELS,
+                scale_prior_errors=prior_errors,
+            )
+        )
+        intervals = harness.evaluate_new_companies(
+            SpyForecaster(), dataset, panels=panels, task=TASK
+        )[0].intervals
+        return intervals["upper_scaled"] - intervals["lower_scaled"]
+
+    assert not np.allclose(eight_quarter_widths(0), eight_quarter_widths(10_000))
+
+
+def test_protocol_b_records_carry_their_protocol_and_history(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    provenance = RunProvenance(
+        harness_version="nb02-v0.1.0",
+        data_freeze="thesis_2026-10-30-0123456789ab",
+        git_commit="0" * 40,
+    )
+    evaluations = harness.evaluate_new_companies(
+        SpyForecaster(), dataset, panels=panels, task=TASK
+    )
+
+    eight_quarters = evaluations[0].records(model="zero", provenance=provenance)
+    all_history = evaluations[-1].records(model="zero", provenance=provenance)
+
+    assert set(eight_quarters["protocol"]) == {"B"}
+    assert set(eight_quarters["history"]) == {HISTORIES[0]}
+    assert all_history["history"].isna().all()
+
+
+def test_a_company_with_a_zero_error_scale_does_not_break_the_others(
+    harness: EvaluationHarness, panels: dict[str, pd.DataFrame]
+) -> None:
+    # Revenue that never changes: every seasonal-naive error, and so the
+    # company's scale, is exactly zero.
+    flat = {**panels, "BBB": panels["BBB"].assign(**{REVENUE: 100.0})}
+
+    evaluation = harness.evaluate(
+        SpyForecaster(), _features(flat), panels=flat, task=TASK
+    )
+
+    assert (evaluation.scored.set_index("ticker")["mase_scale"]["BBB"] == 0).all()
+    assert np.isfinite(evaluation.metrics.pooled["mase"][0])
+    # BBB's errors do not calibrate, so AAA's 10 may leave an interval
+    # unbounded; none is left without bounds.
+    other = evaluation.intervals[evaluation.intervals["ticker"] == "AAA"]
+    assert other[["lower_scaled", "upper_scaled"]].notna().all().all()
 
 
 def test_a_task_refuses_an_arm_its_variable_cannot_use() -> None:

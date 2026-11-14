@@ -40,6 +40,10 @@ class EvaluationSettings(BaseModel):
     # ACI's gamma. Gibbs and Candès use 0.005 over thousands of steps; 16
     # origins need a larger step to correct anything.
     aci_step: float = Field(default=0.2, gt=0.0, lt=1.0)
+    # Protocol B: a held-out company's error scale (MASE and the interval)
+    # leans on its sector peers', which count as this many errors. At H = 8
+    # the company has 1 to 4 of its own, too few to trust alone (spec R8).
+    scale_prior_errors: int = Field(default=8, ge=0)
     seed: int = RANDOM_SEED
     # Bumped to nb02-v1.0.0 when the harness is frozen (plan, step 18).
     harness_version: str = "nb02-v0.1.0"

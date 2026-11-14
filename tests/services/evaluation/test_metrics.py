@@ -57,6 +57,37 @@ def test_pooled_metrics_match_hand_computed_values(scored: pd.DataFrame) -> None
     assert pooled["mape"] == pytest.approx((0.1 + 0.1 + 0.2 + 0.0) / 4)
 
 
+def test_a_zero_error_scale_leaves_its_rows_out_of_mase_only(
+    scored: pd.DataFrame,
+) -> None:
+    zero_for_bbb = scored.assign(
+        mase_scale=scored["mase_scale"].where(scored["ticker"] == "AAA", 0.0)
+    )
+
+    pooled = point_metrics(zero_for_bbb, variable=TargetVariable.REVENUE).iloc[0]
+
+    assert pooled["mase"] == pytest.approx((0.5 + 1.0) / 2)
+    assert pooled["mae"] == pytest.approx(0.15)
+
+
+def test_mase_is_undefined_when_every_scale_is_zero(scored: pd.DataFrame) -> None:
+    pooled = point_metrics(
+        scored.assign(mase_scale=0.0), variable=TargetVariable.REVENUE
+    ).iloc[0]
+
+    assert np.isnan(pooled["mase"])
+
+
+def test_out_of_sample_r2_is_undefined_against_a_perfect_baseline(
+    scored: pd.DataFrame,
+) -> None:
+    perfect_baseline = scored.assign(baseline_scaled=scored["y_scaled"])
+
+    pooled = point_metrics(perfect_baseline, variable=TargetVariable.REVENUE).iloc[0]
+
+    assert np.isnan(pooled["oos_r2"])
+
+
 def test_a_signed_target_reports_no_mape(scored: pd.DataFrame) -> None:
     pooled = point_metrics(scored, variable=TargetVariable.EBITDA)
 

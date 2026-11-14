@@ -1,5 +1,6 @@
 from typing import assert_never
 
+import numpy as np
 import pandas as pd
 
 from app.domain import TargetVariable
@@ -34,6 +35,58 @@ def on_error_scale(
             return level / trailing_revenue(revenue)
         case _ as unreachable:
             assert_never(unreachable)
+
+
+def _peer_median(values: np.ndarray, sectors: np.ndarray, company: int) -> float:
+    others = np.arange(values.size) != company
+    same_sector = others & (sectors == sectors[company])
+    return float(np.nanmedian(values[same_sector if same_sector.any() else others]))
+
+
+def sector_peer_scales(scales: pd.DataFrame) -> pd.Series:
+    """Median error scale of each company's sector peers at each origin.
+
+    ``scales`` holds ``ticker, origin_date, sector, mase_scale``. A company is
+    never its own peer; one alone in its sector takes the median of every
+    other company.
+
+    Returns:
+        The peers' scale, indexed by ticker and origin date.
+    """
+    by_origin: list[pd.Series] = []
+    for _, at_origin in scales.groupby("origin_date"):
+        values = at_origin["mase_scale"].to_numpy(dtype=float)
+        sectors = at_origin["sector"].to_numpy()
+        by_origin.append(
+            pd.Series(
+                [_peer_median(values, sectors, i) for i in range(values.size)],
+                index=pd.MultiIndex.from_frame(at_origin[["ticker", "origin_date"]]),
+            )
+        )
+    peer_scales: pd.Series = pd.concat(by_origin)
+    return peer_scales
+
+
+def credibility_weighted_scale(
+    own_scale: pd.Series,
+    own_errors: pd.Series,
+    peer_scale: pd.Series,
+    *,
+    prior_errors: int,
+) -> pd.Series:
+    """Blend a company's own error scale with its peers' by how many errors it rests on.
+
+    Credibility weighting (Bühlmann and Gisler, 2005): the peers' scale counts
+    as ``prior_errors`` errors. A company with none of its own takes the
+    peers' scale, one with ``prior_errors`` sits halfway, and one with many
+    keeps nearly its own.
+
+    Returns:
+        The blended scale, aligned to ``own_scale``.
+    """
+    return (own_errors * own_scale.fillna(0.0) + prior_errors * peer_scale) / (
+        own_errors + prior_errors
+    )
 
 
 def reconstruct_on_error_scale(

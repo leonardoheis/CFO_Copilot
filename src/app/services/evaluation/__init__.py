@@ -7,7 +7,7 @@ from .exceptions import (
     UndefinedMetricError,
 )
 from .harness import Evaluation, EvaluationHarness
-from .leakage import check_no_look_ahead
+from .leakage import check_held_out, check_no_look_ahead
 from .metrics import (
     IntervalMetricTables,
     PointMetricTables,
@@ -29,7 +29,12 @@ from .models import (
     PointMetrics,
     RunProvenance,
 )
-from .scale import on_error_scale, reconstruct_on_error_scale
+from .scale import (
+    credibility_weighted_scale,
+    on_error_scale,
+    reconstruct_on_error_scale,
+    sector_peer_scales,
+)
 from .splits import (
     HeldOutCompany,
     Split,
@@ -59,7 +64,9 @@ __all__ = [
     "TooFewOriginsError",
     "UndefinedMetricError",
     "baseline_levels",
+    "check_held_out",
     "check_no_look_ahead",
+    "credibility_weighted_scale",
     "diebold_mariano",
     "in_sample_scale",
     "interval_metric_tables",
@@ -73,6 +80,7 @@ __all__ = [
     "protocol_b_splits",
     "reconstruct_on_error_scale",
     "rolling_half_widths",
+    "sector_peer_scales",
     "truncate_history",
     "winkler_score",
 ]

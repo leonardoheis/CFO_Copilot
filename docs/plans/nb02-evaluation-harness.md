@@ -7,8 +7,8 @@ Spec: `docs/specs/nb02-evaluation-harness.md`. Master plan milestone M3
 intervals, normalized per company), 10 (interval metrics) and 11
 (Diebold–Mariano) done 2026-11-10; Checkpoint 2 passed and step 12 (folds and
 truncation) done 2026-11-11, folds changed to leave-one-company-out
-2026-11-12; step 13 (jackknife intervals) done 2026-11-12; step 14 (harness,
-Protocol B) next.** Decisions D1–D4 of the spec were confirmed on
+2026-11-12; steps 13 (jackknife intervals) and 14 (harness, Protocol B) done
+2026-11-12; Checkpoint 3 next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -231,10 +231,27 @@ results must reproduce the spec's baseline table to four decimals.
       No MAPIE (spec R8). `rolling_half_widths` now filters NumPy arrays
       instead of frames: the jackknife's 40-company coverage test went from
       23 s to under 1 s, with Protocol A's results unchanged.
-14. **Harness, Protocol B.** `evaluate(..., protocol=B, histories=...)`.
+14. **Harness, Protocol B.** `EvaluationHarness.evaluate_new_companies(...)`
+    returns one `Evaluation` per history (8, 12, 20, 40, all).
+    - **Done 2026-11-12.** One fit per company and origin serves every H; the
+      held-out company's features are cut with `truncate_history`, and its
+      baselines and MASE scale are recomputed from its last H quarters.
+      `seasonality_regime` is dropped (spec R3). `check_held_out` (R12) runs
+      before every fit. `Evaluation` gained `protocol` and `history`.
+    - *Tests:* every company scored at each H; a new company is never in its
+      model's training rows; the regime is never shown; only H = 8 blanks
+      `growth_yoy_lag8`; with all its history a new company is scored exactly
+      as under Protocol A; a short history uses its own few quarters for the
+      MASE scale; records carry protocol B and H.
+    - Seasonal naive on the frozen panel takes about 65 s per target and
+      horizon (≈ 17 min for all 16).
 
-**Checkpoint 3 (A6).** Seasonal-naive Protocol B intervals narrow from H = 8 to
-all.
+**Checkpoint 3 (A6).** Seasonal-naive Protocol B intervals cover within ±5
+points of each level at every H, for every target and horizon. Restated from
+"narrow from H = 8 to all" on 2026-11-13 (spec A6): seasonal naive's errors are
+the same at every H. The short-history scale now leans on the sector peers
+(spec R8, `scale_prior_errors = 8`); the trial on the frozen panel passed for
+revenue at h = 1 and every target at h = 4.
 
 ### Phase 4 — Notebook, thesis, freeze
 

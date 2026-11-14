@@ -3,11 +3,44 @@ import pandas as pd
 import pytest
 
 from app.domain import TargetVariable
-from app.services.evaluation import on_error_scale, reconstruct_on_error_scale
+from app.services.evaluation import (
+    credibility_weighted_scale,
+    on_error_scale,
+    reconstruct_on_error_scale,
+    sector_peer_scales,
+)
 from app.services.features import TargetArm, TargetTransformer, arms_for
 
 QUARTERS = 16
 HORIZON = 2
+PRIOR_ERRORS = 8
+
+
+def test_a_company_without_errors_takes_its_peers_scale() -> None:
+    blended = credibility_weighted_scale(
+        pd.Series([np.nan, 1.0, 1.0]),
+        pd.Series([0, PRIOR_ERRORS, 100_000]),
+        pd.Series([3.0, 3.0, 3.0]),
+        prior_errors=PRIOR_ERRORS,
+    )
+
+    # None of its own, as many as the prior (halfway), and many (nearly its own).
+    np.testing.assert_allclose(blended, [3.0, 2.0, 1.0], atol=1e-3)
+
+
+def test_peers_are_the_other_companies_of_the_sector_at_the_same_origin() -> None:
+    origin = pd.Timestamp("2024-03-31")
+    scales = pd.DataFrame({
+        "ticker": ["AAA", "BBB", "CCC", "DDD"],
+        "origin_date": origin,
+        "sector": ["Energy", "Energy", "Energy", "Utilities"],
+        "mase_scale": [1.0, 2.0, 6.0, 9.0],
+    })
+
+    peers = sector_peer_scales(scales).xs(origin, level="origin_date")
+
+    # AAA's peers are BBB and CCC; DDD is alone, so its peers are everyone else.
+    assert peers.to_dict() == {"AAA": 4.0, "BBB": 3.5, "CCC": 1.5, "DDD": 2.0}
 
 
 @pytest.fixture

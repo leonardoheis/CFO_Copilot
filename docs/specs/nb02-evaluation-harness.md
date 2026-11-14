@@ -149,6 +149,19 @@ metrics. A model notebook never filters rows for testing.
 - **History.** Each held-out company is forecast from its own history cut to
   H ∈ {8, 12, 20, 40, all} quarters before the origin. Features that need more
   history than H are missing, not imputed.
+  - The cut also applies to the company's baselines (drift runs from the
+    first quarter kept) and to its own MASE scale, which averages only the
+    seasonal-naive errors inside those H quarters: 4 errors at H = 8 for
+    revenue, 1 at h = 4 for a signed target, whose first three quarters have
+    no trailing revenue to scale by. R8 blends that scale with the sector
+    peers'.
+  - **`seasonality_regime` is not used under Protocol B (decided
+    2026-11-12).** NB01 computes it from each company's full 2006–2026
+    history, which a new company does not have, so Protocol B models neither
+    train nor predict with it. `sector` stays: a new company's sector is
+    known on day one. Under Protocol A the same label is mild look-ahead (its
+    history includes the test quarters); NB04's spec decides whether to
+    recompute it per origin.
 - **Origins and cut-off.** As in Protocol A, applied to the held-out company.
 
 ### R4 — Every model predicts every test row
@@ -203,10 +216,17 @@ computed on the R5 scale unless stated:
 
 - MAE and RMSE;
 - MASE, scaled by the company's in-sample seasonal-naive MAE on its training
-  rows at that origin;
+  rows at that origin; under Protocol B, by that MAE blended with its sector
+  peers' (R8), because a short history's own MAE can rest on one error, and
+  on the frozen panel six such errors are exactly zero;
 - MAPE, for revenue only, on levels;
 - out-of-sample R², 1 − SSE(model) / SSE(baseline to beat) over the same test
   rows.
+
+A zero divisor makes a metric undefined, never infinite (2026-11-13): a row
+whose MASE scale is 0 (an error-free history) is left out of MASE but counts
+in MAE and RMSE, and also does not calibrate an interval (R8); out-of-sample R²
+against a baseline with no error at all is undefined.
 
 Each is reported per company, per sector and pooled. A pooled number never
 appears without its sector breakdown (master plan §7).
@@ -262,6 +282,27 @@ appears without its sector breakdown (master plan §7).
     is pooled, so this is reported as a finding, not a failure.
 - **Protocol B:** calibration uses the errors of the other held-out
   companies at the same H, with Protocol A's time rule, window and ACI step.
+  - **The error scale leans on the sector peers (decided 2026-11-13).** A
+    held-out company's own MASE scale rests on its few errors inside H
+    quarters (1 to 4 at H = 8), too few to trust alone. Credibility weighting
+    (Bühlmann and Gisler, 2005) blends it with the median full-history scale
+    of its sector peers at the origin (all other companies if it is alone in
+    its sector): the peers count as k = 8 errors, so at H = 8 the company's
+    own errors weigh 1/9 to 4/12, and at all its history about 70/78. The
+    blend scales both MASE (R7) and the interval.
+  - k = 8 was fixed before measuring its effect; it is not estimated from
+    the data (Bühlmann's k = within-company over between-company variance).
+    The Python packages that estimate it (`credibility`, `actuarcredibility`,
+    `insurance-credibility`) were checked on 2026-11-13: each is a
+    single-author beta first released in 2026, with no outside contributors,
+    so none is used. The mature implementation is R's `actuar`.
+  - Effect on seasonal naive, 80 % coverage, own scale → blended: revenue
+    h = 4 at H = 8 went from 72.2 % to 78.9 %, at H = 12 from 74.7 % to
+    78.5 %; revenue h = 1 at H = 12 from 76.5 % to 78.5 %. With the own scale,
+    MASE for the signed targets was undefined at H = 8, h = 4 (a zero scale
+    for LMT, T, MDT and TXN). With the blend, every target at h = 4 and every
+    H covers within 5 points at 80, 90 and 95 %; the furthest is free cash
+    flow at H = 40, 84.3 % at 80 %.
   The interval is centred on the prediction of the model fit without the
   company: the jackknife (Barber et al., 2021), decided 2026-11-12.
   - **Not the jackknife+.** It centres on every other leave-one-out model's
@@ -363,8 +404,16 @@ These checks run on every evaluation, not only in tests.
   count and is not scored on fewer rows than the baselines.
 - **A5.** Seasonal-naive conformal intervals reach empirical coverage within ±5
   points of each nominal level, pooled over Protocol A.
-- **A6.** Protocol B intervals narrow as H grows from 8 to all. If they do not,
-  the calibration is wrong (master plan §5.4) and the harness is not frozen.
+- **A6.** Seasonal-naive Protocol B intervals reach empirical coverage within
+  ±5 points of each nominal level, pooled, at every H (8, 12, 20, 40, all).
+  - **Restated 2026-11-13.** It first read "Protocol B intervals narrow as H
+    grows from 8 to all". Seasonal naive cannot show that: its forecast, last
+    year's same quarter, is identical at every H, so its errors are too. Only
+    the error scale changes with H, and with the own scale the 80 % interval
+    at h = 1 was narrowest at H = 8 (0.322 against 0.340 at all) while
+    covering 78 %. Narrowing with H is a property of models that learn from a
+    company's history; it is checked from NB04 on (master plan §5.4), not
+    here.
 - **A7.** The harness is versioned `nb02-v1.0.0`. After that, NB03–NB08 record
   this version and the data-freeze identifier on every run.
 - **A8.** For every baseline, out-of-sample R² against itself is exactly 0, and

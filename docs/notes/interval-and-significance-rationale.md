@@ -105,8 +105,8 @@ percentages come from 200 seeds.
    guarantee; the jackknife+ guarantees 1 − 2α. The jackknife covers well when
    the model is stable, that is, when leaving one company out barely moves it
    (Barber et al., 2021). So coverage is measured, not assumed: per level, per
-   sector and per H, and Checkpoint 3 requires the intervals to narrow as H
-   grows.
+   sector and per H, and Checkpoint 3 requires seasonal naive to cover within
+   ±5 points at every H.
 7. **A production app could use the jackknife+.** A genuinely new company is
    in none of the 60 leave-one-out models, so the restriction in point 3 does
    not apply there.

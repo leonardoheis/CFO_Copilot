@@ -39,3 +39,18 @@ def check_no_look_ahead(
             origin=origin,
             reason=f"{early} test rows forecast from before a training target date",
         )
+
+
+def check_held_out(
+    train: pd.DataFrame, test: pd.DataFrame, origin: pd.Timestamp
+) -> None:
+    """Refuse a Protocol B fit that trains on a company it then scores (R12).
+
+    Raises:
+        EvaluationLeakageError: A tested company is in the training rows.
+    """
+    seen = ", ".join(sorted(set(train["ticker"]) & set(test["ticker"])))
+    if seen:
+        raise EvaluationLeakageError(
+            origin=origin, reason=f"held-out companies in training: {seen}"
+        )
