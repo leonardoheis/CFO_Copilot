@@ -284,6 +284,15 @@ revenue at h = 1 and every target at h = 4.
 
     Figures: baseline MAE by sector and horizon; the coverage reliability
     diagram; Protocol B error against H.
+    - **Built 2026-11-17, awaiting the author's run.** NB02's "Full run (A2)"
+      section: provenance (the freeze id, with an assertion that
+      `data/features` hashes to it; the git commit; the harness version), two
+      full runs compared value for value, `results.parquet`, and one W&B run
+      per target and protocol. The three figures are functions in
+      `services/evaluation/figures.py`, tested. Smoke-tested on seasonal
+      naive, revenue, h = 1 with W&B disabled and a temporary store: every
+      cell ran, the two runs matched, 17,208 records. About 19 s per
+      baseline, target and horizon, so about 20 minutes per full run.
 16. **Renumber the playground notebooks** to the master plan (D3)
     (`02_statistical_models` → `03_statistical_models`, and so on). Update
     references in docs and notebooks.

@@ -6,6 +6,11 @@ from .exceptions import (
     TooFewOriginsError,
     UndefinedMetricError,
 )
+from .figures import (
+    coverage_reliability_figure,
+    error_by_history_figure,
+    mae_by_sector_figure,
+)
 from .harness import Evaluation, EvaluationHarness
 from .leakage import check_held_out, check_no_look_ahead
 from .metrics import (
@@ -66,12 +71,15 @@ __all__ = [
     "baseline_levels",
     "check_held_out",
     "check_no_look_ahead",
+    "coverage_reliability_figure",
     "credibility_weighted_scale",
     "diebold_mariano",
+    "error_by_history_figure",
     "in_sample_scale",
     "interval_metric_tables",
     "interval_metrics",
     "jackknife_half_widths",
+    "mae_by_sector_figure",
     "mape",
     "on_error_scale",
     "point_metric_tables",
