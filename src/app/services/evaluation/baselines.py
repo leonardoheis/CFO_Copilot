@@ -23,15 +23,23 @@ class Baseline(StrEnum):
     DRIFT = "drift"
 
 
-def _drift_per_quarter(series: pd.Series) -> pd.Series:
+def _drift_per_quarter(series: pd.Series, history: int | None) -> pd.Series:
     values = series.to_numpy(dtype=float)
-    reported = np.flatnonzero(~np.isnan(values))
-    if reported.size == 0:
-        return series
-    first = reported[0]
-    quarters_elapsed = np.arange(values.size, dtype=float) - first
+    positions = np.arange(values.size)
+    # The first reported quarter at or after each position; past the end if none.
+    first_reported_from = np.minimum.accumulate(
+        np.where(np.isnan(values), values.size, positions)[::-1]
+    )[::-1]
+    window_start = (
+        np.zeros_like(positions)
+        if history is None
+        else np.maximum(positions - history + 1, 0)
+    )
+    first = first_reported_from[window_start]
+    quarters_elapsed = (positions - first).astype(float)
     quarters_elapsed[quarters_elapsed <= 0] = np.nan
-    return pd.Series((values - values[first]) / quarters_elapsed, index=series.index)
+    first_value = np.append(values, np.nan)[first]
+    return pd.Series((values - first_value) / quarters_elapsed, index=series.index)
 
 
 def baseline_levels(
@@ -40,12 +48,14 @@ def baseline_levels(
     variable: TargetVariable,
     horizon: int,
     baseline: Baseline,
+    history: int | None = None,
 ) -> pd.Series:
     """Forecast one company's level at each origin + horizon from its past quarters.
 
     Revenue is extrapolated in logs and a signed target in levels, the scale its
     errors are compared on (see ``on_error_scale``). Drift runs from the first
-    reported quarter.
+    reported quarter, within the last ``history`` quarters when given (a
+    Protocol B company with that much history).
 
     Returns:
         The forecast level indexed like ``panel``; NaN where the history is
@@ -62,7 +72,7 @@ def baseline_levels(
         case Baseline.NAIVE:
             forecast = series
         case Baseline.DRIFT:
-            forecast = series + horizon * _drift_per_quarter(series)
+            forecast = series + horizon * _drift_per_quarter(series, history)
         case _ as unreachable:
             assert_never(unreachable)
     return pd.Series(np.exp(forecast), index=panel.index) if positive else forecast

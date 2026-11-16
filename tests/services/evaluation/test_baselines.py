@@ -66,6 +66,37 @@ def test_signed_baselines_extrapolate_in_levels(
     assert levels[ORIGIN] == pytest.approx(expected, rel=1e-12)
 
 
+def test_drift_with_a_history_runs_from_its_first_kept_quarter(
+    panel: pd.DataFrame,
+) -> None:
+    levels = baseline_levels(
+        panel,
+        variable=TargetVariable.EBITDA,
+        horizon=1,
+        baseline=Baseline.DRIFT,
+        history=4,
+    )
+
+    # The last four quarters at the origin are 14, -2, 9 and 15.
+    assert levels[ORIGIN] == pytest.approx(15.0 + (15.0 - 14.0) / 3, rel=1e-12)
+
+
+def test_drift_skips_an_unreported_first_quarter_of_its_history(
+    panel: pd.DataFrame,
+) -> None:
+    panel.loc[ORIGIN - 3, TargetVariable.EBITDA] = np.nan
+
+    levels = baseline_levels(
+        panel,
+        variable=TargetVariable.EBITDA,
+        horizon=1,
+        baseline=Baseline.DRIFT,
+        history=4,
+    )
+
+    assert levels[ORIGIN] == pytest.approx(15.0 + (15.0 - -2.0) / 2, rel=1e-12)
+
+
 def test_at_four_quarters_ahead_seasonal_naive_is_naive(panel: pd.DataFrame) -> None:
     seasonal, naive = (
         baseline_levels(

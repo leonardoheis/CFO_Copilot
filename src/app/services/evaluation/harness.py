@@ -1,6 +1,7 @@
 from collections.abc import Mapping, Sequence
 from typing import Final, NamedTuple
 
+import numpy as np
 import pandas as pd
 
 from app.domain import EvaluationProtocol, Forecaster, TargetVariable
@@ -39,6 +40,7 @@ from app.services.evaluation.splits import (
     protocol_b_splits,
     truncate_history,
 )
+from app.services.features.transforms import SEASONAL_LAG, TargetFamily, target_family
 
 KEYS: Final = ["ticker", "origin_date"]
 # Computed in NB01 from each company's full history, which a new company does
@@ -109,7 +111,10 @@ def _predictions_at(
 
 
 def _company_rows(
-    panel: pd.DataFrame, predictions: pd.DataFrame, task: ForecastTask
+    panel: pd.DataFrame,
+    predictions: pd.DataFrame,
+    task: ForecastTask,
+    history: int | None = None,
 ) -> pd.DataFrame:
     own = predictions[predictions["ticker"].eq(panel["ticker"].iloc[0])]
     rows = reconstruct_on_error_scale(
@@ -130,6 +135,7 @@ def _company_rows(
                     variable=task.variable,
                     horizon=task.horizon,
                     baseline=baseline,
+                    history=history,
                 ),
                 panel[TargetVariable.REVENUE],
             )
@@ -284,41 +290,68 @@ def _held_out_predictions(
     return [pd.concat(predictions, ignore_index=True) for predictions in by_history]
 
 
+def _own_scales(
+    rows: pd.DataFrame, positions: np.ndarray, task: ForecastTask, history: int | None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Seasonal-naive MAE at each origin position, from errors inside the history.
+
+    An error counts once its target is known by the origin and every quarter
+    it reads lies in the last ``history`` quarters: last year's quarter for
+    the forecast and, for a signed target, the four quarters of revenue that
+    scale it (spec R5).
+
+    Returns:
+        The scale and the number of errors it averages, per position.
+    """
+    absolute_errors = (
+        (rows[f"{Baseline.SEASONAL_NAIVE}_scaled"] - rows["y_scaled"]).abs().to_numpy()
+    )
+    defined = ~np.isnan(absolute_errors)
+    error_sums = np.concatenate([
+        [0.0],
+        np.cumsum(np.where(defined, absolute_errors, 0.0)),
+    ])
+    error_counts = np.concatenate([[0], np.cumsum(defined)])
+    lookback = SEASONAL_LAG - task.horizon
+    if target_family(task.variable) is TargetFamily.SIGNED:
+        lookback = max(lookback, SEASONAL_LAG - 1)
+    # Errors from positions first to end - 1: targets known, inputs kept.
+    end = np.maximum(positions - task.horizon + 1, 0)
+    first = (
+        np.zeros_like(positions)
+        if history is None
+        else np.minimum(np.maximum(positions - history + 1 + lookback, 0), end)
+    )
+    counts = error_counts[end] - error_counts[first]
+    sums = error_sums[end] - error_sums[first]
+    return np.where(counts > 0, sums / np.maximum(counts, 1), np.nan), counts
+
+
 def _held_out_rows(
     panel: pd.DataFrame,
     predictions: pd.DataFrame,
     task: ForecastTask,
     history: int | None,
 ) -> pd.DataFrame:
-    """One held-out company's rows, each from ``history`` quarters before its origin.
+    """One held-out company's rows at its origins, as if it had ``history`` quarters.
 
-    The baselines (drift runs from the first quarter kept) and the MASE scale
-    see only those quarters, as a company with that much history would.
+    A value at an origin reads at most its last five quarters, so the panel is
+    scored once. Only drift, which runs from the first quarter kept, and the
+    MASE scale follow the history, as for a company with that much of it.
 
     Returns:
         One row per predicted origin, with its ``mase_scale`` and the number
         of seasonal-naive errors it averages, ``scale_errors``.
     """
-    by_origin: list[pd.DataFrame] = []
-    # ponytail: one panel slice per origin and history; vectorize if the full
-    # panel's ~9,000 slices per task prove slow.
-    for origin in predictions["origin_date"]:
-        window = panel[panel["date"].le(origin + pd.offsets.QuarterEnd(task.horizon))]
-        if history is not None:
-            window = window[window["date"].gt(origin - pd.offsets.QuarterEnd(history))]
-        rows = _company_rows(window, predictions, task)
-        seasonal_naive_errors = (
-            rows[f"{Baseline.SEASONAL_NAIVE}_scaled"] - rows["y_scaled"]
-        )
-        own_errors = (
-            seasonal_naive_errors[rows["target_date"].le(origin)].abs().dropna()
-        )
-        by_origin.append(
-            rows[rows["origin_date"].eq(origin)].assign(
-                mase_scale=own_errors.mean(), scale_errors=own_errors.size
-            )
-        )
-    return pd.concat(by_origin, ignore_index=True)
+    rows = _company_rows(panel, predictions, task, history)
+    positions = np.flatnonzero(rows["origin_date"].isin(predictions["origin_date"]))
+    scales, counts = _own_scales(rows, positions, task, history)
+    return (
+        rows
+        .iloc[positions]
+        .assign(mase_scale=scales, scale_errors=counts)
+        .reset_index(drop=True)
+    )
 
 
 def _held_out_forecasts(

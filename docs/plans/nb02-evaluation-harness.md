@@ -243,8 +243,14 @@ results must reproduce the spec's baseline table to four decimals.
       `growth_yoy_lag8`; with all its history a new company is scored exactly
       as under Protocol A; a short history uses its own few quarters for the
       MASE scale; records carry protocol B and H.
-    - Seasonal naive on the frozen panel takes about 65 s per target and
-      horizon (≈ 17 min for all 16).
+    - Seasonal naive on the frozen panel took about 60 s per target and
+      horizon (≈ 16 min for all 16). Since 2026-11-17, 18 s: each held-out
+      company is scored once on its full panel, because every value at an
+      origin reads at most its last five quarters; only drift (from the
+      first quarter kept, `baseline_levels(..., history=)`) and the MASE
+      scale (running sums over the errors inside H) follow the history.
+      Checked against the slice-per-origin version on the frozen panel: all
+      16 targets × horizons, 5 histories and 60 companies agree to 2e-15.
 
 **Checkpoint 3 (A6).** Seasonal-naive Protocol B intervals cover within ±5
 points of each level at every H, for every target and horizon. Restated from
