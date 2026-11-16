@@ -282,6 +282,17 @@ appears without its sector breakdown (master plan §7).
     is pooled, so this is reported as a finding, not a failure.
 - **Protocol B:** calibration uses the errors of the other held-out
   companies at the same H, with Protocol A's time rule, window and ACI step.
+  The interval is centred on the prediction of the model fit without the
+  company: the jackknife (Barber et al., 2021), decided 2026-11-12.
+  - **Not the jackknife+.** It centres on every other leave-one-out model's
+    prediction, and each of those trained on the company being scored, so the
+    company would no longer be unseen. A clean jackknife+ needs a model fit
+    without both companies, 60 × 59 fits per origin.
+  - The jackknife has no worst-case coverage guarantee (the jackknife+ has
+    1 − 2α); it covers well when the model is stable. Coverage is measured,
+    not assumed.
+  - A production app could use the jackknife+: a genuinely new company is in
+    none of the 60 models.
   - **The error scale leans on the sector peers (decided 2026-11-13).** A
     held-out company's own MASE scale rests on its few errors inside H
     quarters (1 to 4 at H = 8), too few to trust alone. Credibility weighting
@@ -303,17 +314,41 @@ appears without its sector breakdown (master plan §7).
     for LMT, T, MDT and TXN). With the blend, every target at h = 4 and every
     H covers within 5 points at 80, 90 and 95 %; the furthest is free cash
     flow at H = 40, 84.3 % at 80 %.
-  The interval is centred on the prediction of the model fit without the
-  company: the jackknife (Barber et al., 2021), decided 2026-11-12.
-  - **Not the jackknife+.** It centres on every other leave-one-out model's
-    prediction, and each of those trained on the company being scored, so the
-    company would no longer be unseen. A clean jackknife+ needs a model fit
-    without both companies, 60 × 59 fits per origin.
-  - The jackknife has no worst-case coverage guarantee (the jackknife+ has
-    1 − 2α); it covers well when the model is stable. Coverage is measured,
-    not assumed.
-  - A production app could use the jackknife+: a genuinely new company is in
-    none of the 60 models.
+  - **k is slightly low for revenue (2026-11-16, not acted on).** Revenue
+    covers least at H = 12 (77.3–78.5 % at 80 %), not at H = 8
+    (78.8–79.6 %): at H = 12 the company's own errors weigh 8/16 against
+    4/12 at H = 8, so a noisy own scale counts more. It is within tolerance,
+    and choosing k from these test results would tune on the test set, so
+    k stays 8 and the thesis states the pattern.
+  - **Per sector (Checkpoint 3, 2026-11-16).** The ten sector cells furthest
+    below their level are all at 80 %, between 62.5 % and 64.6 %:
+    - **Materials** (free cash flow, operating income; 6 of the 10) and
+      **Utilities** (revenue; 2): 3 companies and 48 rows each, so one missed
+      quarter moves coverage by about 2 points, and the ten worst of about
+      2,160 sector cells (9 sectors × 4 targets × 4 horizons × 3 levels × 5
+      histories) are extreme by selection. Protocol A shows the same sectors
+      at the same depth; Protocol B does not create them.
+    - **Technology revenue is a regime shift, not noise** (9 companies, 144
+      rows). Seasonal naive, h = 1, at 80 %: Protocol A 71.5 %; Protocol B
+      75.0, 69.4, 64.6, 67.4 and 70.8 % at H = 8, 12, 20, 40 and all; at 95 %
+      it covers 93.8–98.6 %. At H = 20 its misses cluster in time: about 2 of
+      the 9 companies a quarter in 2022–2024, the rate an 80 % interval
+      allows, then 6 to 7 a quarter from 2025-Q1 to 2026-Q1, led by ORCL
+      (10 misses), MSFT (8), CSCO (8) and TXN (6). Technology revenue growth
+      accelerated in 2025; seasonal naive carries no growth, and intervals
+      calibrated across all sectors on calmer quarters cannot follow one
+      sector's shift. The cost of rejecting per-sector calibration (above),
+      stated as such. For revenue at h = 1 the baseline to beat is seasonal
+      naive with growth, and NB04's growth features are the test of whether
+      a model covers this regime.
+- **Open for NB04's spec: Protocol A's scale window.** Protocol A scales each
+  company by its seasonal-naive MAE over its whole history to date. Checkpoint
+  3 shows shorter, recent histories give narrower intervals at the same
+  coverage, and Protocol A over-covers most where history is longest (free
+  cash flow 83.5 %, revenue 81.7 % at 80 %, h = 4). A recent window (for
+  example the last 20 quarters) may sharpen Protocol A's intervals. It is not
+  changed now: picking the window after these results would tune on the test
+  set; NB04's spec decides it, before scoring any model.
 - MAPIE (named in the thesis) is the implementation where its API fits the
   calibration rule above. Where it does not, the harness calibrates itself
   rather than bend the rule.
@@ -414,6 +449,18 @@ These checks run on every evaluation, not only in tests.
     covering 78 %. Narrowing with H is a property of models that learn from a
     company's history; it is checked from NB04 on (master plan §5.4), not
     here.
+  - **Passed 2026-11-16** (NB02, 16 targets × horizons, 15 min 43 s). All 240
+    cells (4 targets × 4 horizons × 3 levels × 5 histories) cover within ±5
+    points. At 80 %: operating income 79.5–81.7 %, EBITDA 79.1–81.3 %, free
+    cash flow 80.1–84.3 %, revenue 77.3–82.2 %; at 95 %, 93.1–97.2 % overall.
+    The furthest cell is free cash flow at H = 40, h = 4: 84.3 % at 80 %.
+  - **Finding: intervals widen as H grows**, at about the same coverage.
+    80 % width, H = 8 against all: revenue h = 1 0.289 against 0.333
+    (+15 %), free cash flow h = 4 0.064 against 0.077 (+19 %), operating
+    income h = 1 0.044 against 0.045. A full history includes 2008 and 2020,
+    which inflate the average error; a short one sees only recent, calmer
+    years, and the peers' median resists old crises. Recent errors describe
+    current uncertainty better than all-time averages.
 - **A7.** The harness is versioned `nb02-v1.0.0`. After that, NB03–NB08 record
   this version and the data-freeze identifier on every run.
 - **A8.** For every baseline, out-of-sample R² against itself is exactly 0, and

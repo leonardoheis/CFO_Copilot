@@ -8,7 +8,7 @@ intervals, normalized per company), 10 (interval metrics) and 11
 (Diebold–Mariano) done 2026-11-10; Checkpoint 2 passed and step 12 (folds and
 truncation) done 2026-11-11, folds changed to leave-one-company-out
 2026-11-12; steps 13 (jackknife intervals) and 14 (harness, Protocol B) done
-2026-11-12; Checkpoint 3 next.** Decisions D1–D4 of the spec were confirmed on
+2026-11-12; Checkpoint 3 passed 2026-11-16; Phase 4 (step 15) next.** Decisions D1–D4 of the spec were confirmed on
 2026-10-31, each at its default:
 
 - origins per horizon;
@@ -252,6 +252,20 @@ points of each level at every H, for every target and horizon. Restated from
 the same at every H. The short-history scale now leans on the sector peers
 (spec R8, `scale_prior_errors = 8`); the trial on the frozen panel passed for
 revenue at h = 1 and every target at h = 4.
+
+- **Passed 2026-11-16** in NB02 (15 min 43 s, with a tqdm progress bar): all
+  240 cells within ±5 points; the furthest is free cash flow at H = 40,
+  h = 4, 84.3 % at 80 %. Checkpoints 1 and 2 reproduced their earlier numbers
+  exactly after this phase's refactors. Spec A6 and R8 record three findings:
+  intervals widen as H grows (old crises inflate long-history scales),
+  revenue covers least at H = 12 (k = 8 is slightly low, not tuned), and
+  Protocol A's scale window is open for NB04's spec.
+- The per-sector table for Protocol B (cell `898c1acb`) was added after the
+  run and filled by a full Restart & Run All the same day (execution counts
+  1–11, every assertion passed, Checkpoint 3 in 15 min 44 s). Spec R8 records
+  it: Materials and Utilities under-cover as under Protocol A (3 companies,
+  48 rows each); Technology revenue under-covers from 2025-Q1, a growth
+  regime that seasonal naive cannot follow.
 
 ### Phase 4 — Notebook, thesis, freeze
 
