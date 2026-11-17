@@ -6,11 +6,17 @@ from app.data.ingestion_defects import IngestionDefects, load_ingestion_defects
 from app.data.missing import missing_value_ledger
 from app.data.panel_store import PanelStore
 from app.data.pipeline import build_panel_skeleton, merge_panel, write_panel
-from app.data.provenance import data_freeze_id, head_commit
+from app.data.provenance import (
+    CODE_LOADED_AT,
+    data_freeze_id,
+    head_commit,
+    modules_edited_since,
+)
 from app.data.report_store import ReportStore
 from app.data.results_store import ResultsStore
 
 __all__ = [
+    "CODE_LOADED_AT",
     "BlockedTargetError",
     "FeatureStore",
     "IngestionDefects",
@@ -25,5 +31,6 @@ __all__ = [
     "load_ingestion_defects",
     "merge_panel",
     "missing_value_ledger",
+    "modules_edited_since",
     "write_panel",
 ]

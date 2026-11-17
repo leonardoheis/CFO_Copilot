@@ -116,8 +116,9 @@ Each step ends with `uv run poe check` green.
    `RunProvenance` carries the harness version (in `EvaluationSettings`), the
    data freeze (`data_freeze_id`: the backup directory name plus a SHA-256 of
    its feature files) and the full git commit (`head_commit`, read from `.git`
-   rather than by running git). `data/results/` is gitignored: A2 makes it
-   reproducible.
+   rather than by running git). `data/results/` is committed (decided
+   2026-11-17), so later models compare against the records without re-running
+   NB02; it is kept out of the Docker image.
    - *Tests:* round-trip; appending twice keeps both runs; the freeze id
      changes with a feature file; the commit is read from a loose ref, a packed
      ref and a detached HEAD; every scored row becomes a record.
@@ -298,7 +299,13 @@ revenue at h = 1 and every target at h = 4.
       harness blanked the features, and `BaselineForecaster` reads the panel,
       not the features. `Forecaster.predict` now takes `history`, and the
       baseline honours it as the benchmark already did. The store was deleted;
-      W&B runs removed by the author. Re-run pending.
+      W&B runs removed by the author.
+    - **Second run (labelled `0bbce89`) discarded.** It ran in the first run's
+      kernel, which still held the pre-fix modules, while `head_commit` read
+      the fixed commit from disk: drift was flat again. The provenance cell now
+      stops when a loaded `app` module changed after the kernel imported it
+      (`modules_edited_since(CODE_LOADED_AT)`). Store deleted again. Re-run
+      pending.
 16. **Renumber the playground notebooks** to the master plan (D3)
     (`02_statistical_models` → `03_statistical_models`, and so on). Update
     references in docs and notebooks.

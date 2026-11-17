@@ -1,11 +1,15 @@
+import importlib
+import os
+import time
 from pathlib import Path
 
 import pytest
 
-from app.data import data_freeze_id, head_commit
+from app.data import data_freeze_id, head_commit, modules_edited_since
 from app.data.exceptions import FeaturesNotFoundError
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
+STALE_PACKAGE = "stale_kernel_probe"
 
 
 @pytest.fixture
@@ -60,3 +64,24 @@ def test_head_commit_reads_every_kind_of_ref(
         path.write_text(content, encoding="utf-8")
 
     assert head_commit(tmp_path) == COMMIT, kind
+
+
+def test_a_module_edited_after_it_was_loaded_is_named(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    package = tmp_path / STALE_PACKAGE
+    package.mkdir()
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "baselines.py").write_text("DRIFT = 1\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    importlib.import_module(f"{STALE_PACKAGE}.baselines")
+    loaded_at = time.time()
+
+    assert modules_edited_since(loaded_at, package=STALE_PACKAGE) == []
+
+    edited_later = loaded_at + 60
+    os.utime(package / "baselines.py", (edited_later, edited_later))
+
+    assert modules_edited_since(loaded_at, package=STALE_PACKAGE) == [
+        f"{STALE_PACKAGE}.baselines"
+    ]
