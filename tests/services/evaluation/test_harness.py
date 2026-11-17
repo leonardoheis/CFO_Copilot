@@ -1,11 +1,11 @@
-from typing import Self
+from typing import Self, override
 
 import numpy as np
 import pandas as pd
 import pytest
 from pydantic import ValidationError
 
-from app.domain import TargetVariable
+from app.domain import Forecaster, TargetVariable
 from app.services.evaluation import (
     Baseline,
     BaselineForecaster,
@@ -29,46 +29,58 @@ QUARTERS = pd.date_range("2020-03-31", periods=20, freq="QE")
 SEASON = np.tile([1.0, 1.2, 1.1, 1.3], 5)
 
 
-class SpyForecaster:
+class SpyForecaster(Forecaster):
     """Predicts zero change and remembers the columns it was shown."""
 
     def __init__(self) -> None:
         self.columns_seen: set[str] = set()
 
+    @override
     def fit(self, _train: pd.DataFrame, /) -> Self:
         return self
 
-    def predict(self, test: pd.DataFrame, /) -> pd.DataFrame:
+    @override
+    def predict(
+        self, test: pd.DataFrame, /, *, history: int | None = None
+    ) -> pd.DataFrame:
         self.columns_seen |= set(test.columns)
         return pd.DataFrame({"y_hat": 0.0}, index=test.index)
 
 
-class RecordingForecaster:
+class RecordingForecaster(Forecaster):
     """Predicts zero change and keeps every frame it was fit on or shown."""
 
     def __init__(self) -> None:
         self.trained: list[pd.DataFrame] = []
         self.shown: list[pd.DataFrame] = []
 
+    @override
     def fit(self, train: pd.DataFrame, /) -> Self:
         self.trained.append(train)
         return self
 
-    def predict(self, test: pd.DataFrame, /) -> pd.DataFrame:
+    @override
+    def predict(
+        self, test: pd.DataFrame, /, *, history: int | None = None
+    ) -> pd.DataFrame:
         self.shown.append(test)
         return pd.DataFrame({"y_hat": 0.0}, index=test.index)
 
 
-class SilentOnOneCompany:
+class SilentOnOneCompany(Forecaster):
     """Predicts zero change, except for one company it leaves missing."""
 
     def __init__(self, ticker: str) -> None:
         self._ticker = ticker
 
+    @override
     def fit(self, _train: pd.DataFrame, /) -> Self:
         return self
 
-    def predict(self, test: pd.DataFrame, /) -> pd.DataFrame:
+    @override
+    def predict(
+        self, test: pd.DataFrame, /, *, history: int | None = None
+    ) -> pd.DataFrame:
         silent = test["ticker"] == self._ticker
         return pd.DataFrame({"y_hat": np.where(silent, np.nan, 0.0)}, index=test.index)
 
@@ -393,6 +405,25 @@ def test_with_all_its_history_a_new_company_gets_protocol_a_s_forecasts(
             KEYS, ignore_index=True
         ),
     )
+
+
+def test_a_new_company_s_drift_runs_only_over_the_history_it_has(
+    harness: EvaluationHarness,
+    dataset: pd.DataFrame,
+    panels: dict[str, pd.DataFrame],
+) -> None:
+    drift = BaselineForecaster(Baseline.DRIFT, panels=panels, task=TASK)
+
+    evaluations = harness.evaluate_new_companies(
+        drift, dataset, panels=panels, task=TASK
+    )
+
+    eight_quarters, all_history = (
+        evaluations[index].scored.sort_values(KEYS, ignore_index=True)
+        for index in (0, -1)
+    )
+    assert eight_quarters["y_hat_scaled"].notna().all()
+    assert not np.allclose(eight_quarters["y_hat_scaled"], all_history["y_hat_scaled"])
 
 
 def test_a_short_history_changes_the_error_scale(

@@ -95,23 +95,33 @@ class BaselineForecaster:
         panels: Mapping[str, pd.DataFrame],
         task: ForecastTask,
     ) -> None:
-        transformer = TargetTransformer(arm=task.arm, horizon=task.horizon)
-        self._targets = pd.concat([
-            pd.Series(
-                transformer.target_for(
-                    panel[task.variable],
-                    baseline_levels(
-                        panel,
-                        variable=task.variable,
-                        horizon=task.horizon,
-                        baseline=baseline,
-                    ),
-                    revenue=panel[TargetVariable.REVENUE],
-                ).to_numpy(),
-                index=pd.MultiIndex.from_arrays([panel["ticker"], panel["date"]]),
-            )
-            for panel in panels.values()
-        ])
+        self._baseline = baseline
+        self._panels = panels
+        self._task = task
+        self._targets_by_history: dict[int | None, pd.Series] = {}
+
+    def _targets(self, history: int | None) -> pd.Series:
+        if history not in self._targets_by_history:
+            task = self._task
+            transformer = TargetTransformer(arm=task.arm, horizon=task.horizon)
+            self._targets_by_history[history] = pd.concat([
+                pd.Series(
+                    transformer.target_for(
+                        panel[task.variable],
+                        baseline_levels(
+                            panel,
+                            variable=task.variable,
+                            horizon=task.horizon,
+                            baseline=self._baseline,
+                            history=history,
+                        ),
+                        revenue=panel[TargetVariable.REVENUE],
+                    ).to_numpy(),
+                    index=pd.MultiIndex.from_arrays([panel["ticker"], panel["date"]]),
+                )
+                for panel in self._panels.values()
+            ])
+        return self._targets_by_history[history]
 
     def fit(self, _train: pd.DataFrame, /) -> Self:
         """Learn nothing: a baseline is a fixed rule over each company's history.
@@ -121,13 +131,16 @@ class BaselineForecaster:
         """
         return self
 
-    def predict(self, test: pd.DataFrame, /) -> pd.DataFrame:
-        """Look up the baseline's target for every test row.
+    def predict(
+        self, test: pd.DataFrame, /, *, history: int | None = None
+    ) -> pd.DataFrame:
+        """Look up the baseline's target for every test row, from ``history`` quarters.
 
         Returns:
             ``y_hat`` indexed like ``test``.
         """
         keys = pd.MultiIndex.from_arrays([test["ticker"], test["origin_date"]])
         return pd.DataFrame(
-            {"y_hat": self._targets.reindex(keys).to_numpy()}, index=test.index
+            {"y_hat": self._targets(history).reindex(keys).to_numpy()},
+            index=test.index,
         )

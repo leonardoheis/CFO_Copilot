@@ -4,6 +4,7 @@ from itertools import product
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+from matplotlib.collections import LineCollection
 from matplotlib.figure import Figure
 
 from app.services.evaluation import (
@@ -15,10 +16,11 @@ from app.services.evaluation import (
 BASELINES = ("seasonal_naive", "naive")
 HORIZONS = (1, 4)
 HISTORIES = ("8", "12", "all")
+pytestmark = pytest.mark.usefixtures("close_figures")
 
 
-@pytest.fixture(autouse=True)
-def _close_figures() -> Iterator[None]:
+@pytest.fixture
+def close_figures() -> Iterator[None]:
     yield
     plt.close("all")
 
@@ -28,14 +30,12 @@ def _titles(figure: Figure) -> list[str]:
 
 
 def test_mae_by_sector_draws_one_heatmap_per_baseline() -> None:
-    by_sector = pd.DataFrame(
-        [
-            {"baseline": baseline, "sector": sector, "horizon": horizon, "mae": 0.1}
-            for baseline, sector, horizon in product(
-                BASELINES, ("Energy", "Utilities"), HORIZONS
-            )
-        ]
-    )
+    by_sector = pd.DataFrame([
+        {"baseline": baseline, "sector": sector, "horizon": horizon, "mae": 0.1}
+        for baseline, sector, horizon in product(
+            BASELINES, ("Energy", "Utilities"), HORIZONS
+        )
+    ])
 
     figure = mae_by_sector_figure(by_sector, title="revenue, Protocol A")
 
@@ -44,28 +44,28 @@ def test_mae_by_sector_draws_one_heatmap_per_baseline() -> None:
 
 
 def test_coverage_reliability_marks_each_nominal_level() -> None:
-    pooled = pd.DataFrame(
-        [
-            {"baseline": baseline, "level": level, "coverage": level + 0.01}
-            for baseline, level in product(BASELINES, (0.8, 0.9, 0.95))
-        ]
-    )
+    pooled = pd.DataFrame([
+        {"baseline": baseline, "level": level, "coverage": level + 0.01}
+        for baseline, level in product(BASELINES, (0.8, 0.9, 0.95))
+    ])
 
     figure = coverage_reliability_figure(pooled, title="revenue, Protocol B")
 
     (axes,) = figure.axes
     assert axes.get_title() == "revenue, Protocol B"
-    nominal = [segment.get_segments()[0][0][1] for segment in axes.collections[-3:]]
+    nominal = [
+        lines.get_segments()[0][0][1]
+        for lines in axes.collections
+        if isinstance(lines, LineCollection)
+    ]
     assert nominal == pytest.approx([0.8, 0.9, 0.95])
 
 
 def test_error_by_history_draws_one_panel_per_horizon_in_history_order() -> None:
-    pooled = pd.DataFrame(
-        [
-            {"baseline": baseline, "horizon": horizon, "history": history, "mae": 0.1}
-            for baseline, horizon, history in product(BASELINES, HORIZONS, HISTORIES)
-        ]
-    )
+    pooled = pd.DataFrame([
+        {"baseline": baseline, "horizon": horizon, "history": history, "mae": 0.1}
+        for baseline, horizon, history in product(BASELINES, HORIZONS, HISTORIES)
+    ])
 
     figure = error_by_history_figure(pooled, title="revenue, Protocol B")
 

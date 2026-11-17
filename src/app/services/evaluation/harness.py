@@ -285,7 +285,7 @@ def _held_out_predictions(
             model = forecaster.fit(train)
             for predictions, history in zip(by_history, histories, strict=True):
                 shown = test if history is None else truncate_history(test, history)
-                y_hat = model.predict(shown)["y_hat"]
+                y_hat = model.predict(shown, history=history)["y_hat"]
                 predictions.append(test[KEYS].assign(y_hat=y_hat.reindex(test.index)))
     return [pd.concat(predictions, ignore_index=True) for predictions in by_history]
 

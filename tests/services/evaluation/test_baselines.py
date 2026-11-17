@@ -123,10 +123,14 @@ def test_a_history_too_short_gives_no_forecast(
     assert levels[first_defined:].notna().all()
 
 
+@pytest.mark.parametrize("history", [None, 4])
 @pytest.mark.parametrize("variable", [TargetVariable.REVENUE, TargetVariable.EBITDA])
 @pytest.mark.parametrize("baseline", list(Baseline))
 def test_the_forecaster_path_scores_the_baselines_own_levels(
-    panel: pd.DataFrame, variable: TargetVariable, baseline: Baseline
+    panel: pd.DataFrame,
+    variable: TargetVariable,
+    baseline: Baseline,
+    history: int | None,
 ) -> None:
     for arm in arms_for(variable):
         forecaster: Forecaster = BaselineForecaster(
@@ -135,7 +139,7 @@ def test_the_forecaster_path_scores_the_baselines_own_levels(
             task=ForecastTask(variable=variable, arm=arm, horizon=1),
         )
         test = panel.rename(columns={"date": "origin_date"})
-        prediction = forecaster.fit(test).predict(test)["y_hat"]
+        prediction = forecaster.fit(test).predict(test, history=history)["y_hat"]
 
         scored = reconstruct_on_error_scale(
             panel,
@@ -146,7 +150,7 @@ def test_the_forecaster_path_scores_the_baselines_own_levels(
         )
 
         expected = baseline_levels(
-            panel, variable=variable, horizon=1, baseline=baseline
+            panel, variable=variable, horizon=1, baseline=baseline, history=history
         )
         # An arm built on the year-earlier quarter needs a year of history.
         after_first_year = slice(SEASONAL_LAG, None)

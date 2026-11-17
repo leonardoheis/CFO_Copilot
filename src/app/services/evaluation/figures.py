@@ -19,7 +19,11 @@ def mae_by_sector_figure(by_sector: pd.DataFrame, *, title: str) -> Figure:
     baselines = list(dict.fromkeys(by_sector["baseline"]))
     with sns.axes_style(_STYLE):
         figure, axes = plt.subplots(
-            1, len(baselines), figsize=(4 * len(baselines), 5), sharey=True, squeeze=False
+            1,
+            len(baselines),
+            figsize=(4 * len(baselines), 5),
+            sharey=True,
+            squeeze=False,
         )
         for panel, baseline in zip(axes[0], baselines, strict=True):
             table = by_sector[by_sector["baseline"] == baseline].pivot_table(
@@ -90,7 +94,9 @@ def error_by_history_figure(pooled: pd.DataFrame, *, title: str) -> Figure:
                 legend=horizon == horizons[-1],
                 ax=panel,
             )
-            panel.set(title=f"h = {horizon}", xlabel="quarters of history", ylabel="MAE")
+            panel.set(
+                title=f"h = {horizon}", xlabel="quarters of history", ylabel="MAE"
+            )
         figure.suptitle(title)
         figure.set_layout_engine("tight")
     return figure

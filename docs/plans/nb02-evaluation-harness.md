@@ -293,6 +293,12 @@ revenue at h = 1 and every target at h = 4.
       naive, revenue, h = 1 with W&B disabled and a temporary store: every
       cell ran, the two runs matched, 17,208 records. About 19 s per
       baseline, target and horizon, so about 20 minutes per full run.
+    - **First run (commit `22774b1`) discarded.** A2 held (1,101,312
+      records), but under Protocol B drift scored as a model ignored H: the
+      harness blanked the features, and `BaselineForecaster` reads the panel,
+      not the features. `Forecaster.predict` now takes `history`, and the
+      baseline honours it as the benchmark already did. The store was deleted;
+      W&B runs removed by the author. Re-run pending.
 16. **Renumber the playground notebooks** to the master plan (D3)
     (`02_statistical_models` → `03_statistical_models`, and so on). Update
     references in docs and notebooks.
