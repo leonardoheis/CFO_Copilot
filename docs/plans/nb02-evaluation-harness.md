@@ -304,8 +304,19 @@ revenue at h = 1 and every target at h = 4.
       kernel, which still held the pre-fix modules, while `head_commit` read
       the fixed commit from disk: drift was flat again. The provenance cell now
       stops when a loaded `app` module changed after the kernel imported it
-      (`modules_edited_since(CODE_LOADED_AT)`). Store deleted again. Re-run
-      pending.
+      (`modules_edited_since(CODE_LOADED_AT)`). Store deleted again.
+    - **Passed 2026-11-17, commit `741affa`** (records in `490ddda`, outputs
+      in `c6b3bae`). Fresh kernel; A2 held: 1,101,312 records, equal value
+      for value across two runs of about 20 minutes (in-memory SHA-256
+      `1ca61d95dc57…`; the parquet copy hashes differently because its dtypes
+      differ, not its values). Eight W&B runs. Drift now follows H: at
+      revenue h = 4 its MAE falls from 0.131 at H = 8 to 0.091 at H = 40, and
+      is 0.095 with all of it; the other baselines read at most five quarters
+      and are flat. The baseline to beat is unchanged from the first run;
+      EBITDA h = 4 is drift by 0.7 % under A and B-all, a near-tie, and at
+      h = 4 naive and seasonal naive are the same forecast. Seasonal-naive
+      coverage is within −2.7 to +4.3 points in every cell (A5, A6); 9 of
+      1,152 cells of the other baselines over-cover by 5–7 points.
 16. **Renumber the playground notebooks** to the master plan (D3)
     (`02_statistical_models` → `03_statistical_models`, and so on). Update
     references in docs and notebooks.

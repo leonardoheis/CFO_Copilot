@@ -432,6 +432,10 @@ These checks run on every evaluation, not only in tests.
   frozen data.
 - **A2.** Two full baseline runs (both protocols, four targets, h = 1–4) write
   identical results.
+  - **Passed 2026-11-17** at commit `741affa`: 1,101,312 records, equal value
+    for value. Two earlier runs were discarded: one scored Protocol B drift
+    on full history, the other ran pre-fix code in a stale kernel (now
+    refused by the provenance cell).
 - **A3.** A deliberately leaking model fails. It is trained with an
   `origin_date` cut-off, or it sees a held-out company; either way the harness
   raises before scoring.
