@@ -68,10 +68,12 @@ def test_test_rows_from_before_a_training_target_are_refused(
     dataset: pd.DataFrame, origin: pd.Timestamp
 ) -> None:
     train = dataset[dataset["target_date"] <= origin]
-    earlier = dataset[dataset["origin_date"] == QUARTERS[0]]
+    earlier = dataset[dataset["origin_date"] == QUARTERS[0]].drop(
+        columns=["y", "target_level"]
+    )
 
     with pytest.raises(EvaluationLeakageError, match="1 test rows forecast from"):
-        check_no_look_ahead(train, earlier.drop(columns=["y", "target_level"]), origin)
+        check_no_look_ahead(train, earlier, origin)
 
 
 def test_a_held_out_company_in_its_own_training_rows_is_refused(
