@@ -321,8 +321,10 @@ appears without its sector breakdown (master plan §7).
     and choosing k from these test results would tune on the test set, so
     k stays 8 and the thesis states the pattern.
   - **Per sector (Checkpoint 3, 2026-11-16).** The ten sector cells furthest
-    below their level are all at 80 %, between 62.5 % and 64.6 %:
-    - **Materials** (free cash flow, operating income; 6 of the 10) and
+    below their level are 15 to 17.5 points under it; nine are at 80 %,
+    between 62.5 % and 64.6 %, and the tenth is Materials free cash flow at
+    90 % (75.0 %; corrected 2026-11-18, first recorded as "all at 80 %"):
+    - **Materials** (free cash flow, operating income; 7 of the 10) and
       **Utilities** (revenue; 2): 3 companies and 48 rows each, so one missed
       quarter moves coverage by about 2 points, and the ten worst of about
       2,160 sector cells (9 sectors × 4 targets × 4 horizons × 3 levels × 5

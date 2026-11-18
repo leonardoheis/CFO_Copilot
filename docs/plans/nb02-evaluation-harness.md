@@ -355,6 +355,11 @@ revenue at h = 1 and every target at h = 4.
     "opcional", and the methods gain the foundation-model entry rules from
     `docs/notes/foundation-model-selection-rationale.md` (needs TabArena,
     TabICLv2 and the TabPFN-3 report in `references.bib`).
+    - **Done 2026-11-18, awaiting the author's review.** Round logged in
+      `docs/plans/thesis-update.md`. Only the sources `main.tex` cites were
+      added: Bühlmann & Gisler, TabICLv2, TabArena. Kim et al., Diebold (2015),
+      Giacomini & White and the TabPFN-3 report stay in the notes; add them
+      if the text ever cites them.
 18. **Freeze.** Set the harness version to `nb02-v1.0.0` in the settings. Then
     ask before creating the git tag; tagging needs explicit permission.
 
