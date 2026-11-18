@@ -2,6 +2,14 @@
 
 <!-- version list -->
 
+## v0.8.0 (2026-11-18)
+
+### Features
+
+- **models**: Add local models directory and configuration
+  ([`f938290`](https://github.com/leonardoheis/CFO_Copilot/commit/f938290d38a290df5c8aaa1b25df700ccee7dd18))
+
+
 ## v0.7.0 (2026-11-18)
 
 ### Features
