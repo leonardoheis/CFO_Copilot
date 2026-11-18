@@ -10,6 +10,18 @@ resolution-markers = [
 constraints = [{ name = "pyparsing", specifier = "<3.3" }]
 
 [[package]]
+name = "adagio"
+version = "0.2.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "triad" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/d7/c02a080407e133cf404a2b63bb3de1495c65d7af0501c313731a545d39ca/adagio-0.2.6.tar.gz", hash = "sha256:0c32768f3aba0e05273b36f9420a482034f2510f059171040d7e98ba34128d7a", size = 23653, upload-time = "2024-08-14T07:34:14.851Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/40/3592ba5232475778ab690cdbfbc38e73886c26c361a82484b49fab427e60/adagio-0.2.6-py3-none-any.whl", hash = "sha256:1bb8317d41bfff8b11373bc03c9859ff166c498214bb2b7ce1e21638c0babb2c", size = 19073, upload-time = "2024-08-14T07:34:13.506Z" },
+]
+
+[[package]]
 name = "altair"
 version = "5.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -70,6 +82,7 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "seaborn" },
+    { name = "statsforecast" },
     { name = "statsmodels" },
     { name = "streamlit" },
     { name = "uvicorn", extra = ["standard"] },
@@ -130,6 +143,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.7.1" },
     { name = "scipy", specifier = ">=1.16.1" },
     { name = "seaborn", specifier = ">=0.13" },
+    { name = "statsforecast", specifier = ">=2.1.1" },
     { name = "statsmodels", specifier = ">=0.15.0" },
     { name = "streamlit", specifier = ">=1.48.0" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.35.0" },
@@ -338,6 +352,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cloudpickle"
+version = "3.1.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/59/df/0bf7ef6c2534c140bb4c3d787e1557542e50a96b393659efaa4f39f9a45a/cloudpickle-3.1.3.tar.gz", hash = "sha256:cbe9fde14429a5db009ea05ce94e5182cf998c97b96918d50c10f73f9c2f4f33", size = 22576, upload-time = "2026-11-18T10:27:18.82Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/42/3b121b42b114919ffc6195a81c1c7065a465f62f46477fbdb87a07699e51/cloudpickle-3.1.3-py3-none-any.whl", hash = "sha256:1654f4f18e416447210a63c5c25a135d65a292156aa5fa519dfa4baf7726dddb", size = 22399, upload-time = "2026-11-18T10:27:17.534Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -375,6 +398,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ac/f0/b75a10e9d0616b97a30de277b6dfe83f1879880854c7330337309530eb48/contourpy-1.4.0-cp312-cp312-win32.whl", hash = "sha256:5450f091ac1be0be3ad3a2a3b3f23b5e443e78c670ced4fd347d626f92a28fd2", size = 347345, upload-time = "2026-09-11T19:03:06.192Z" },
     { url = "https://files.pythonhosted.org/packages/50/a9/dab08786bb4d77ef9a046b3c1be923be4e73c5d07d91f5a54e8ea9b09e41/contourpy-1.4.0-cp312-cp312-win_amd64.whl", hash = "sha256:6e697d94e69f499ff6bebb899cae97a58d5d14f0e1fe9568b43a0248d2f9af8c", size = 234083, upload-time = "2026-09-11T19:03:08.122Z" },
     { url = "https://files.pythonhosted.org/packages/47/b9/3ba509755a970dbde5948e7142ac21f266be72f38017cc4087a05fdceee1/contourpy-1.4.0-cp312-cp312-win_arm64.whl", hash = "sha256:0c7a4c2716a4e98342221954416a836cca77c996c14ddbf22b5f01d5d93ca09c", size = 559521, upload-time = "2026-09-11T19:03:10.047Z" },
+]
+
+[[package]]
+name = "coreforecast"
+version = "0.0.20"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1d/17/3a00b1c2140a775d055627c6fcfaf73000a315adcb975b4d80fd035964c4/coreforecast-0.0.20.tar.gz", hash = "sha256:0e7400df93351f962ec0324ba0262ce044d3ed84437dc39ac0d11484c25f3d1f", size = 169331, upload-time = "2026-11-03T22:23:56.133Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/3b/56a9b59fe9d9a87bf85b8a317a6c8977d992d73246526ea93fd2d2c22eb9/coreforecast-0.0.20-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:6540e40ca0293e8be597f23b6abe541b9e3f01659f0b159e7ae6d099d2c8d0f4", size = 290387, upload-time = "2026-11-03T22:23:09.664Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/a3/448312048ec19f5ce1f17f9c1f3b467e64b9b1c20a50dac0bce4016fc964/coreforecast-0.0.20-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:37fee3754197c10783a85d677205f207f06289a0d975da12facb4f57dacc412e", size = 273519, upload-time = "2026-11-03T22:23:10.801Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/18/0642da826a0b45c7505184a0b32d31ca7f02ca031e1adc1d7ec7d98f2d9a/coreforecast-0.0.20-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7d7e7a831a99563272914538ffdcc94fd5b63e56ac1ba734609e09b99cf0b07d", size = 340309, upload-time = "2026-11-03T22:23:12.009Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/1f/9f67a2bf26efd2bcc72d8ce68de36f0e97a13aab2f56818a0c3ed7402c4c/coreforecast-0.0.20-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:fec919779010fb65d7b173fc19d8c7138acbf722a69fc67066cf655bccd9939f", size = 372983, upload-time = "2026-11-03T22:23:13.27Z" },
+    { url = "https://files.pythonhosted.org/packages/94/db/e43eb67912a589ca0cf67a53af170f87054b6af32e423314e11ecd861639/coreforecast-0.0.20-cp312-cp312-win_amd64.whl", hash = "sha256:0c615a3c0cda77d984f9fb81c49836e20242019f28b8418a3a0c45c46b0510e4", size = 453950, upload-time = "2026-11-03T22:23:14.536Z" },
+    { url = "https://files.pythonhosted.org/packages/92/5c/84d31050d8c4a95a0cb842e8c883bc3e956ab07dc3a5229c3d339cc6e6d4/coreforecast-0.0.20-cp312-cp312-win_arm64.whl", hash = "sha256:9e7d2dc44bbfbc16c7417024dc23a0a26ca6d752b47855e17f034a9063d5483b", size = 626604, upload-time = "2026-11-03T22:23:15.814Z" },
 ]
 
 [[package]]
@@ -595,6 +635,30 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6f/3c/e9281ecda4c6ee5c7d50a4bcf00dc5df1a7ff325e604c9b9510c5bdd8514/fredapi-0.5.2.tar.gz", hash = "sha256:405ca048abed4207d93dbc9b7ee8c46d6b473483650323e2f1c094af83d4b247", size = 14735, upload-time = "2024-05-05T11:42:11.444Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/73/64/1db43417cf7ed430f104a347126b5260a1724ee9a1b7d0b1622262c9c4df/fredapi-0.5.2-py3-none-any.whl", hash = "sha256:961817ec8d70e58886ff7302d3dda908614ad99f77831a59833c4fc3f6150155", size = 11854, upload-time = "2024-05-05T11:42:09.559Z" },
+]
+
+[[package]]
+name = "fsspec"
+version = "2026.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/cd/9be253869fc42e764de7f3dedd6969af7d44ff9c3375214a3442a6f3fc08/fsspec-2026.9.0.tar.gz", hash = "sha256:0f08147951c8cb31d844c3547d631053b127863b60be04cf06e121333ee0e2fe", size = 333545, upload-time = "2026-09-18T17:50:42.825Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6c/c0/a98505f18594f1bce828bb159cec0fcf9860562f1a2c85913409fc8f3d9e/fsspec-2026.9.0-py3-none-any.whl", hash = "sha256:8dd6e646e99ea382bd85f97a45e6b526a442d79423a7dc673f1e2756d05fcb5f", size = 221738, upload-time = "2026-09-18T17:50:41.341Z" },
+]
+
+[[package]]
+name = "fugue"
+version = "0.9.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "adagio" },
+    { name = "packaging" },
+    { name = "pandas" },
+    { name = "triad" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a2/2d/375bca3869f2554506310f3e5a1dcf1a2f55429e77d7ff83baab0f027563/fugue-0.9.9.tar.gz", hash = "sha256:97f391e9616bcd40cad064dd682293b14206389d6aa81fd2ff3f7ffd9405f535", size = 228761, upload-time = "2026-11-12T00:38:47.346Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/34/f6dec8c7c50b51aa75478b4b7e9cae2f784ff60602f1758863997eed717b/fugue-0.9.9-py3-none-any.whl", hash = "sha256:2ee599d4a74afc9c8b6de81b30dfd52c0b1d48f6a0224fe478ccad258075630e", size = 281895, upload-time = "2026-11-12T00:38:45.84Z" },
 ]
 
 [[package]]
@@ -2072,6 +2136,31 @@ wheels = [
 ]
 
 [[package]]
+name = "statsforecast"
+version = "2.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cloudpickle" },
+    { name = "coreforecast" },
+    { name = "fugue" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "scipy" },
+    { name = "statsmodels" },
+    { name = "threadpoolctl" },
+    { name = "tqdm" },
+    { name = "utilsforecast" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a8/6f/25a1874c72d68c84a3cce1920fb29819090d8276ab9d896cbdebdfa68923/statsforecast-2.1.1.tar.gz", hash = "sha256:3b4c91ac4e2a51a614596226df3cb210f99a152601f8235e0459248d05a42045", size = 2903236, upload-time = "2026-07-16T18:20:47.651Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/f3/d586c8fcfa7a846c7e9129a84a8c141668f5fa57953f7fc5184fe393ee92/statsforecast-2.1.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:abc32f921665f882601c574ce42d0efeb8fb1a4f9d1e84bfe404de58bf8fcede", size = 438296, upload-time = "2026-07-16T18:20:21.848Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/d1/5f36465c801048018cc5b03d924997cda4f811b44cbb6242cd8cdb5e69d3/statsforecast-2.1.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:3e3e0f04b02e1bdd0c9ccb0609ca427dfe85b28c84e1c094ea7541ded91d824e", size = 428190, upload-time = "2026-07-16T18:20:23.375Z" },
+    { url = "https://files.pythonhosted.org/packages/00/04/79b4ec9feb8bc8ebc71fd03bd1a41358820ac2a9d1e6022df4bee51be88f/statsforecast-2.1.1-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7d79fae7b67ab6b18b60cc481fec1428d4519ce7c226fab3929faafdef1b6e87", size = 469340, upload-time = "2026-07-16T18:20:24.886Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/53/361c4c23fc8599e5e0fbd5a195550924b4e7e969d232aa1ac7d2250fa401/statsforecast-2.1.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:a7eb73dd44a31c7a117297216a77083c3bafdcd5a97308f64a91f7a6b25b7ea3", size = 500972, upload-time = "2026-07-16T18:20:26.392Z" },
+    { url = "https://files.pythonhosted.org/packages/7b/a8/db1949f53a93b0936fb9569b9bb866440573047abb642bda18a1dfe84b40/statsforecast-2.1.1-cp312-cp312-win_amd64.whl", hash = "sha256:e02982a9ad2d869450db35f5a531be5785ea89fa31e5be7f7af191540c018fe5", size = 588574, upload-time = "2026-07-16T18:20:27.943Z" },
+]
+
+[[package]]
 name = "statsmodels"
 version = "0.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2211,6 +2300,23 @@ wheels = [
 ]
 
 [[package]]
+name = "triad"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fsspec" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "pandas" },
+    { name = "pyarrow" },
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/18/57/81743f84d8cc7736f0d3e2edcd13783b443f086a235508a023a16da83c72/triad-1.0.4.tar.gz", hash = "sha256:37c5d5445356bc280b2a12a1ff9f8668afda125f82a729c48911f44d779e4721", size = 55581, upload-time = "2026-11-06T18:11:48.836Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/49/c33ff06bb643ee598de44676143a502ba7242c7ec51620a15d6fa3a006ab/triad-1.0.4-py3-none-any.whl", hash = "sha256:84d5edff10d9c50660f67ee185350453e4be366a7626568897a5441d8e563478", size = 60798, upload-time = "2026-11-06T18:11:47.616Z" },
+]
+
+[[package]]
 name = "typeguard"
 version = "4.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2303,6 +2409,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/15/22/9ee70a2574a4f4599c47dd506532914ce044817c7752a79b6a51286319bc/urllib3-2.5.0.tar.gz", hash = "sha256:3fc47733c7e419d4bc3f6b3dc2b4f890bb743906a30d56ba4a5bfa4bbff92760", size = 393185, upload-time = "2025-06-18T14:07:41.644Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl", hash = "sha256:e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc", size = 129795, upload-time = "2025-06-18T14:07:40.39Z" },
+]
+
+[[package]]
+name = "utilsforecast"
+version = "0.2.17"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "narwhals" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/46/c1/3d7bfd3d3171cca9b0e42c6baabe2d6c52b295f5461a0f37c649f6731af7/utilsforecast-0.2.17.tar.gz", hash = "sha256:c501e1d60ea28ff9a0bee83f3e3fff9204da63afe590d83577811f4a95665ce8", size = 80621, upload-time = "2026-10-05T23:09:54.663Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/f8/3c209103cb971d10268dd553095ab8e218372d77fbe1e311a9c059183128/utilsforecast-0.2.17-py3-none-any.whl", hash = "sha256:4bdc005676329cf76d3ef8586da8100f1831ab412bd33f888cd4ed62c7ba1290", size = 50405, upload-time = "2026-10-05T23:09:53.263Z" },
 ]
 
 [[package]]

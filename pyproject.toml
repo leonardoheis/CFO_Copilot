@@ -24,6 +24,7 @@ dependencies = [
     "scikit-learn>=1.7.1",
     "scipy>=1.16.1",
     "seaborn>=0.13",
+    "statsforecast>=2.1.1",
     "statsmodels>=0.15.0",
     "streamlit>=1.48.0",
     "uvicorn[standard]==0.35.0",
