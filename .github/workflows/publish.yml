@@ -22,7 +22,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -34,12 +34,12 @@ jobs:
           git remote set-url origin "https://${{ github.actor }}:${{ secrets.PUSH_TOKEN }}@github.com/${{ github.repository }}"
 
       - name: Set up Python
-        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           version: "0.8.9"
 
@@ -57,20 +57,30 @@ jobs:
         run: |
           package_version=$(uv run semantic-release -v version --print)
           echo "PACKAGE_VERSION=$package_version" >> $GITHUB_ENV
+          # A chore/refactor merge prints the version already released.
+          if git rev-parse -q --verify "refs/tags/v$package_version" >/dev/null; then
+            echo "release_due=false" >> $GITHUB_OUTPUT
+          else
+            echo "release_due=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Git Tag
+        if: steps.version.outputs.release_due == 'true'
         run: |
           git tag "v${{ env.PACKAGE_VERSION }}" $(git log -1 --pretty=format:"%H" --no-merges)
           git push origin --tags
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
+        if: steps.version.outputs.release_due == 'true'
 
       - name: Extract Changelog for current version
+        if: steps.version.outputs.release_due == 'true'
         run: |
-          npm install -g changelog-parser
+          npm install -g changelog-parser@4.1.0
           changelog-parser CHANGELOG.md | jq -r ".versions[0].body" >> changelog_body.md
 
       - name: Create Github release
+        if: steps.version.outputs.release_due == 'true'
         uses: ncipollo/release-action@v1
         with:
           tag: "v${{ env.PACKAGE_VERSION }}"
