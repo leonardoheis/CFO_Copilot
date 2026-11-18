@@ -207,22 +207,21 @@ def diebold_mariano(scored: pd.DataFrame, *, horizon: int) -> DieboldMarianoTest
         The test on one loss difference per origin.
     """
     y = scored["y_scaled"]
-    absolute_errors = pd.DataFrame({
-        "model": (scored["y_hat_scaled"] - y).abs(),
-        "baseline": (scored["baseline_scaled"] - y).abs(),
-    })
-    mae_by_origin = absolute_errors.groupby(scored["origin_date"]).mean()
-    origins = len(mae_by_origin)
-    if absolute_errors["model"].isna().any():
+    origin = scored["origin_date"]
+    model_errors = (scored["y_hat_scaled"] - y).abs()
+    model_mae = model_errors.groupby(origin).mean()
+    baseline_mae = (scored["baseline_scaled"] - y).abs().groupby(origin).mean()
+    origins = len(model_mae)
+    if model_errors.isna().any():
         return DieboldMarianoTest(origins=origins, statistic=np.nan, p_value=np.nan)
-    if mae_by_origin["model"].equals(mae_by_origin["baseline"]):
+    if model_mae.equals(baseline_mae):
         return DieboldMarianoTest(origins=origins, statistic=0.0, p_value=1.0)
     # An MAE's absolute error against zero is the MAE itself, so the test
     # differences the two per-origin MAEs.
     test = diebold_mariano_test(
         np.zeros(origins),
-        mae_by_origin["model"],
-        mae_by_origin["baseline"],
+        model_mae,
+        baseline_mae,
         criterion="mae",
         lags=horizon - 1,
         harvey_adj=True,

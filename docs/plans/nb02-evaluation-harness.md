@@ -367,6 +367,13 @@ revenue at h = 1 and every target at h = 4.
       or config file, so `nb02-v1.0.0` is the code that produced the
       committed records, which carry `nb02-v0.1.0` from before the bump.
       NB03+ compare against those records by model, not by version label.
+    - **One refactor after the bump (2026-11-18), no behaviour change.**
+      SonarCloud's gate on PR #7 failed on four "blocker" bugs (S5644) in
+      `diebold_mariano`: a false positive on indexing `groupby(...).mean()`.
+      The per-origin MAEs are now computed as two Series instead of one
+      indexed frame. Old and new returned bit-identical statistics and
+      p-values on 2,000 random cases (missing predictions, a forecaster
+      equal to its baseline, h = 1–4), so the records stay valid.
     - **Acceptance, ticked 2026-11-18:**
 
       | | Evidence |
