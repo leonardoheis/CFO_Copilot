@@ -38,7 +38,7 @@ def test_defaults_are_the_specs_values() -> None:
         "aci_step": 0.2,
         "scale_prior_errors": 8,
         "seed": 42,
-        "harness_version": "nb02-v0.1.0",
+        "harness_version": "nb02-v1.0.0",
     }
 
 

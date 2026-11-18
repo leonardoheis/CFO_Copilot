@@ -45,8 +45,9 @@ class EvaluationSettings(BaseModel):
     # the company has 1 to 4 of its own, too few to trust alone (spec R8).
     scale_prior_errors: int = Field(default=8, ge=0)
     seed: int = RANDOM_SEED
-    # Bumped to nb02-v1.0.0 when the harness is frozen (plan, step 18).
-    harness_version: str = "nb02-v0.1.0"
+    # Frozen 2026-11-18 (plan, step 18): the code that produced the NB02
+    # records, which carry nb02-v0.1.0 from before the bump.
+    harness_version: str = "nb02-v1.0.0"
 
 
 class RunProvenance(BaseModel):

@@ -469,8 +469,15 @@ These checks run on every evaluation, not only in tests.
     current uncertainty better than all-time averages.
 - **A7.** The harness is versioned `nb02-v1.0.0`. After that, NB03–NB08 record
   this version and the data-freeze identifier on every run.
+  - **Done 2026-11-18.** The committed NB02 records predate the bump and carry
+    `nb02-v0.1.0`; the code is unchanged since they were produced (`741affa`).
 - **A8.** For every baseline, out-of-sample R² against itself is exactly 0, and
   the revenue MAPE of seasonal naive at h = 1 reproduces the "Facts" table.
+  - **Passed 2026-11-18**, to machine precision: 91 of 96 cells give exactly
+    0 and 5 give −2.2 × 10⁻¹⁶ (operating income, h = 1, Protocol B), one
+    double-precision unit. MAPE: 0.0891 against 0.089.
+
+A1, A3–A6 passed as well; the evidence for each is in the plan, step 18.
 
 ## Out of scope
 

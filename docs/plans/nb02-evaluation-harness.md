@@ -362,6 +362,23 @@ revenue at h = 1 and every target at h = 4.
       if the text ever cites them.
 18. **Freeze.** Set the harness version to `nb02-v1.0.0` in the settings. Then
     ask before creating the git tag; tagging needs explicit permission.
+    - **Version bumped 2026-11-18** (`EvaluationSettings.harness_version`).
+      Not re-run: `git diff 741affa HEAD` touches no code, test, dependency
+      or config file, so `nb02-v1.0.0` is the code that produced the
+      committed records, which carry `nb02-v0.1.0` from before the bump.
+      NB03+ compare against those records by model, not by version label.
+    - **Acceptance, ticked 2026-11-18:**
+
+      | | Evidence |
+      |---|---|
+      | A1 ✓ | NB02 cell 6 asserts the harness MAE equals the spec's "Facts" table to four decimals, plus the test-row counts (956, 958) and the baseline to beat; it ran clean in the `741affa` run |
+      | A2 ✓ | NB02 cell `546a8d00`: two full runs equal value for value (`check_exact=True`), 1,101,312 records |
+      | A3 ✓ | `test_a_training_cut_off_on_the_origin_date_is_refused`, `test_a_held_out_company_in_its_own_training_rows_is_refused`; the harness runs both checks on every split before scoring (`harness.py`, `_predictions_at` and `_held_out_predictions`) |
+      | A4 ✓ | `test_missing_predictions_are_counted_not_dropped`, `test_a_missing_prediction_voids_the_groups_metrics` |
+      | A5 ✓ | NB02 cell `1e95fcaf` asserts it per target and horizon, stricter than pooled: 79.5–83.5 %, 89.3–92.3 %, 94.5–96.6 % |
+      | A6 ✓ | NB02 cell `d82a6a52`, every target, horizon and H (passed 2026-11-16, unchanged in the full run) |
+      | A7 ✓ | The version bump above; `RunProvenance` takes it from `EvaluationSettings`, so every later record carries it with the freeze id |
+      | A8 ✓ | `test_a_forecaster_against_itself_has_zero_out_of_sample_r2`; on the real run 91 of the 96 baseline-to-beat cells give R² exactly 0 and 5 (operating income, h = 1, Protocol B) give −2.2 × 10⁻¹⁶, one double-precision unit from the transform round trip. Seasonal-naive revenue MAPE at h = 1 is 0.0891 against the Facts table's 0.089 |
 
 ## Tests summary
 
