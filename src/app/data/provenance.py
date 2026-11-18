@@ -56,7 +56,7 @@ def modules_edited_since(moment: float, package: str = "app") -> list[str]:
         Their names, sorted; empty when the code in memory is the code on disk.
     """
     edited: list[str] = []
-    for name, module in list(sys.modules.items()):
+    for name, module in sys.modules.copy().items():
         file = getattr(module, "__file__", None)
         in_package = name == package or name.startswith(f"{package}.")
         if in_package and file and Path(file).stat().st_mtime > moment:

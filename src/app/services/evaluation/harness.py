@@ -92,7 +92,7 @@ class Evaluation(NamedTuple):
             **provenance.model_dump(),
         }
         rows = self.scored.drop(columns=["baseline_scaled", "mase_scale"]).merge(
-            self.intervals, on=KEYS
+            self.intervals, on=KEYS, how="inner", validate="one_to_many"
         )
         return pd.DataFrame([
             EvaluationRecord.model_validate(row | shared).model_dump()
@@ -253,7 +253,12 @@ def _evaluation(
         intervals=intervals,
         metrics=point_metric_tables(scored, variable=task.variable),
         interval_metrics=interval_metric_tables(
-            intervals.merge(scored[[*KEYS, "sector", "y_scaled"]], on=KEYS)
+            intervals.merge(
+                scored[[*KEYS, "sector", "y_scaled"]],
+                on=KEYS,
+                how="inner",
+                validate="many_to_one",
+            )
         ),
         significance=diebold_mariano(scored, horizon=task.horizon),
     )

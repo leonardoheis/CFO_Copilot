@@ -115,5 +115,7 @@ def test_an_inverted_interval_is_refused() -> None:
 
 
 def test_a_target_on_or_before_its_origin_is_refused() -> None:
+    record = {**RECORD, "target_date": date(2024, 3, 31)}
+
     with pytest.raises(ValidationError, match="not after origin"):
-        EvaluationRecord(**{**RECORD, "target_date": date(2024, 3, 31)})
+        EvaluationRecord(**record)
