@@ -118,6 +118,36 @@ edited files to the author and wait; the author commits.
 
 ## Round log
 
+### 2026-11-18 — NB02, the evaluation harness
+
+Not a data round: NB02 ran on the `thesis_2026-10-30` freeze, so steps 1–3
+and the NB00/NB01 figures do not apply. Inputs: the author's NB02 run of
+2026-11-17 at `741affa` (records committed in `490ddda`, outputs in
+`c6b3bae`); numbers from its W&B tables (`wandb/run-20261117_1507*` and
+`_1508*`, eight runs); the notes `validation-set-rationale.md`,
+`metric-choices-rationale.md`, `interval-and-significance-rationale.md` and
+`foundation-model-selection-rationale.md`.
+
+`main.tex`:
+
+| Location | Change |
+|---|---|
+| Intro, model list | four baselines; foundation models core (TabPFN-TS, Chronos-2, TimesFM, TabICLv2) |
+| Diseño experimental | "once notebooks", no optional one; `tab:notebooks` NB02 without MAPIE, NB06 without "opcional"; NB00–NB02 exit criteria |
+| New `sec:fundacionales` | the four entry rules; TimeGPT and Moirai-2 excluded; local and offline |
+| New `sec:arnes` (Metodología) | protocols, error scale, baselines, metrics, no validation set, intervals, DM, reproducibility |
+| Results intro, hypotheses | NB02 added; hypotheses "NB03 a NB08" |
+| New `sec:res-nb02` (Resultados) | `tab:referencia`, `tab:referencia-sector`, `tab:cobertura-nb02`, `fig:cobertura-nb02`, `fig:error-historia` |
+
+`references.bib`: `buhlmann2005credibility`, `qu2026tabiclv2`,
+`erickson2025tabarena` (authors checked on arXiv). Figures: `figuras/nb02/`
+(new, in `\graphicspath`). Compile: 106 pages, no undefined references; the
+three overfull boxes are bibliography URLs. A corrupted `main.aux` (null
+bytes) stopped one rebuild; deleting it fixed it. Checking the text against
+the data corrected three claims, and the same sector miscount in the NB02
+spec (R8). Summary for the author:
+`cfo-copilot-thesis/RESUMEN_NB02_ARNES_DE_EVALUACION.md`.
+
 ### 2026-10-30 — Wave 2 O1–O4 and the Q3 2026 filings
 
 Inputs: re-ingest of 2026-10-28 (window 2006-06-30 → 2026-06-30) and the

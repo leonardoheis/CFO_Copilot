@@ -2,6 +2,83 @@
 
 <!-- version list -->
 
+## v0.7.0 (2026-11-18)
+
+### Features
+
+- **evaluation**: Add error scaling functions and tests
+  ([`987be79`](https://github.com/leonardoheis/CFO_Copilot/commit/987be799f41ef6ad952b4523593015c255749548))
+
+- **evaluation**: Add evaluation models and settings
+  ([`96d168d`](https://github.com/leonardoheis/CFO_Copilot/commit/96d168daf246d50b02dd2679288f939fc5b32552))
+
+- **evaluation**: Add interval metrics and scoring
+  ([`e6303b9`](https://github.com/leonardoheis/CFO_Copilot/commit/e6303b9a8c759d60ace0cdf9fe63d59406dbdfa2))
+
+- **evaluation**: Add jackknife interval methods and tests
+  ([`1f2320f`](https://github.com/leonardoheis/CFO_Copilot/commit/1f2320fee9df1ada590079f799b735daf090adaf))
+
+- **evaluation**: Add per-company conformal intervals to the harness
+  ([`f744e00`](https://github.com/leonardoheis/CFO_Copilot/commit/f744e006864a0c75e474a5ce68da5bd2a1199315))
+
+- **evaluation**: Add point metrics and metrics calculations
+  ([`5d6f041`](https://github.com/leonardoheis/CFO_Copilot/commit/5d6f0411f32606250d58cffd73e300ebed97e37d))
+
+- **evaluation**: Add results store and provenance tracking
+  ([`b6f1ae1`](https://github.com/leonardoheis/CFO_Copilot/commit/b6f1ae1e3ffb989b9eee1bfa016e1325e0f2d5fc))
+
+- **evaluation**: Enhance drift calculations with history
+  ([`4d72557`](https://github.com/leonardoheis/CFO_Copilot/commit/4d7255789eafb44208cee96127bb04427751b822))
+
+- **evaluation**: Enhance evaluation harness and metrics
+  ([`0ed333e`](https://github.com/leonardoheis/CFO_Copilot/commit/0ed333ed4e03627cc000410230733e95e0d59c98))
+
+- **evaluation**: Enhance evaluation harness with provenance tracking
+  ([`741affa`](https://github.com/leonardoheis/CFO_Copilot/commit/741affaff4f11741b0f692d86c8d40ac59b11278))
+
+- **evaluation**: Freeze the NB02 harness as nb02-v1.0.0
+  ([`8bed651`](https://github.com/leonardoheis/CFO_Copilot/commit/8bed651d1b4546489345bd92db236920994063ab))
+
+- **evaluation**: Implement baseline forecasting and tests
+  ([`fd959b3`](https://github.com/leonardoheis/CFO_Copilot/commit/fd959b33fab8ed35fcb8a09248be948d5fdf7c61))
+
+- **evaluation**: Implement Diebold-Mariano test
+  ([`9da1f7d`](https://github.com/leonardoheis/CFO_Copilot/commit/9da1f7dc68035047e023cf3dd985bca7c2ce0b02))
+
+- **evaluation**: Implement EvaluationHarness and tests
+  ([`f0e91b1`](https://github.com/leonardoheis/CFO_Copilot/commit/f0e91b10f9510aae1fb91ebf2ca93073f802414f))
+
+- **evaluation**: Implement full evaluation harness run
+  ([`22774b1`](https://github.com/leonardoheis/CFO_Copilot/commit/22774b1769feacb96b520aaafaff995466f49798))
+
+- **evaluation**: Implement leakage assertions and tests
+  ([`2b4edf9`](https://github.com/leonardoheis/CFO_Copilot/commit/2b4edf9810e37f56972c881e69e99827c2173b34))
+
+- **evaluation**: Implement leave-one-company-out splits
+  ([`d3b032b`](https://github.com/leonardoheis/CFO_Copilot/commit/d3b032b03770a4da83ce2453544e00350cc19050))
+
+- **evaluation**: Implement protocol A splits and exceptions
+  ([`1050a00`](https://github.com/leonardoheis/CFO_Copilot/commit/1050a001f9fc42dc7ced65236625b2b401d1cbc0))
+
+- **evaluation**: Implement Protocol B for new companies
+  ([`9275fb9`](https://github.com/leonardoheis/CFO_Copilot/commit/9275fb92da51eec92232df6e63f0f8d78c6684ec))
+
+- **evaluation**: Pass Checkpoint 3 in NB02 with sector findings
+  ([`ddfe8d2`](https://github.com/leonardoheis/CFO_Copilot/commit/ddfe8d2135f0f919bf0deb804b6622da28adf11a))
+
+- **evaluation**: Update evaluation settings and tests
+  ([`4613f6c`](https://github.com/leonardoheis/CFO_Copilot/commit/4613f6c19bd72a51203a92359d43ff80f2ba11e7))
+
+- **evaluation**: Update thesis and evaluation harness logs
+  ([`a4e16c9`](https://github.com/leonardoheis/CFO_Copilot/commit/a4e16c98413c8c4316ac4c69722a7e559fc258c1))
+
+- **playground**: Add evaluation harness notebook
+  ([`07bfe8b`](https://github.com/leonardoheis/CFO_Copilot/commit/07bfe8b38ab57bfbf74567481fda6ff3835207bc))
+
+- **results**: Add new parquet files for model outputs
+  ([`490ddda`](https://github.com/leonardoheis/CFO_Copilot/commit/490ddda8cec11fe1447426a1a6899d68331d1639))
+
+
 ## v0.6.1 (2026-11-02)
 
 ### Bug Fixes

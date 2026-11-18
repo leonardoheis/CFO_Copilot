@@ -3,10 +3,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.domain import EvaluationProtocol
 from app.services.tracking.exceptions import InvalidRunNameError
 from app.settings import RANDOM_SEED
-
-Protocol = Literal["A", "B"]
 
 
 def run_name(
@@ -14,7 +13,7 @@ def run_name(
     notebook: str,
     model: str,
     variable: str,
-    protocol: Protocol | None = None,
+    protocol: EvaluationProtocol | None = None,
     history_len: int | None = None,
 ) -> str:
     """Build the W&B run name of master plan §2.3.
@@ -47,7 +46,7 @@ class RunConfig(BaseModel):
     target_transform: str | None = None
     feature_groups: tuple[str, ...] = ()
     n_features: int | None = None
-    protocol: Protocol | None = None
+    protocol: EvaluationProtocol | None = None
     history_len: int | None = None
     horizon: int | None = None
     macro_source: Literal["final_revised", "point_in_time"] = "final_revised"

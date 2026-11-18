@@ -227,3 +227,32 @@ class TargetTransformer(BaseModel):
             case _ as unreachable:
                 assert_never(unreachable)
         return pd.Series(np.exp(predicted_log), index=values.index)
+
+    def target_for(
+        self,
+        values: pd.Series,
+        level: pd.Series,
+        *,
+        revenue: pd.Series | None = None,
+    ) -> pd.Series:
+        """Invert ``reconstruct``: a level at origin + horizon as this arm's target.
+
+        Returns:
+            The target indexed by origin row; ``revenue`` is required by the
+            revenue-scaled arm.
+        """
+        if self.arm is TargetArm.REVENUE_SCALED_YOY:
+            year_earlier_level = values.shift(SEASONAL_LAG - self.horizon)
+            return (level - year_earlier_level) / self._trailing_revenue(revenue)
+        log_values = log_level(values)
+        year_earlier = log_values.shift(SEASONAL_LAG - self.horizon)
+        match self.arm:
+            case TargetArm.LOG_DIFF1:
+                reference_log = log_values
+            case TargetArm.LOG_DIFF4:
+                reference_log = year_earlier
+            case TargetArm.SEASNAIVE_RESIDUAL:
+                reference_log = year_earlier + log_values.diff(SEASONAL_LAG)
+            case _ as unreachable:
+                assert_never(unreachable)
+        return log_level(level) - reference_log

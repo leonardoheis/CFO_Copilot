@@ -6,6 +6,7 @@ from app.data.feature_store import FeatureStore
 from app.data.ingestion_defects import load_ingestion_defects
 from app.data.panel_store import PanelStore
 from app.data.report_store import ReportStore
+from app.data.results_store import ResultsStore
 from app.data.schema import MACRO_COLUMNS
 from app.data.sources import (
     AlphaVantageSource,
@@ -38,6 +39,7 @@ from app.services.diagnostics import (
     SeriesDiagnostician,
     TransformComparer,
 )
+from app.services.evaluation import EvaluationHarness, EvaluationSettings
 from app.services.features import (
     FeatureBuilder,
     FeatureService,
@@ -148,4 +150,10 @@ class Container(containers.DeclarativeContainer):
     )
     auto_profiler = providers.Factory(
         AutoProfiler, store=report_store, settings=ProfileSettings()
+    )
+    evaluation_harness = providers.Factory(
+        EvaluationHarness, settings=EvaluationSettings()
+    )
+    results_store = providers.Factory(
+        ResultsStore, directory=Settings.DATA_DIRECTORY / "results"
     )

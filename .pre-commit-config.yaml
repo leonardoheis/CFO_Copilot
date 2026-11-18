@@ -143,6 +143,7 @@ repos:
         -   "pylint-pydantic>=0.3.5"
         -   "matplotlib>=3.10"
         -   "seaborn>=0.13"
+        -   "tqdm>=4.70.1"
 
     -   id: nbqa-mypy
         additional_dependencies:
@@ -178,6 +179,8 @@ repos:
         -   "click>=8.1.0,<8.2"
         -   "pyyaml>=6.0.2"
         -   "types-pyyaml>=6.0.12.20250516"
+        -   "tqdm>=4.70.1"
+        -   "types-tqdm>=4.70.0.20261106"
 
 -   repo: https://github.com/kynan/nbstripout
     rev: "0.9.1"

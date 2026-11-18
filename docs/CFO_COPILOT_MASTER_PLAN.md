@@ -34,20 +34,20 @@
 | D17 | QLoRA NL-SQL fine-tuning: **phase 2** (Appendix E) | Views + few-shot first; measure before training |
 | D18 | Distress / Altman Z: **deferred chapter, retained** | Option 1 (forecast a variable) is the thesis; Option 2 (distress class) follows if time allows |
 | D19 | SLM-vs-API comparison: **config choice, not a thesis section** | Nice-to-have; thesis is ML/time-series |
-| D20 | **TabPFN-TS is the primary cold-start baseline**, alongside Chronos-2 | Synthetic-only pretraining ⇒ contamination-free on these series; Hollmann et al. 2025 (*Nature*) is literally titled "Accurate predictions on small data" [`hollmann2025tabpfn`, `hoo2025tabpfnts`] |
+| D20 | **TabPFN-TS is required and the primary cold-start baseline**, alongside Chronos-2. Runs locally, never through Prior Labs' cloud client; synthetic-pretrained weights only (TabPFN-2, or TabPFN-3.5 for the thesis), not the fine-tuned TabPFN-TS-3 checkpoint, whose fine-tuning data is not stated | Synthetic-only pretraining ⇒ contamination-free on these series; Hollmann et al. 2025 (*Nature*) is literally titled "Accurate predictions on small data" [`hollmann2025tabpfn`, `hoo2025tabpfnts`]. Made required 2026-11-17 |
 | D21 | Pooling is **conditioned on series relatedness** (sector / size cluster), not assumed global | Global models are not more restrictive than local ones [`monteromanso2021global`], but mixing *unrelated* financial series measurably degrades accuracy [`das2026chronosfinance`]. Both must be reconciled. |
 | D22 | Significance testing: **HLN-corrected Diebold-Mariano + Model Confidence Set** | 81 quarters is a small sample, so uncorrected DM over-rejects [`harvey1997testing`]; MCS gives family-wise error control across many model families [`hansen2011mcs`] |
 | D23 | The residual-shrinkage design is framed as **forecast combination with a benchmark anchor** | Puts it in an established literature (FFORMA, M4 combination findings) rather than presenting it as ad hoc [`monteromanso2020fforma`, `makridakis2020m4`] |
 | D24 | Macro block expanded to 10 variables: +yield_spread_10y2y, +mfg_confidence, +sp500_return_lag1 | Yield spread and mfg_confidence are FRED, same pipeline as the existing 7; S&P500 is yfinance and must be lagged to avoid reverse causality with the panel's own constituents |
 | D25 | **One metric set, shared with the thesis:** RMSE, MAE and MASE for every target; MAPE for revenue only; R² as **out-of-sample R² against the baseline to beat**. Intervals: coverage, width, Winkler (CRPS/pinball when quantiles exist). Significance: HLN-corrected DM (D22). All on the per-target error scale of `docs/specs/nb02-evaluation-harness.md` (R5) | The thesis committed to RMSE, MAE, MAPE and R²; MASE is added. On the frozen data (2026-10-31) seasonal naive at h = 1 gives a level R² of 0.98 (company size, not skill) and MAPE means of 71 % (operating income) and 221 % (FCF), from near-zero quarters. Decided 2026-10-31 |
-| D26 | **Model roster: core = the thesis commitments, made concrete; the rest optional.** Core: baselines (NB02); ARIMA/SARIMA(X) and ETS via StatsForecast (NB03); linear regression (RidgeCV/ElasticNet) and LightGBM (NB04); LSTM (NB05); AutoGluon-TimeSeries (NB07); final ensemble (NB08). Optional: CatBoost, NHITS, N-BEATS, TFT, PatchTST, and the NB06 foundation models | Keeps the thesis contract (ARIMA/SARIMA, LSTM, AutoML, linear regression, ensemble) and makes each one runnable. AutoGluon replaces PyCaret, whose TS module is local-only and cannot pool 60 companies. Conformal intervals use MAPIE where it fits (named in the thesis). Decided 2026-10-31 |
+| D26 | **Model roster: core = the thesis commitments, made concrete; the rest optional.** Core: baselines (NB02); ARIMA/SARIMA(X) and ETS via StatsForecast (NB03); linear regression (RidgeCV/ElasticNet) and LightGBM (NB04); LSTM (NB05); foundation models TabPFN-TS, Chronos-2 and TimesFM-2.5, plus the tabular TabICLv2 pooled on NB01's features, run locally and offline (NB06); AutoGluon-TimeSeries (NB07); final ensemble (NB08). Optional: CatBoost, NHITS, N-BEATS, TFT, PatchTST, and NB06's secondary models | Keeps the thesis contract (ARIMA/SARIMA, LSTM, AutoML, linear regression, ensemble) and makes each one runnable. AutoGluon replaces PyCaret, whose TS module is local-only and cannot pool 60 companies. Conformal intervals use MAPIE where it fits (named in the thesis). Decided 2026-10-31; foundation models made core 2026-11-17 |
 
 ### 0.2 Deferred — decide at the named point, not now
 
 | # | Open question | Decide at | Notes |
 |---|---|---|---|
 | O1 | Transform beyond log — sqrt, Box-Cox, per-sector? | NB01 / NB04 | Log is the default; alternatives run as arms and the data decides |
-| O2 | Which model sizes / how many prompts for the chat SLM | NB10 | 8 GB local fits one 8B; Render's 2 GB fits ~3B. Constraint is known, choice is not |
+| O2 | Which model sizes / how many prompts for the chat SLM | NB10 | **Partly settled 2026-11-17:** sized for the 8 GB GPU (RTX A4000). GGUF Q4_K_M files run through llama.cpp (`llama-cpp-python`, which also gives §11.1's GBNF grammars). **The model is Gemma 4 E4B** (Apache 2.0; already downloaded in the author's `Trabajo-Integrador/models`), paired with TabPFN-TS (NB10). Measured on the GPU it is the lightest of the candidates: 4.2 GB at n_ctx 8192, against 6.1 GB for Llama 3.1 8B, which leaves room for TabPFN-TS beside it. The file is a setting in `.env`, per machine, never in git, so moving to the Mac (M4 Max, 36 GB) only swaps the file. Still open: how many prompts, and what fits Render's 2 GB (O3) |
 | O3 | Which models are actually deployable on 2 GB CPU | NB08 / NB10 | `torch-cpu` wheel is ~200 MB, so more is deployable than first assumed. Measure, don't guess. |
 | O4 | Macro vintages upgrade | After M6 | Only if time allows and results look revision-sensitive |
 
@@ -273,7 +273,7 @@ evaluate(
 ) -> pd.DataFrame
 ```
 
-One row per `(model, ticker, origin_date, horizon, level)` with point, actual, bounds, fold id. All notebooks append to `results.parquet`.
+One row per `(model, ticker, origin_date, horizon, level)` with point, actual, bounds. All notebooks append to `results.parquet`.
 
 ### Protocol A — temporal (known company) — FIRST
 
@@ -283,7 +283,7 @@ One row per `(model, ticker, origin_date, horizon, level)` with point, actual, b
 
 ### Protocol B — cold start (new company) — SECOND
 
-- GroupKFold on ticker, 12 folds × 5 companies. Held-out companies appear in zero training rows.
+- Leave one company out (`LeaveOneGroupOut` on ticker): 60 folds, each trains on the other 59. Held-out companies appear in zero training rows. Replaces 12 folds × 5 (2026-11-12): no stratified splitter spreads 9 sectors of 3–9 companies over 12 folds (NB02 spec R3)
 - Truncate each held-out company's own history to H ∈ {8, 12, 20, 40, all} and forecast from there
 - Produces the accuracy-vs-history-length surface that becomes the app's routing policy
 
@@ -321,10 +321,10 @@ Store as `conformal_residuals.parquet` keyed by `(model, variable, horizon, H_bi
 
 | | Protocol A | Protocol B |
 |---|---|---|
-| PI method | EnbPI / ACI on own history | Cross-conformal across held-out companies |
-| PI validity | Approximate, adaptively corrected | **Exact marginal coverage** |
+| PI method | EnbPI / ACI on own history | Jackknife across held-out companies (not jackknife+: its other models trained on the scored company) |
+| PI validity | Approximate, adaptively corrected | Marginal coverage when the model is stable; no worst-case guarantee, so measured |
 | PI meaning | "Given your 20 years of filings…" | "Given companies like you…" |
-| CI method | Analytic or ensemble | Spread across the 12 group folds |
+| CI method | Analytic or ensemble | Spread across the 60 leave-one-company-out fits |
 | CI meaning | Parameter uncertainty — narrow | "We don't know you yet" — **wide, must narrow as H grows** |
 
 The Protocol B CI narrowing with H is a **test, not an assumption**. If it doesn't narrow, the calibration is wrong and the dashboard number is decorative.
@@ -413,14 +413,31 @@ variable should be dropped or the lag lengthened.
 LSTM (committed in TP5 — **performed regardless of outcome**; core per D26). NHITS, N-BEATS, TFT, PatchTST via `neuralforecast` are optional. Static covariates = ticker, sector, regime. 10-seed ensembles for CI. TFT variable importances → explainability artifact.
 - **Exit:** reported honestly even if LSTM loses to NHITS and to LightGBM. A documented negative result on deep learning under small-sample financial data is a legitimate finding.
 
-### NB06 — Foundation models (optional, D26)
-Run only if time allows after NB05; NB07 and NB08 do not depend on it.
+### NB06 — Foundation models (core, D26)
+Required since 2026-11-17. Scored through the NB02 harness like every model.
 
 **Inclusion criteria** — all four required: open weights, published pretraining corpus, version pinnable, no third-party data egress. Your series are the most redistributed numeric series on the internet, so an undisclosed corpus makes zero-shot claims unfalsifiable.
 
-Primary arms: **TabPFN-TS** (D20 — the primary cold-start baseline: 11M parameters, pretrained on synthetic tabular data only, so contamination-free on these series, and explicitly built for small data), **Chronos-2** (group attention gives zero-shot *covariate-informed* forecasting — directly relevant to the 7-variable macro block), **TimesFM-2.5**, **Moirai-2 / Moirai-MoE** (Any-Variate Attention takes the macro block as covariates).
-Secondary if time: Toto, Sundial, FlowState, VisionTS, TiRex.
-**Excluded: TimeGPT (D16).**
+**Local and offline.** Every model runs on the local GPU (RTX A4000, 8 GB). The largest is 200M parameters, under 1 GB of weights, and NB06 only runs inference. Nothing leaves the machine at run time:
+- weights are downloaded once into `models/` (gitignored; `docs/plans/local-models.md`, done before NB03), then loaded with `HF_HUB_OFFLINE=1`;
+- TabPFN-TS runs in its local mode; its default is Prior Labs' cloud client;
+- `TABPFN_DISABLE_TELEMETRY=1` (telemetry is on by default; it sends usage metadata, not data);
+- TabPFN-3.5 weights need the licence accepted once online, then a cached token; TabPFN-2 weights list no login.
+
+| Model (verified 2026-11-17) | Size | Licence | Pretraining corpus | Covariates |
+|---|---|---|---|---|
+| **TabPFN-TS** (`tabpfn-time-series` 1.4.0) | TabPFN-2: 11M | TabPFN-2: Prior Labs (Apache 2.0 + attribution); 3.5: non-commercial | Synthetic only | Known-future only; past and static covariates dropped; one series at a time |
+| **Chronos-2** (`chronos-forecasting` ≥ 2.0) | 120M | Apache-2.0 | Real (Chronos datasets, GIFT-Eval pretrain) and synthetic | Past-only and known-future, native |
+| **TimesFM-2.5** (`timesfm`, from GitHub) | 200M | Apache-2.0 | GIFT-Eval pretrain, Wikimedia, Google Trends, synthetic | Not documented on the card |
+| **TabICLv2** (`tabicl` 2.2.0, tabular) | — | BSD-3-Clause | Synthetic only | Ordinary columns of NB01's features, pooled across the 60 companies |
+
+- **Macro block:** next quarter's macro values are unknown at the origin, so models get them lagged by at least h quarters. Chronos-2 takes them as past covariates; TabPFN-TS drops past covariates, so for it they must enter as lagged known-future columns.
+- **Packages:** `timesfm` installs from GitHub, not PyPI: pin it by commit, and check that it resolves with the project's torch before NB06 starts.
+- **Deployment:** if the app is ever used commercially, serve TabPFN-2 weights (TabPFN-3.5 is non-commercial); weights are baked into the image like every artifact.
+
+Primary arms: **TabPFN-TS** (D20 — the primary cold-start baseline: pretrained on synthetic tabular data only, so contamination-free on these series, and explicitly built for small data), **Chronos-2** (group attention gives zero-shot *covariate-informed* forecasting — directly relevant to the macro block), **TimesFM-2.5**, and **TabICLv2** (tabular, pooled on NB01's features: it learns across companies, which TabPFN-TS cannot, and faces NB04's LightGBM on identical features). Rationale: `docs/notes/foundation-model-selection-rationale.md`.
+Secondary if time: **Kumo Tabular** (passes the four criteria; promote it once its self-reported TabArena score appears on the official leaderboard), Toto, Sundial, FlowState, VisionTS, TiRex — each checked against the four criteria first.
+**Excluded: TimeGPT (D16); Moirai-2** (2026-11-17: its corpus includes internal Salesforce data, failing criterion 2, and its CC-BY-NC licence is research-only).
 Check the GIFT-Eval leaderboard before finalising; it moves monthly.
 - **Exit:** at least one foundation model beats pooled LightGBM at H=8 in Protocol B, or the cold-start hypothesis is falsified and documented. **Plot accuracy vs available history length and report the crossover point explicitly** — that curve is the most publishable single result in the thesis, and no published work gives it for firm-level quarterly fundamentals.
 
@@ -447,6 +464,52 @@ Check the GIFT-Eval leaderboard before finalising; it moves monthly.
 
 ### NB10 — Conversational layer (§11)
 Gated on M6. Exit criteria in §11.
+
+**Runs fully local (decided 2026-11-17).** Nothing leaves the machine:
+
+```
+you ──▶ host loop (llama-cpp-python + Gemma 4 E4B GGUF, GPU)
+              │  tool call (Gemma 4's native function calling, GBNF-constrained)
+              ▼
+        local MCP server (official Python MCP SDK, stdio transport)
+              ├─ forecast     → TabPFN-TS, live (zero-shot: no training step)
+              ├─ simulate     → TabPFN-TS with macro overrides (§11.6)
+              └─ track_record → data/results/ (NB02-scored backtests and coverage)
+```
+
+- **The pair is Gemma 4 and TabPFN-TS.** Gemma routes and explains; every
+  forecast number comes from TabPFN-TS (local weights, telemetry off), and its
+  reliability from the harness-scored records, never from Gemma (§11.4).
+
+- **Pattern:** the author's `tabpfn-agent` (an agent hands each prediction to
+  TabPFN as a tool call), with its two cloud pieces replaced. Claude Code
+  becomes our own host loop around Gemma, and Prior Labs' hosted MCP server
+  (which uploads the data) becomes a local MCP server calling TabPFN-TS.
+- **The "skill" is the system prompt.** Gemma gets the §11 routing rules and
+  tool descriptions as text; there is no skill loader outside Claude Code.
+  Keep it short and narrow (4 intents, fixed tools): a 4B model drifts on long
+  multi-step procedures that Claude follows.
+- **Why MCP, not plain functions:** one tool definition serves Gemma's loop in
+  the app and Claude Code during development, which checks the tools with a
+  strong model before blaming the small one.
+- **Devices:** Gemma fully on the GPU (O2). TabPFN-TS's device is a setting,
+  GPU by default and CPU as the fallback. Measured 2026-11-17 on the RTX A4000
+  Laptop (8 GB, about 1.2 GB already held by other processes, so ~6.8 GB free),
+  llama-cpp-python 0.3.31, all layers on the GPU:
+
+  | Model (Q4_K_M) | GPU at n_ctx 2048 / 4096 / 8192 | System RAM |
+  |---|---|---|
+  | Gemma 4 E4B | 3.7 / 3.9 / 4.2 GB | +2.2 GB (per-layer embeddings stay on the CPU) |
+  | Llama 3.1 8B | 5.1 / 5.4 / 6.1 GB | — |
+  | Phi-4-mini | 3.2 / 3.4 / 4.0 GB | — |
+
+  With Gemma at 8192 about 2.6 GB stays free for TabPFN-TS on the GPU; with
+  Llama 3.1 at 8192 under 1 GB does, so TabPFN-TS would go to the CPU. Measure
+  TabPFN-TS's own peak at NB10 before relying on the GPU. On CPU it still fits
+  (about 80 quarters per series, inside its CPU limit). On the Mac (36 GB
+  unified) both stay on the GPU.
+- **Licence:** TabPFN-3.5 weights are non-commercial; a commercial app serves
+  TabPFN-2's.
 
 ### NB11 — Distress chapter (deferred, D18)
 Altman Z / Z″ per company-quarter; ordinal target (distress <1.81 / grey / safe >2.99); reuse NB02 harness; ordinal logit + LightGBM + Markov-switching. Metrics: QWK, macro-F1, Brier, transition matrix. Secondary target: Merton distance-to-default.
@@ -520,7 +583,7 @@ Notebooks orchestrate and visualise. Reusable code lives in `src/app/`. A notebo
 |---|---|---|
 | **2026-Q2 row is projected** | **Critical** | E1 — resolve before NB00 exits |
 | Pooling unrelated series degrades accuracy | High | D21 relatedness-conditioned pooling test in NB04; documented in the literature for cross-market financial series |
-| Foundation-model results contaminated by pretraining | High | D20 — TabPFN-TS (synthetic-only pretraining) as primary arm; closed-corpus models excluded (D16); reported as a validity threat |
+| Foundation-model results contaminated by pretraining | High | D20 — TabPFN-TS (synthetic-only pretraining; not the fine-tuned TS-3 checkpoint) as primary arm; closed-corpus models excluded (D16); reported as a validity threat |
 | Uncorrected DM over-rejects at 81 quarters | Medium | D22 — HLN correction + Model Confidence Set |
 | Macro revision look-ahead | High | D13 documented; vintages as O4 upgrade. Published evidence shows predictive-content conclusions can *reverse* under vintage data, so this is a real limitation, not a technicality |
 | Four notebooks, four splits | Critical | NB02 keystone, frozen and tagged |
@@ -739,7 +802,7 @@ Every design decision in this plan now has a citation. Full BibTeX in `reference
 | §3.4 macro revisions | D13, O4 | `croushore2001realtime`, `croushore2011frontiers` (predictive content can **vanish** in real time), `stark2002forecasting` (inflation forecasts most revision-sensitive — so CPI is the covariate to worry about) |
 | §7 metrics | MASE over MAPE | `hyndman2006another` (MASE; MAPE degenerate near zero — FCF and operating income cross zero), `gneiting2007proper` (CRPS, MSIS), `gneiting2014probabilistic` |
 | §7 significance | D22 | `diebold1995comparing`, `harvey1997testing`, `hansen2011mcs`, `nadeau2003inference` |
-| §4 protocols | Rolling origin, group CV | `tashman2000outofsample`, `bergmeir2012cv` (blocked CV is safe and more robust than single hold-out), `bergmeir2018note`, `deprado2018advances` (purging/embargo) |
+| §4 protocols | Rolling origin, group CV | `muller2016introduction` (k-fold, stratified k-fold, leave-one-out, group CV), `tashman2000outofsample`, `bergmeir2012cv` (blocked CV is safe and more robust than single hold-out), `bergmeir2018note`, `deprado2018advances` (purging/embargo) |
 | §5.3–5.4 conformal | D9, the Protocol B design | **`barber2023beyond`** (conformal beyond exchangeability — the theoretical licence for cross-conformal on the company axis), `gibbs2021aci`, `xu2021enbpi`, `romano2019cqr`, `barber2021jackknife`, `vovk2005algorithmic` |
 | §5.1 PI vs CI | D8 | `kendall2017uncertainties`, `lakshminarayanan2017ensembles`, `gal2016dropout`, `huellermeier2021aleatoric` |
 | §6 NB05 | Deep arms, and the expected negative result | `salinas2020deepar`, `oreshkin2020nbeats`, `challu2023nhits`, `lim2021tft`, `nie2023patchtst`, `zeng2023transformers` (DLinear beats many transformers) |

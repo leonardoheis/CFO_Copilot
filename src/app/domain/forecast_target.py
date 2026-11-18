@@ -1,5 +1,8 @@
 from enum import StrEnum
-from typing import Final
+from typing import Final, Literal
+
+# Master plan §4: A scores companies the model has seen, B companies it has not.
+EvaluationProtocol = Literal["A", "B"]
 
 
 class TargetVariable(StrEnum):

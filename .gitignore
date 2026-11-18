@@ -218,8 +218,10 @@ scripts/
 data/raw/*
 # Local snapshots of data/processed taken before a re-ingest, for comparison.
 data/backups/
-# Generated feature exports; the copies of record live in W&B. The EDA reports
-# under data/reports/ are committed so the auto-EDA can be shown without a run.
-data/features/
+# data/features/ is committed: the NB01 feature datasets every model is scored
+# on. The EDA reports under data/reports/ are committed so the auto-EDA can be
+# shown without a run.
+# data/results/ is committed too: the evaluation records later models are
+# compared against, without a 45-minute re-run (about 27 MB per full NB02 run).
 docs/references.bib
 wandb/

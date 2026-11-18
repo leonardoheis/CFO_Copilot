@@ -24,6 +24,23 @@ ROLLING_COLUMNS: Final = (
     "growth_yoy_momentum",
 )
 STATIC_COLUMNS: Final = ("sector", "seasonality_regime")
+# Quarters of a company's own history each growth feature reads, the origin's
+# included: lag k reads k + 4 (its growth value spans a year), a w-quarter
+# rolling statistic w + 4, momentum 6. Features not listed are not cut when a
+# company's history is.
+QUARTERS_READ_BY_FEATURE: Final = {
+    "growth_yoy_lag1": 5,
+    "growth_yoy_lag2": 6,
+    "growth_yoy_lag3": 7,
+    "growth_yoy_lag4": 8,
+    "growth_yoy_lag5": 9,
+    "growth_yoy_lag8": 12,
+    "growth_yoy_mean_4q": 8,
+    "growth_yoy_std_4q": 8,
+    "growth_yoy_mean_8q": 12,
+    "growth_yoy_std_8q": 12,
+    "growth_yoy_momentum": 6,
+}
 
 
 class FeatureGroup(StrEnum):

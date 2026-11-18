@@ -5,6 +5,7 @@ import pytest
 from app.data.schema import MACRO_COLUMNS
 from app.domain import TargetVariable
 from app.services.features import (
+    QUARTERS_READ_BY_FEATURE,
     SEASONAL_LAG,
     FeatureBuilder,
     FeatureGroup,
@@ -95,6 +96,21 @@ def test_short_history_is_nan_never_filled(make_panel: PanelFactory) -> None:
         features[f"growth_yoy_lag{LONGEST_LAG}"].isna().sum()
         == SEASONAL_LAG + LONGEST_LAG - 1
     )
+
+
+def test_each_growth_feature_appears_once_its_declared_history_exists(
+    make_panel: PanelFactory,
+) -> None:
+    features = FeatureBuilder(
+        spec=_spec(FeatureGroup.LAGS, FeatureGroup.ROLLING)
+    ).build(make_panel(), horizon=1, regimes=REGIMES)
+
+    # On a complete panel, a feature reading q quarters is NaN for the first q - 1.
+    first_defined_at = {
+        column: int(features[column].isna().sum()) + 1
+        for column in QUARTERS_READ_BY_FEATURE
+    }
+    assert first_defined_at == QUARTERS_READ_BY_FEATURE
 
 
 def test_an_interior_gap_leaves_nan_where_it_touches_the_growth(
