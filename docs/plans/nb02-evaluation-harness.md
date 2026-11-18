@@ -333,6 +333,13 @@ revenue at h = 1 and every target at h = 4.
       `08_synthesis`;
     - `06_registry_and_predict` → `09_registry_and_predict`;
     - `07_genai_qa` → `10_genai_qa`.
+    - **Done 2026-11-17.** Renamed with `git mv`; every model notebook was a
+      placeholder, so nothing ran or was lost. Headers follow the master
+      plan's NB03–NB10 sections; `06_foundation_models` and
+      `07_automl_models` are new placeholders. The spec's D3 keeps the old
+      name as history; the architecture report under
+      `data/reports/architecture/` links to a pinned commit and is left as
+      generated.
 17. **Thesis.** Run `docs/plans/thesis-update.md`. Add a methods subsection
     (protocols, error scale, baselines, intervals) and a results section with
     the baseline table by sector. The baseline to beat per target and horizon
@@ -344,7 +351,10 @@ revenue at h = 1 and every target at h = 4.
     Diebold–Mariano, from `docs/notes/interval-and-significance-rationale.md`.
     Every source the first two notes cite is already in the thesis repo's
     `references.bib`; the third needs Kim et al. (2020), Diebold (2015) and
-    Giacomini & White (2006) added.
+    Giacomini & White (2006) added. The NB06 row of `tab:notebooks` drops
+    "opcional", and the methods gain the foundation-model entry rules from
+    `docs/notes/foundation-model-selection-rationale.md` (needs TabArena,
+    TabICLv2 and the TabPFN-3 report in `references.bib`).
 18. **Freeze.** Set the harness version to `nb02-v1.0.0` in the settings. Then
     ask before creating the git tag; tagging needs explicit permission.
 
