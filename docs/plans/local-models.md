@@ -10,14 +10,15 @@ chat model), and the NB10 section (Gemma 4 E4B and TabPFN-TS, local MCP
 server). Rationale for the model choices:
 `docs/notes/foundation-model-selection-rationale.md`.
 
-**When:** before NB03, the first notebook that trains a model. The download
-steps (3–4) can wait until NB06 and NB10, but the directory and its setting
-come first so no notebook invents its own location.
+**When:** before NB03, the first notebook that trains a model. Steps 1 and 3
+are done (2026-11-18). Steps 2 and 4 go together at NB06: the variables in
+step 2 are read when the Hugging Face and TabPFN libraries are imported, and
+nothing imports them before NB06.
 
 ## Layout
 
 ```
-models/                          # gitignored, except .gitkeep and README.md
+models/                          # gitignored, except README.md
 ├── README.md                    # what each folder holds and where it came from
 ├── gguf/
 │   └── gemma-4-E4B-it-Q4_K_M.gguf
@@ -32,21 +33,23 @@ models/                          # gitignored, except .gitkeep and README.md
 
 ## Steps
 
-1. **Directory and setting.** Create `models/` with a `.gitkeep` and a short
-   `README.md`. Add `Settings.LOCAL_MODELS_DIRECTORY` (default
-   `ROOT_PATH / "models"`, overridable from `.env` so the Mac can point
-   elsewhere). Ignore `models/*` in `.gitignore` except `.gitkeep` and
-   `README.md`, and add `models` to `.dockerignore`: deployment pulls its
+1. **Directory and setting.** *(Done.)* Create `models/` with a short
+   `README.md`, which also keeps the folder in git. Add
+   `Settings.LOCAL_MODELS_DIRECTORY` (default `ROOT_PATH / "models"`,
+   overridable from `.env` so the Mac can point elsewhere). Ignore `models/*`
+   in `.gitignore` except `README.md`, and add `models` to `.dockerignore`:
+   deployment pulls its
    artifacts from the W&B registry in CI, never from this folder (master plan,
    Registry).
    - *Test:* the setting resolves under the repository root by default and
      follows an `.env` override.
-2. **Offline environment.** Set, for every process that loads a model:
+2. **Offline environment.** *(At NB06, with step 4.)* Set, for every process
+   that loads a model:
    `HF_HOME=models/hf`, `HF_HUB_OFFLINE=1` (after step 3–4's downloads),
    `TABPFN_MODEL_CACHE_DIR=models/tabpfn`, `TABPFN_DISABLE_TELEMETRY=1`. Put
    them in `.env.example` and load them in the settings, so notebooks and the
    MCP server share one source.
-3. **Gemma 4 E4B (NB10).** Copy
+3. **Gemma 4 E4B (NB10).** *(Done; hash in `models/README.md`.)* Copy
    `Trabajo-Integrador/models/gemma-4-E4B-it-Q4_K_M.gguf` (4,977,171,584
    bytes) into `models/gguf/` rather than downloading it again, and check the
    copy's SHA-256 against the source. The chat setting (O2) points at it.
@@ -67,5 +70,5 @@ models/                          # gitignored, except .gitkeep and README.md
 ## Verification
 
 - `uv run poe check` green.
-- `git status` shows nothing under `models/` but `.gitkeep` and `README.md`.
+- `git status` shows nothing under `models/` but `README.md`.
 - With the network off, NB06's setup cell loads every model from `models/`.

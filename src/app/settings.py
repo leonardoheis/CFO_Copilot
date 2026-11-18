@@ -32,6 +32,7 @@ class _Settings(BaseSettings):
     WANDB_MODE: Literal["online", "offline", "disabled"] = "offline"
     # wandb appends its own `wandb/` folder, so runs land in <repo>/wandb/.
     WANDB_DIR: Path = _REPOSITORY_ROOT
+    LOCAL_MODELS_DIRECTORY: Path = _REPOSITORY_ROOT / "models"
 
     model_config = SettingsConfigDict(
         env_file=(_REPOSITORY_ENV_FILE, ".env"),

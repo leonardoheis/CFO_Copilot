@@ -62,6 +62,7 @@ CFO_Copilot/
 ├── tests/
 │   ├── api/                 # Route/integration tests
 │   └── services/            # Service unit tests
+├── models/                  # Local weights + trained models (gitignored but README)
 ├── docs/
 │   ├── specs/               # Behaviour contracts (what must be true)
 │   └── plans/               # Implementation plans (how to build it)

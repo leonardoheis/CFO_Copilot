@@ -225,3 +225,6 @@ data/backups/
 # compared against, without a 45-minute re-run (about 27 MB per full NB02 run).
 docs/references.bib
 wandb/
+# Model weights and trained models: gigabytes of binaries, versioned in W&B.
+models/*
+!models/README.md
