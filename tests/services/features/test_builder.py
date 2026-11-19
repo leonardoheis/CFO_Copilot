@@ -108,7 +108,8 @@ def test_each_growth_feature_appears_once_its_declared_history_exists(
     # On a complete panel, a feature reading q quarters is NaN for the first q - 1.
     first_defined_at = {
         column: int(features[column].isna().sum()) + 1
-        for column in QUARTERS_READ_BY_FEATURE
+        for column in features.columns
+        if column not in KEYS
     }
     assert first_defined_at == QUARTERS_READ_BY_FEATURE
 

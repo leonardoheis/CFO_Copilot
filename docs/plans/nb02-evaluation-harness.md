@@ -224,10 +224,11 @@ results must reproduce the spec's baseline table to four decimals.
       R3 has the evidence). `EvaluationSettings.n_folds` and the record's
       `fold` went with it: the held-out company is the record's ticker.
       `protocol_b_splits` and `truncate_history` in `splits.py`. The quarters
-      each growth feature reads live beside the builder
-      (`QUARTERS_READ_BY_FEATURE`), tested against the builder's own
-      output. Only H = 8 blanks anything: lags 5 and 8 and the 8-quarter
-      rolling mean and std; at H ≥ 12 every feature fits.
+      each growth feature reads are derived from the shifts and windows
+      used by the builder ([R3](../specs/nb02-evaluation-harness.md#r3--protocol-b-new-company)).
+      Check every emitted growth column against its first usable quarter.
+      Compare generated feature values and Protocol B masks with the
+      previous implementation on the frozen data.
 13. **Cross-conformal** across held-out companies at the same H: with one
     company per fold, the jackknife (Barber et al., 2021), not the jackknife+
     (spec R8).

@@ -11,35 +11,26 @@ from app.services.features.exceptions import (
     MissingRegimeError,
     MixedTickerPanelError,
 )
-from app.services.features.transforms import target_growth
+from app.services.features.transforms import SEASONAL_LAG, target_growth
 
 GROWTH_LAGS: Final = (1, 2, 3, 4, 5, 8)
 ROLLING_WINDOWS: Final = (4, 8)
 MARGIN_COLUMNS: Final = ("gross_margin", "operating_margin", "net_margin")
 FLAG_COLUMNS: Final = ("covid", "structural_break")
-LAG_COLUMNS: Final = tuple(f"growth_yoy_lag{k}" for k in GROWTH_LAGS)
-ROLLING_COLUMNS: Final = (
-    *(f"growth_yoy_mean_{w}q" for w in ROLLING_WINDOWS),
-    *(f"growth_yoy_std_{w}q" for w in ROLLING_WINDOWS),
-    "growth_yoy_momentum",
-)
+_LAG_SHIFTS: Final = {f"growth_yoy_lag{lag}": lag - 1 for lag in GROWTH_LAGS}
+_MEAN_WINDOWS: Final = {f"growth_yoy_mean_{w}q": w for w in ROLLING_WINDOWS}
+_STD_WINDOWS: Final = {f"growth_yoy_std_{w}q": w for w in ROLLING_WINDOWS}
+_MOMENTUM_COLUMN: Final = "growth_yoy_momentum"
+_MOMENTUM_SHIFT: Final = 1
 STATIC_COLUMNS: Final = ("sector", "seasonality_regime")
-# Quarters of a company's own history each growth feature reads, the origin's
-# included: lag k reads k + 4 (its growth value spans a year), a w-quarter
-# rolling statistic w + 4, momentum 6. Features not listed are not cut when a
-# company's history is.
+# Each growth value spans SEASONAL_LAG + 1 quarters, including the origin.
 QUARTERS_READ_BY_FEATURE: Final = {
-    "growth_yoy_lag1": 5,
-    "growth_yoy_lag2": 6,
-    "growth_yoy_lag3": 7,
-    "growth_yoy_lag4": 8,
-    "growth_yoy_lag5": 9,
-    "growth_yoy_lag8": 12,
-    "growth_yoy_mean_4q": 8,
-    "growth_yoy_std_4q": 8,
-    "growth_yoy_mean_8q": 12,
-    "growth_yoy_std_8q": 12,
-    "growth_yoy_momentum": 6,
+    **{column: SEASONAL_LAG + shift + 1 for column, shift in _LAG_SHIFTS.items()},
+    **{
+        column: SEASONAL_LAG + window
+        for column, window in (_MEAN_WINDOWS | _STD_WINDOWS).items()
+    },
+    _MOMENTUM_COLUMN: SEASONAL_LAG + _MOMENTUM_SHIFT + 1,
 }
 
 
@@ -68,8 +59,8 @@ def feature_groups_by_column() -> dict[str, FeatureGroup]:
         Feature column name to group, for every group.
     """
     columns_by_group: dict[FeatureGroup, tuple[str, ...]] = {
-        FeatureGroup.LAGS: LAG_COLUMNS,
-        FeatureGroup.ROLLING: ROLLING_COLUMNS,
+        FeatureGroup.LAGS: tuple(_LAG_SHIFTS),
+        FeatureGroup.ROLLING: (*_MEAN_WINDOWS, *_STD_WINDOWS, _MOMENTUM_COLUMN),
         FeatureGroup.MARGINS: MARGIN_COLUMNS,
         FeatureGroup.MACRO: MACRO_COLUMNS,
         FeatureGroup.MACRO_DERIVED: ("real_rate",),
@@ -86,18 +77,22 @@ def feature_groups_by_column() -> dict[str, FeatureGroup]:
 
 def _lag_features(growth: pd.Series) -> pd.DataFrame:
     return pd.DataFrame({
-        column: growth.shift(k - 1)
-        for column, k in zip(LAG_COLUMNS, GROWTH_LAGS, strict=True)
+        column: growth.shift(shift) for column, shift in _LAG_SHIFTS.items()
     })
 
 
 def _rolling_features(growth: pd.Series) -> pd.DataFrame:
-    means = {f"growth_yoy_mean_{w}q": growth.rolling(w).mean() for w in ROLLING_WINDOWS}
-    stds = {f"growth_yoy_std_{w}q": growth.rolling(w).std() for w in ROLLING_WINDOWS}
+    means = {
+        column: growth.rolling(window).mean()
+        for column, window in _MEAN_WINDOWS.items()
+    }
+    stds = {
+        column: growth.rolling(window).std() for column, window in _STD_WINDOWS.items()
+    }
     return pd.DataFrame({
         **means,
         **stds,
-        "growth_yoy_momentum": growth - growth.shift(1),
+        _MOMENTUM_COLUMN: growth - growth.shift(_MOMENTUM_SHIFT),
     })
 
 

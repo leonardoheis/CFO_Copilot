@@ -147,8 +147,14 @@ metrics. A model notebook never filters rows for testing.
     on the panel. Zero-shot foundation models are not trained on it, so
     holding a company out costs them nothing.
 - **History.** Each held-out company is forecast from its own history cut to
-  H ∈ {8, 12, 20, 40, all} quarters before the origin. Features that need more
-  history than H are missing, not imputed.
+  H ∈ {8, 12, 20, 40, all} quarters ending at the origin. Features that need
+  more history than H are missing, not imputed.
+  - Every growth lag and rolling feature must have a history requirement
+    consistent with its own definition. YoY growth needs five quarters
+    including the origin, so lag k uses k + 4 quarters and a w-quarter
+    window uses w + 4. Momentum compares two consecutive growth values and
+    uses six quarters. At H = 8, lags 5 and 8 and both 8-quarter rolling
+    statistics are masked. All 11 growth features fit at H = 12.
   - The cut also applies to the company's baselines (drift runs from the
     first quarter kept) and to its own MASE scale, which averages only the
     seasonal-naive errors inside those H quarters: 4 errors at H = 8 for
