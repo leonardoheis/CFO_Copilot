@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Self, override
 
 import numpy as np
@@ -19,6 +20,7 @@ from app.services.features import TargetArm, TargetTransformer
 REVENUE = TargetVariable.REVENUE
 TASK = ForecastTask(variable=REVENUE, arm=TargetArm.LOG_DIFF4, horizon=1)
 N_ORIGINS = 4
+CALIBRATION_WINDOW = 10
 # Protocol B's histories: the settings' four, then all of it.
 HISTORIES = (8, 12, 20, 40, None)
 KEYS = ["ticker", "origin_date"]
@@ -48,11 +50,12 @@ class SpyForecaster(Forecaster):
 
 
 class RecordingForecaster(Forecaster):
-    """Predicts zero change and keeps every frame it was fit on or shown."""
+    """Retains every fit and rejects a prediction for a company it has seen."""
 
-    def __init__(self) -> None:
+    def __init__(self, folds: list["RecordingForecaster"]) -> None:
         self.trained: list[pd.DataFrame] = []
         self.shown: list[pd.DataFrame] = []
+        folds.append(self)
 
     @override
     def fit(self, train: pd.DataFrame, /) -> Self:
@@ -64,6 +67,8 @@ class RecordingForecaster(Forecaster):
         self, test: pd.DataFrame, /, *, history: int | None = None
     ) -> pd.DataFrame:
         self.shown.append(test)
+        learned = {str(ticker) for train in self.trained for ticker in train["ticker"]}
+        assert not test["ticker"].isin(learned).any()
         return pd.DataFrame({"y_hat": 0.0}, index=test.index)
 
 
@@ -135,7 +140,9 @@ def _features(panels: dict[str, pd.DataFrame]) -> pd.DataFrame:
 def harness() -> EvaluationHarness:
     return EvaluationHarness(
         settings=EvaluationSettings(
-            n_origins=N_ORIGINS, calibration_window=10, interval_levels=LEVELS
+            n_origins=N_ORIGINS,
+            calibration_window=CALIBRATION_WINDOW,
+            interval_levels=LEVELS,
         )
     )
 
@@ -244,6 +251,7 @@ def test_every_scored_row_becomes_a_record_with_its_provenance(
 
     assert len(records) == len(evaluation.scored) * len(LEVELS)
     assert set(records["git_commit"]) == {"0" * 40}
+    assert set(records["run_id"]) == {provenance.run_id}
     assert set(records["arm"]) == {TASK.arm.value}
     assert set(records["level"]) == set(LEVELS)
     silent = records[records["ticker"] == "BBB"]
@@ -326,7 +334,7 @@ def test_protocol_b_scores_every_company_at_each_history(
     panels: dict[str, pd.DataFrame],
 ) -> None:
     evaluations = harness.evaluate_new_companies(
-        SpyForecaster(), dataset, panels=panels, task=TASK
+        SpyForecaster, dataset, panels=panels, task=TASK
     )
 
     assert [evaluation.history for evaluation in evaluations] == list(HISTORIES)
@@ -338,20 +346,21 @@ def test_protocol_b_scores_every_company_at_each_history(
         assert (bounds["lower_scaled"] <= bounds["upper_scaled"]).all()
 
 
-def test_a_new_company_is_never_in_the_rows_its_model_trained_on(
+def test_a_stateful_protocol_b_model_is_fit_once_and_cannot_learn_the_held_out_company(
     harness: EvaluationHarness,
     dataset: pd.DataFrame,
     panels: dict[str, pd.DataFrame],
 ) -> None:
-    forecaster = RecordingForecaster()
+    folds: list[RecordingForecaster] = []
 
-    harness.evaluate_new_companies(forecaster, dataset, panels=panels, task=TASK)
+    harness.evaluate_new_companies(
+        partial(RecordingForecaster, folds), dataset, panels=panels, task=TASK
+    )
 
-    # One fit per company and origin serves every history.
-    assert len(forecaster.shown) == len(forecaster.trained) * len(HISTORIES)
-    for call, test in enumerate(forecaster.shown):
-        train = forecaster.trained[call // len(HISTORIES)]
-        assert not set(train["ticker"]) & set(test["ticker"])
+    assert len(folds) == len(panels) * (N_ORIGINS + CALIBRATION_WINDOW)
+    for fold in folds:
+        assert len(fold.trained) == 1
+        assert len(fold.shown) == len(HISTORIES)
 
 
 def test_protocol_b_models_never_see_the_seasonality_regime(
@@ -359,13 +368,16 @@ def test_protocol_b_models_never_see_the_seasonality_regime(
     dataset: pd.DataFrame,
     panels: dict[str, pd.DataFrame],
 ) -> None:
-    forecaster = RecordingForecaster()
+    folds: list[RecordingForecaster] = []
 
     harness.evaluate_new_companies(
-        forecaster, dataset.assign(seasonality_regime=0), panels=panels, task=TASK
+        partial(RecordingForecaster, folds),
+        dataset.assign(seasonality_regime=0),
+        panels=panels,
+        task=TASK,
     )
 
-    frames = forecaster.trained + forecaster.shown
+    frames = [frame for fold in folds for frame in (*fold.trained, *fold.shown)]
     assert not any("seasonality_regime" in frame.columns for frame in frames)
 
 
@@ -374,15 +386,18 @@ def test_only_eight_quarters_of_history_blank_the_eighth_growth_lag(
     dataset: pd.DataFrame,
     panels: dict[str, pd.DataFrame],
 ) -> None:
-    forecaster = RecordingForecaster()
+    folds: list[RecordingForecaster] = []
 
     harness.evaluate_new_companies(
-        forecaster, dataset.assign(growth_yoy_lag8=0.1), panels=panels, task=TASK
+        partial(RecordingForecaster, folds),
+        dataset.assign(growth_yoy_lag8=0.1),
+        panels=panels,
+        task=TASK,
     )
 
-    blank = [bool(test["growth_yoy_lag8"].isna().all()) for test in forecaster.shown]
-    fits = len(forecaster.trained)
-    assert blank == [True, False, False, False, False] * fits
+    for fold in folds:
+        blank = [bool(test["growth_yoy_lag8"].isna().all()) for test in fold.shown]
+        assert blank == [True, False, False, False, False]
 
 
 def test_with_all_its_history_a_new_company_gets_protocol_a_s_forecasts(
@@ -393,7 +408,7 @@ def test_with_all_its_history_a_new_company_gets_protocol_a_s_forecasts(
     protocol_a = harness.evaluate(SpyForecaster(), dataset, panels=panels, task=TASK)
 
     all_history = harness.evaluate_new_companies(
-        SpyForecaster(), dataset, panels=panels, task=TASK
+        SpyForecaster, dataset, panels=panels, task=TASK
     )[-1]
 
     # Only the error scale differs: Protocol B blends it with the peers'.
@@ -415,7 +430,7 @@ def test_a_new_company_s_drift_runs_only_over_the_history_it_has(
     drift = BaselineForecaster(Baseline.DRIFT, panels=panels, task=TASK)
 
     evaluations = harness.evaluate_new_companies(
-        drift, dataset, panels=panels, task=TASK
+        drift.for_fold, dataset, panels=panels, task=TASK
     )
 
     eight_quarters, all_history = (
@@ -432,7 +447,7 @@ def test_a_short_history_changes_the_error_scale(
     panels: dict[str, pd.DataFrame],
 ) -> None:
     evaluations = harness.evaluate_new_companies(
-        SpyForecaster(), dataset, panels=panels, task=TASK
+        SpyForecaster, dataset, panels=panels, task=TASK
     )
 
     eight_quarters, all_history = evaluations[0].scored, evaluations[-1].scored
@@ -447,13 +462,13 @@ def test_a_short_history_interval_leans_on_its_peers_error_size(
         harness = EvaluationHarness(
             settings=EvaluationSettings(
                 n_origins=N_ORIGINS,
-                calibration_window=10,
+                calibration_window=CALIBRATION_WINDOW,
                 interval_levels=LEVELS,
                 scale_prior_errors=prior_errors,
             )
         )
         intervals = harness.evaluate_new_companies(
-            SpyForecaster(), dataset, panels=panels, task=TASK
+            SpyForecaster, dataset, panels=panels, task=TASK
         )[0].intervals
         return intervals["upper_scaled"] - intervals["lower_scaled"]
 
@@ -471,7 +486,7 @@ def test_protocol_b_records_carry_their_protocol_and_history(
         git_commit="0" * 40,
     )
     evaluations = harness.evaluate_new_companies(
-        SpyForecaster(), dataset, panels=panels, task=TASK
+        SpyForecaster, dataset, panels=panels, task=TASK
     )
 
     eight_quarters = evaluations[0].records(model="zero", provenance=provenance)

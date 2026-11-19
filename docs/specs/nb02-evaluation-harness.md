@@ -147,8 +147,14 @@ metrics. A model notebook never filters rows for testing.
     on the panel. Zero-shot foundation models are not trained on it, so
     holding a company out costs them nothing.
 - **History.** Each held-out company is forecast from its own history cut to
-  H ∈ {8, 12, 20, 40, all} quarters before the origin. Features that need more
-  history than H are missing, not imputed.
+  H ∈ {8, 12, 20, 40, all} quarters ending at the origin. Features that need
+  more history than H are missing, not imputed.
+  - Every growth lag and rolling feature must have a history requirement
+    consistent with its own definition. YoY growth needs five quarters
+    including the origin, so lag k uses k + 4 quarters and a w-quarter
+    window uses w + 4. Momentum compares two consecutive growth values and
+    uses six quarters. At H = 8, lags 5 and 8 and both 8-quarter rolling
+    statistics are masked. All 11 growth features fit at H = 12.
   - The cut also applies to the company's baselines (drift runs from the
     first quarter kept) and to its own MASE scale, which averages only the
     seasonal-naive errors inside those H quarters: 4 errors at H = 8 for
@@ -163,6 +169,14 @@ metrics. A model notebook never filters rows for testing.
     history includes the test quarters); NB04's spec decides whether to
     recompute it per origin.
 - **Origins and cut-off.** As in Protocol A, applied to the held-out company.
+- **Fit isolation.** Every scored company and origin starts with an unfitted
+  model whose training state is independent of other folds. The fit is used
+  for all configured histories at that origin (five in the frozen run), since
+  the training rows are the same. In a two-company probe, an accumulating
+  forecaster retained company B from the fit
+  that held out company A, even though B's own training rows excluded B.
+  The four fixed-rule baselines may share calculations derived solely from
+  the input panels and must preserve their forecasts.
 
 ### R4 — Every model predicts every test row
 
@@ -407,12 +421,20 @@ appears without its sector breakdown (master plan §7).
   held-out company is the record's own ticker, so no fold is stored.
 - Each record also carries the harness version, the data-freeze identifier and
   the git commit.
+- Every new evaluation run has its own identifier, shared by its records.
+  Two runs at the same commit remain separately selectable. A complete run
+  is published once, and an interrupted write leaves no partial run visible
+  to readers. NB02 selects its own run when displaying stored record counts.
+- The published baseline contains 1,101,312 records from before run IDs.
+  Those records remain readable with missing IDs and keep their original
+  provenance and values.
 - All notebooks append to the same store.
 
 ### R11 — Reproducible
 
 - Running the four baselines twice on the frozen data gives byte-identical
-  results.
+  results when both sweeps share the same run metadata. Comparisons between
+  separately identified runs compare the values independent of their IDs.
 - With the same seed, a model's results depend only on the data freeze and the
   harness version.
 
@@ -441,6 +463,9 @@ These checks run on every evaluation, not only in tests.
 - **A3.** A deliberately leaking model fails. It is trained with an
   `origin_date` cut-off, or it sees a held-out company; either way the harness
   raises before scoring.
+  - A forecaster that accumulates training state must see exactly one fit
+    per held-out company and origin. None of its predictions may see that
+    company in the accumulated state, across any history length.
 - **A4.** A model that leaves predictions missing is reported with its missing
   count and is not scored on fewer rows than the baselines.
 - **A5.** Seasonal-naive conformal intervals reach empirical coverage within ±5

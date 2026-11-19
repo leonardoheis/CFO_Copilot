@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from copy import copy
 from enum import StrEnum
 from typing import Self, assert_never
 
@@ -99,6 +100,14 @@ class BaselineForecaster:
         self._panels = panels
         self._task = task
         self._targets_by_history: dict[int | None, pd.Series] = {}
+
+    def for_fold(self) -> "BaselineForecaster":
+        """Copy a fixed-rule baseline for one fold while retaining its targets.
+
+        Returns:
+            A new forecaster sharing only the panel inputs and their cached targets.
+        """
+        return copy(self)
 
     def _targets(self, history: int | None) -> pd.Series:
         if history not in self._targets_by_history:

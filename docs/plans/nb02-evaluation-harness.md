@@ -114,14 +114,21 @@ Each step ends with `uv run poe check` green.
    new files. `Evaluation.records(model=, provenance=)` validates the scored
    rows as `EvaluationRecord`s; `level` is None until Phase 2 adds intervals.
    `RunProvenance` carries the harness version (in `EvaluationSettings`), the
-   data freeze (`data_freeze_id`: the backup directory name plus a SHA-256 of
-   its feature files) and the full git commit (`head_commit`, read from `.git`
-   rather than by running git). `data/results/` is committed (decided
+   data freeze ([NB02 frozen inputs](../specs/nb02-frozen-inputs.md)) and the
+   full git commit (`head_commit`, read from `.git`). `data/results/` is committed (decided
    2026-11-17), so later models compare against the records without re-running
    NB02; it is kept out of the Docker image.
    - *Tests:* round-trip; appending twice keeps both runs; the freeze id
-     changes with a feature file; the commit is read from a loose ref, a packed
-     ref and a detached HEAD; every scored row becomes a record.
+     changes with a feature or consolidated panel file; the commit is read from
+     a loose ref, a packed ref and a detached HEAD; every scored row becomes a
+     record.
+   - **Run IDs ([R10](../specs/nb02-evaluation-harness.md#r10--results-store)).**
+     Generate one ID in NB02's provenance cell and carry it on every record
+     in both A2 sweeps. Publish the append as a completed
+     `run_id=<id>/model=<model>/` partition, leaving the original
+     `model=<model>/` files in place. Select the run by ID in the results cell.
+     Verify mixed layouts, same-commit runs, duplicate and failed writes, and
+     unchanged access to the tagged baseline.
 
 **Checkpoint 1 (A1).** In the notebook, run the four baselines on Protocol A. The
 results must reproduce the spec's baseline table to four decimals.
@@ -217,10 +224,11 @@ results must reproduce the spec's baseline table to four decimals.
       R3 has the evidence). `EvaluationSettings.n_folds` and the record's
       `fold` went with it: the held-out company is the record's ticker.
       `protocol_b_splits` and `truncate_history` in `splits.py`. The quarters
-      each growth feature reads live beside the builder
-      (`QUARTERS_READ_BY_FEATURE`), tested against the builder's own
-      output. Only H = 8 blanks anything: lags 5 and 8 and the 8-quarter
-      rolling mean and std; at H ≥ 12 every feature fits.
+      each growth feature reads are derived from the shifts and windows
+      used by the builder ([R3](../specs/nb02-evaluation-harness.md#r3--protocol-b-new-company)).
+      Check every emitted growth column against its first usable quarter.
+      Compare generated feature values and Protocol B masks with the
+      previous implementation on the frozen data.
 13. **Cross-conformal** across held-out companies at the same H: with one
     company per fold, the jackknife (Barber et al., 2021), not the jackknife+
     (spec R8).
@@ -252,6 +260,13 @@ results must reproduce the spec's baseline table to four decimals.
       scale (running sums over the errors inside H) follow the history.
       Checked against the slice-per-origin version on the frozen panel: all
       16 targets × horizons, 5 histories and 60 companies agree to 2e-15.
+    - **Fit isolation ([R3 and A3](../specs/nb02-evaluation-harness.md#r3--protocol-b-new-company)).**
+      Accept an unfitted-forecaster factory for Protocol B and call it once
+      per nonempty company/origin fold. Adapt the notebook and tests. Each
+      baseline fold gets a fresh wrapper while reusing the panel-derived
+      target cache across folds. Verify with an accumulating forecaster
+      and a cache reuse test, then compare one frozen-data Protocol B
+      evaluation against the tagged results without appending records.
 
 **Checkpoint 3 (A6).** Seasonal-naive Protocol B intervals cover within ±5
 points of each level at every H, for every target and horizon. Restated from

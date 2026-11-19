@@ -1,3 +1,5 @@
+from unittest.mock import Mock
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -202,3 +204,29 @@ def test_a_company_without_a_panel_gets_no_prediction(panel: pd.DataFrame) -> No
     assert y_hat.index.tolist() == [10, 11]
     assert y_hat[10] == pytest.approx(0.0)
     assert np.isnan(y_hat[11])
+
+
+def test_baseline_folds_share_panel_calculations(
+    panel: pd.DataFrame, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calculate_levels = Mock(wraps=baseline_levels)
+    monkeypatch.setattr(
+        "app.services.evaluation.baselines.baseline_levels", calculate_levels
+    )
+    baseline = BaselineForecaster(
+        Baseline.DRIFT,
+        panels={"AAA": panel},
+        task=ForecastTask(
+            variable=TargetVariable.REVENUE, arm=TargetArm.LOG_DIFF1, horizon=1
+        ),
+    )
+    first, second = baseline.for_fold(), baseline.for_fold()
+    test = panel.rename(columns={"date": "origin_date"})
+
+    assert first is not second
+    pd.testing.assert_frame_equal(
+        first.predict(test, history=8),
+        second.predict(test, history=8),
+        check_exact=True,
+    )
+    assert calculate_levels.call_count == 1
