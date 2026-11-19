@@ -15,10 +15,10 @@ repos:
     -   id: trailing-whitespace
         # Vendored skill mirrors, generated reports, and notebooks (nbstripout
         # already normalizes those) - not hand-edited source.
-        exclude: '^(README|(\.(cursor|claude)|results|data/coverage|src/app/playground)/)'
+        exclude: '^(README|(\.(agents|cursor|claude)|results|data/coverage|src/app/playground)/)'
     -   id: end-of-file-fixer
         # data/reports: ydata-profiling writes HTML with no final newline on every NB01 run.
-        exclude: '^(\.(cursor|claude)|results|data/(coverage|reports)|src/app/playground)/'
+        exclude: '^(\.(agents|cursor|claude)|results|data/(coverage|reports)|src/app/playground)/'
     -   id: check-yaml
     -   id: debug-statements
 
@@ -54,7 +54,7 @@ repos:
     rev: "v4.0.9"
     hooks:
     -   id: pylint
-        exclude: '^(\.(cursor|claude)|scripts)/'
+        exclude: '^(\.(agents|cursor|claude)|scripts)/'
         additional_dependencies:
         -   "dependency-injector>=4.48.1"
         -   "fastapi==0.116.1"
@@ -90,7 +90,7 @@ repos:
         # Vendored agent-skill scripts and repo tooling, not application code.
         # pre-commit passes files explicitly, so mypy's own `exclude` setting
         # does not apply here.
-        exclude: '^(\.(cursor|claude)|scripts)/'
+        exclude: '^(\.(agents|cursor|claude)|scripts)/'
         additional_dependencies:
         -   "dependency-injector>=4.48.1"
         -   "fastapi==0.116.1"

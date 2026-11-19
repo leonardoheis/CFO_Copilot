@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.data import data_freeze_id, head_commit, modules_edited_since
-from app.data.exceptions import FeaturesNotFoundError
+from app.data.exceptions import FeaturesNotFoundError, PanelNotFoundError
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
 STALE_PACKAGE = "stale_kernel_probe"
@@ -18,6 +18,10 @@ def backup(tmp_path: Path) -> Path:
     features.mkdir(parents=True)
     (features / "features_revenue_usd_m_h1.parquet").write_bytes(b"one")
     (features / "features_revenue_usd_m_h2.parquet").write_bytes(b"two")
+    processed = features.parent / "processed"
+    processed.mkdir()
+    (processed / "panel_long.parquet").write_bytes(b"panel")
+    (processed / "macro_q.parquet").write_bytes(b"macro")
     return features.parent
 
 
@@ -28,12 +32,47 @@ def test_a_freeze_is_named_by_its_directory_and_stable(backup: Path) -> None:
     assert data_freeze_id(backup) == freeze
 
 
-def test_changing_a_feature_file_changes_the_freeze(backup: Path) -> None:
+@pytest.mark.parametrize(
+    "input_path",
+    [
+        "features/features_revenue_usd_m_h2.parquet",
+        "processed/panel_long.parquet",
+        "processed/macro_q.parquet",
+    ],
+)
+def test_changing_an_evaluation_input_changes_the_freeze(
+    backup: Path, input_path: str
+) -> None:
     before = data_freeze_id(backup)
 
-    (backup / "features" / "features_revenue_usd_m_h2.parquet").write_bytes(b"2")
+    (backup / input_path).write_bytes(b"revised")
 
     assert data_freeze_id(backup) != before
+
+
+def test_renaming_a_feature_file_changes_the_freeze(backup: Path) -> None:
+    before = data_freeze_id(backup)
+    feature = backup / "features" / "features_revenue_usd_m_h2.parquet"
+    feature.rename(feature.with_name("features_revenue_usd_m_h3.parquet"))
+
+    assert data_freeze_id(backup) != before
+
+
+def test_per_company_panel_files_do_not_change_the_freeze(backup: Path) -> None:
+    before = data_freeze_id(backup)
+    (backup / "processed" / "AAPL_panel.parquet").write_bytes(b"per-company")
+
+    assert data_freeze_id(backup) == before
+
+
+@pytest.mark.parametrize("filename", ["panel_long.parquet", "macro_q.parquet"])
+def test_a_backup_without_a_consolidated_file_is_refused(
+    backup: Path, filename: str
+) -> None:
+    (backup / "processed" / filename).unlink()
+
+    with pytest.raises(PanelNotFoundError, match=filename.removesuffix(".parquet")):
+        data_freeze_id(backup)
 
 
 def test_a_backup_without_feature_files_is_refused(tmp_path: Path) -> None:

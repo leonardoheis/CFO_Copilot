@@ -86,6 +86,19 @@ def test_provenance_needs_a_full_commit_hash() -> None:
         RunProvenance(harness_version="nb02", data_freeze="x", git_commit="2949c0d")
 
 
+def test_provenance_creates_a_new_run_id_at_the_same_commit() -> None:
+    metadata = {
+        "harness_version": "nb02",
+        "data_freeze": "frozen",
+        "git_commit": "a" * 40,
+    }
+    first = RunProvenance(**metadata)
+    second = RunProvenance(**metadata)
+
+    assert first.run_id != second.run_id
+    assert EvaluationRecord(**RECORD).run_id is None
+
+
 def test_a_missing_prediction_is_recorded_not_refused() -> None:
     record = EvaluationRecord(**{**RECORD, "y_hat_scaled": None, "y_hat_level": None})
 
