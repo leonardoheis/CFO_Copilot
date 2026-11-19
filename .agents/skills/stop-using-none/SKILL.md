@@ -42,6 +42,7 @@ description: Use when a function returns X | None (or Optional[X]) to mean more 
 def find_active_session(user_id: str) -> Session | None:
     return ACTIVE_SESSIONS.get(user_id)
 
+
 # Caller can't tell: never logged in? expired? cancelled? Just "falsy".
 session = find_active_session(user_id)
 if session is not None:
@@ -53,13 +54,16 @@ if session is not None:
 ```python
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class SessionFound:
     session: Session
 
+
 @dataclass(frozen=True)
 class NoActiveSession:
     reason: str  # "never_started" | "expired" | "cancelled"
+
 
 def find_active_session(user_id: str) -> SessionFound | NoActiveSession:
     session = ACTIVE_SESSIONS.get(user_id)
@@ -68,6 +72,7 @@ def find_active_session(user_id: str) -> SessionFound | NoActiveSession:
     if session.expired:
         return NoActiveSession(reason="expired")
     return SessionFound(session=session)
+
 
 result = find_active_session(user_id)
 match result:
@@ -88,10 +93,13 @@ The other common collision: a function parameter where the caller might legitima
 ```python
 _MISSING = object()
 
+
 def update_user(user_id: str, email: str | None | object = _MISSING) -> None:
     if email is _MISSING:
         return  # caller didn't touch email — leave it alone
-    users[user_id].email = email  # caller explicitly wants to set it, even to None/clear it
+    users[
+        user_id
+    ].email = email  # caller explicitly wants to set it, even to None/clear it
 ```
 
 ## Common Mistakes

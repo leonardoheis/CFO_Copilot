@@ -21,10 +21,11 @@ domain models and `BaseSchema` for API schemas — each with different `ConfigDi
 ```python
 from pydantic import BaseModel, Field
 
+
 class Document(BaseModel):
     title: str
     page_count: int = Field(gt=0, description="Number of pages")
-    category: str | None = None       # optional field, defaults to None
+    category: str | None = None  # optional field, defaults to None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 ```
 
@@ -37,6 +38,7 @@ Pydantic coerces compatible types (`"42"` → `int`) by default; use strict mode
 
 ```python
 from pydantic import BaseModel, Field
+
 
 class ClassificationResult(BaseModel):
     category: str = Field(min_length=1, max_length=100, description="Document type")
@@ -67,15 +69,19 @@ class ClassificationResult(BaseModel):
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+
 class BaseEntity(BaseModel):
     """Domain model base — accepts snake_case or camelCase, serializes as camelCase."""
+
     model_config = ConfigDict(
-        alias_generator=to_camel,    # auto snake_case → camelCase aliases
-        populate_by_name=True,       # allow both "page_count" and "pageCount"
+        alias_generator=to_camel,  # auto snake_case → camelCase aliases
+        populate_by_name=True,  # allow both "page_count" and "pageCount"
     )
+
 
 class BaseSchema(BaseModel):
     """API schema base — allows non-serializable types (Path, numpy arrays)."""
+
     model_config = ConfigDict(
         alias_generator=to_camel,
         arbitrary_types_allowed=True,  # needed for Path, sklearn objects, etc.
@@ -98,6 +104,7 @@ class BaseSchema(BaseModel):
 
 ```python
 from pydantic import BaseModel, field_validator
+
 
 class Document(BaseModel):
     sha256: str
@@ -123,11 +130,12 @@ from typing import Self
 from pydantic import BaseModel, model_validator
 from myapp.services.training.exceptions import DimensionalityMismatchError
 
+
 class TrainRequest(BaseModel):
     features: list[list[float]]
     labels: list[float]
 
-    @model_validator(mode="after")       # runs after all fields are parsed
+    @model_validator(mode="after")  # runs after all fields are parsed
     def same_length(self) -> Self:
         if len(self.features) != len(self.labels):
             raise DimensionalityMismatchError(
@@ -148,9 +156,9 @@ class TrainRequest(BaseModel):
 doc = Forecast(ticker="AAPL", horizon=4, model="sarima")
 
 # → dict
-doc.model_dump()                      # {"ticker": "AAPL", "horizon": 4, ...}
-doc.model_dump(by_alias=True)         # uses alias names (camelCase if alias_generator set)
-doc.model_dump(exclude_none=True)     # omit None fields
+doc.model_dump()  # {"ticker": "AAPL", "horizon": 4, ...}
+doc.model_dump(by_alias=True)  # uses alias names (camelCase if alias_generator set)
+doc.model_dump(exclude_none=True)  # omit None fields
 doc.model_dump(exclude={"confidence"})
 
 # → JSON string
@@ -184,34 +192,45 @@ src/<package>/
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+
 class BaseEntity(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
 
 # domain/document.py
 from pydantic import Field
 from .base import BaseEntity
 
+
 class ClassificationInput(BaseEntity):
     text: str = Field(min_length=1, description="Raw document text")
     sha256: str = Field(description="SHA-256 hash of the source file")
+
 
 class ClassificationOutput(BaseEntity):
     category: str = Field(description="Predicted document type")
     confidence: float = Field(ge=0.0, le=1.0)
 
+
 # api/schema.py
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+
 class BaseSchema(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, arbitrary_types_allowed=True)
+
 
 # api/routes/classify/schemas.py
 from pydantic import Field
 from myapp.api.schema import BaseSchema
 
+
 class ClassifyRequest(BaseSchema):
-    input_: str = Field(alias="input", min_length=1)   # "input" is reserved in some contexts
+    input_: str = Field(
+        alias="input", min_length=1
+    )  # "input" is reserved in some contexts
+
 
 class ClassifyResponse(BaseSchema):
     category: str
@@ -230,6 +249,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 from myapp.settings import Settings
 
+
 class TrainingService(BaseModel):
     model_path: Path = Field(default=Settings.MODEL_PATH)
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -245,6 +265,7 @@ class TrainingService(BaseModel):
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
+
 class _Settings(BaseSettings):
     FRED_API_KEY: str = ""
     API_PORT: int = 8000
@@ -252,12 +273,13 @@ class _Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        extra="ignore",     # silently drop unknown env vars
+        extra="ignore",  # silently drop unknown env vars
     )
 
     @property
     def MODEL_PATH(self) -> Path:
         return Path(__file__).parent / "ml_binaries" / "model.joblib"
+
 
 Settings = _Settings()  # singleton — import this, never re-instantiate
 ```
@@ -275,16 +297,19 @@ import secrets
 from typing import Any, Self
 from polyfactory.factories.pydantic_factory import ModelFactory
 
+
 class ExamplerMixIn:
     @classmethod
     def create_example(cls, *, seed: int | None = None, **kwargs: Any) -> Self:
         class Factory(ModelFactory[cls]):  # type: ignore[valid-type]
             __random_seed__ = seed or secrets.randbits(32)
+
         return Factory.build(**kwargs)
+
 
 # usage in tests and OpenAPI examples
 doc = ClassificationInput.create_example()
-doc = ClassificationInput.create_example(confidence=0.95)   # override specific fields
+doc = ClassificationInput.create_example(confidence=0.95)  # override specific fields
 ```
 
 For OpenAPI examples:

@@ -20,7 +20,8 @@ a dedicated layer (the container), so the class only declares what it needs.
 #    cannot swap in a stub and every run reads the same binary from disk.
 class ForecastService:
     def __init__(self) -> None:
-        self.model = load_model(Path("binaries/model.joblib"))   # hardwired
+        self.model = load_model(Path("binaries/model.joblib"))  # hardwired
+
 
 # ✅ Loosely coupled — the caller decides which model implementation is used.
 #    MLModel is a Protocol, so an ARIMA, an LSTM or a test stub all satisfy it.
@@ -53,6 +54,7 @@ This makes swapping implementations (real → fake → mock) a one-line change.
 
 ```python
 from typing import Protocol, Self, runtime_checkable
+
 
 @runtime_checkable
 class MLModel(Protocol):
@@ -99,6 +101,7 @@ from dependency_injector import containers, providers
 from myapp.services import ForecastService, TrainingService
 from myapp.settings import Settings
 
+
 class Container(containers.DeclarativeContainer):
     # Factory → new instance per injection (stateless services)
     forecast_service = providers.Factory(ForecastService)
@@ -128,11 +131,13 @@ from functools import cache
 from .production import Container
 from .test import TestContainer
 
+
 @cache
 def configure_container() -> Container:
     container = Container()
-    container.wire(packages=["myapp"])   # scans all modules for @inject
+    container.wire(packages=["myapp"])  # scans all modules for @inject
     return container
+
 
 __all__ = ["Container", "TestContainer", "configure_container"]
 ```
@@ -142,6 +147,7 @@ Call `configure_container()` at app startup:
 ```python
 # myapp/__init__.py
 from myapp.injections import configure_container
+
 configure_container()
 ```
 
@@ -172,11 +178,12 @@ from myapp.api.dependencies import ForecastServiceDependency
 
 router = APIRouter(prefix="/forecast", tags=["Forecast"])
 
+
 @router.post("/")
-@inject                                        # ← required for dependency-injector wiring
+@inject  # ← required for dependency-injector wiring
 def forecast(
     request: ForecastRequest,
-    service: ForecastServiceDependency,        # ← resolved by the container
+    service: ForecastServiceDependency,  # ← resolved by the container
 ) -> ForecastResponse:
     output = service.forecast(request.to_entity())
     return ForecastResponse.from_entity(output)
@@ -188,6 +195,7 @@ def forecast(
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
+
 class _Settings(BaseSettings):
     API_KEY: str = ""
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -196,7 +204,8 @@ class _Settings(BaseSettings):
     def MODEL_PATH(self) -> Path:
         return Path(__file__).parent / "binaries" / "model.joblib"
 
-Settings = _Settings()   # import this singleton everywhere — never re-instantiate
+
+Settings = _Settings()  # import this singleton everywhere — never re-instantiate
 ```
 
 ---
@@ -223,6 +232,7 @@ class TestContainer(DeclarativeContainer):
 import pytest
 from myapp.injections import configure_container
 from myapp.injections.test import TestContainer
+
 
 @pytest.fixture(autouse=True, scope="session")
 def injector_override() -> None:

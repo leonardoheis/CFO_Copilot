@@ -115,7 +115,7 @@ renaming them upstream breaks the API contract:
 ```python
 # services/quotes.py
 def latest_quote(self, ticker: str) -> dict:
-    return self._client.fetch(ticker)   # {"01. symbol": ..., "05. price": ...}
+    return self._client.fetch(ticker)  # {"01. symbol": ..., "05. price": ...}
 ```
 
 After — the adapter translates at the boundary, and the Service returns a type
@@ -125,6 +125,7 @@ the API owns:
 # data/sources/vendor/parsing.py
 def to_quote(payload: dict) -> Quote:
     return Quote(symbol=payload["01. symbol"], price=Decimal(payload["05. price"]))
+
 
 # services/quotes.py
 def latest_quote(self, ticker: str) -> Quote:

@@ -41,6 +41,7 @@ class User:
         if not new_name.strip():
             raise ValueError("Name must not be blank")
         from dataclasses import replace
+
         return replace(self, name=new_name.strip())
 
     def __eq__(self, other: object) -> bool:
@@ -64,7 +65,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Money:
-    amount: int   # store in minor units (cents)
+    amount: int  # store in minor units (cents)
     currency: str
 
     def __post_init__(self) -> None:
@@ -116,7 +117,9 @@ class Order:
     id: UUID
     customer_id: UUID
     lines: List[OrderLine] = field(default_factory=list)
-    _events: List["DomainEvent"] = field(default_factory=list, repr=False, compare=False)
+    _events: List["DomainEvent"] = field(
+        default_factory=list, repr=False, compare=False
+    )
 
     @classmethod
     def create(cls, customer_id: UUID) -> "Order":
@@ -135,7 +138,9 @@ class Order:
             return Money(0, "USD")
         result = Money(0, self.lines[0].unit_price.currency)
         for line in self.lines:
-            result = result.add(Money(line.quantity * line.unit_price.amount, line.unit_price.currency))
+            result = result.add(
+                Money(line.quantity * line.unit_price.amount, line.unit_price.currency)
+            )
         return result
 
     def collect_events(self) -> List["DomainEvent"]:
@@ -177,4 +182,3 @@ class OrderShipped(DomainEvent):
 ---
 
 ---
-

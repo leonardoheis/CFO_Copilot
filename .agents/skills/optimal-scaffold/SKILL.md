@@ -77,6 +77,7 @@ src/app/
 # src/app/domain/<entity>.py
 from app.domain.base import BaseEntity
 
+
 class MyEntity(BaseEntity):
     field_name: float = Field(gt=0)
 ```
@@ -86,6 +87,7 @@ class MyEntity(BaseEntity):
 # src/app/services/<feature>/service.py
 class MyService:
     def do_thing(self, entity: MyEntity) -> MyOutput: ...
+
 
 # src/app/services/<feature>/exceptions.py
 @dataclass
@@ -111,6 +113,7 @@ MyServiceDependency = Annotated[MyService, Depends(Provide["my_service"])]
 class MyRequest(BaseSchema):
     field_name: float = Field(gt=0)
 
+
 class MyResponse(BaseSchema):
     result: float
 ```
@@ -119,6 +122,7 @@ class MyResponse(BaseSchema):
 ```python
 # src/app/api/routes/<feature>/endpoints.py
 router = APIRouter(prefix="/my-feature", tags=["My Feature"])
+
 
 @router.post("/", response_model=MyResponse)
 @inject
@@ -134,7 +138,7 @@ ROUTERS: Iterable[APIRouter] = (
     health_router,
     prediction_router,
     train_router,
-    my_feature_router,   # trailing comma: ROUTERS is a tuple, not a list
+    my_feature_router,  # trailing comma: ROUTERS is a tuple, not a list
 )
 ```
 
@@ -178,10 +182,12 @@ def setup_container():
     container = TestContainer()
     container.wire(modules=[...])
 
+
 # tests/api/conftest.py — shared test client
 @pytest.fixture
 def client(setup_container) -> TestClient:
     return TestClient(app)
+
 
 # Snapshot testing (API contracts)
 def test_health(client, snapshot):
@@ -264,6 +270,7 @@ class _Settings(BaseSettings):
     @property
     def DERIVED_PATH(self) -> Path:
         return self.ROOT_PATH / "some/path"
+
 
 Settings = _Settings()
 ```

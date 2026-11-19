@@ -72,22 +72,22 @@ def load_data(filepath, date_col=None, value_col=None):
     df[date_col] = pd.to_datetime(df[date_col])
     df = df.set_index(date_col).sort_index()
     series = df[value_col].dropna()
-    
+
     if len(series) < 10:
         raise ValueError(f"Too few observations ({len(series)}). Need at least 10.")
-    
+
     return series, date_col, value_col
 
 
 def detect_frequency(series):
     """
     Detect the frequency of the time series.
-    
+
     Parameters
     ----------
     series : pd.Series
         Time series with datetime index
-    
+
     Returns
     -------
     str
@@ -95,13 +95,13 @@ def detect_frequency(series):
     """
     if len(series) < 2:
         return "unknown"
-    
+
     diffs = pd.Series(series.index).diff().dropna()
     if len(diffs) == 0:
         return "unknown"
-    
+
     median_diff = diffs.median()
-    
+
     if median_diff <= pd.Timedelta(hours=2):
         return "hourly"
     elif median_diff <= pd.Timedelta(days=1.5):
@@ -119,16 +119,16 @@ def detect_frequency(series):
 def test_stationarity(series):
     """
     Run ADF and KPSS tests for stationarity with verified differencing.
-    
+
     Uses both tests for robustness:
     - ADF: null = non-stationary (reject if p <= 0.05)
     - KPSS: null = stationary (reject if p <= 0.05)
-    
+
     Parameters
     ----------
     series : pd.Series
         Time series to test
-    
+
     Returns
     -------
     dict
@@ -140,11 +140,11 @@ def test_stationarity(series):
         - series_used_for_acf ('original', 'differenced_d1', 'differenced_d2')
     """
     clean_series = series.dropna()
-    
+
     # ADF test
     adf_result = adfuller(clean_series, autolag='AIC')
     adf_stationary = adf_result[1] <= 0.05
-    
+
     # KPSS test
     try:
         kpss_result = kpss(clean_series, regression='c', nlags='auto')
@@ -155,7 +155,7 @@ def test_stationarity(series):
         kpss_stationary = None
         kpss_stat = None
         kpss_p = None
-    
+
     # Determine differencing needed with verification
     if adf_stationary:
         d = 0
@@ -165,7 +165,7 @@ def test_stationarity(series):
         # Try first difference
         diff1 = series.diff().dropna()
         adf_diff1 = adfuller(diff1, autolag='AIC')
-        
+
         if adf_diff1[1] <= 0.05:
             d = 1
             series_for_acf = "differenced_d1"
@@ -177,7 +177,7 @@ def test_stationarity(series):
             d = 2
             series_for_acf = "differenced_d2"
             verified = adf_diff2[1] <= 0.05
-    
+
     return {
         'adf_statistic': round(float(adf_result[0]), 4),
         'adf_p_value': round(float(adf_result[1]), 4),
@@ -194,14 +194,14 @@ def test_stationarity(series):
 def get_stationary_series(series, d):
     """
     Return the differenced version of the series.
-    
+
     Parameters
     ----------
     series : pd.Series
         Original time series
     d : int
         Order of differencing (0, 1, or 2)
-    
+
     Returns
     -------
     pd.Series
@@ -328,17 +328,17 @@ def detect_seasonal_period(series, d=None, freq=None, max_period=None):
 def check_transform_recommendation(series):
     """
     Check if a variance-stabilizing transform is needed using Box-Cox analysis.
-    
+
     Analyzes optimal Box-Cox lambda:
     - λ ≈ 0: recommend log transform
     - λ ≈ 0.5: recommend sqrt transform
     - λ ≈ 1: no transform needed
-    
+
     Parameters
     ----------
     series : pd.Series
         Time series to analyze
-    
+
     Returns
     -------
     dict
@@ -349,21 +349,21 @@ def check_transform_recommendation(series):
         - note (str, if applicable)
     """
     clean_series = series.dropna()
-    
+
     # Check for positive values (required for Box-Cox)
     min_val = clean_series.min()
-    
+
     if min_val <= 0:
         # Can't use Box-Cox, fall back to variance ratio heuristic
         return _check_variance_heuristic(clean_series, min_val)
-    
+
     try:
         from scipy.stats import boxcox_normmax
 
         # Find optimal lambda
         lambda_opt = boxcox_normmax(clean_series, method='mle')
         lambda_opt = round(float(lambda_opt), 4)
-        
+
         # Interpret lambda
         if abs(lambda_opt) < 0.1:
             # λ ≈ 0 suggests log transform
@@ -397,7 +397,7 @@ def check_transform_recommendation(series):
                 'boxcox_lambda': lambda_opt,
                 'note': f'Box-Cox transform with λ={lambda_opt} recommended'
             }
-    
+
     except Exception as e:
         return {
             'variance_stable': True,
@@ -413,7 +413,7 @@ def _check_variance_heuristic(series, min_val):
     Uses mean-variance correlation across chunks.
     """
     n_chunks = min(10, len(series) // 10)
-    
+
     if n_chunks < 3:
         return {
             'variance_stable': True,
@@ -421,18 +421,18 @@ def _check_variance_heuristic(series, min_val):
             'boxcox_lambda': None,
             'note': 'Insufficient data for variance analysis'
         }
-    
+
     chunk_size = len(series) // n_chunks
     means = []
     variances = []
-    
+
     for i in range(n_chunks):
         chunk = series.iloc[i * chunk_size:(i + 1) * chunk_size]
         means.append(chunk.mean())
         variances.append(chunk.var())
-    
+
     corr, p_value = stats.pearsonr(means, variances)
-    
+
     if corr > 0.5 and p_value < 0.1:
         if min_val <= 0:
             return {
@@ -449,7 +449,7 @@ def _check_variance_heuristic(series, min_val):
                 'boxcox_lambda': None,
                 'mean_var_correlation': round(float(corr), 4)
             }
-    
+
     return {
         'variance_stable': True,
         'recommendation': 'none',

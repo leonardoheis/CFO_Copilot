@@ -18,7 +18,6 @@ Pydantic is unavailable, or for a pure carrier that needs no validation — read
 Entities have an identity that persists as their state changes. Two entities are equal when they have the same type and id, regardless of their other field values. Use immutable Pydantic models for entities. Business operations return a new instance with the same identity.
 
 ```python
-
 from datetime import UTC, datetime
 from typing import Self
 from uuid import UUID, uuid4
@@ -76,9 +75,6 @@ class User(BaseModel):
 
     def __hash__(self) -> int:
         return hash((type(self), self.id))
-
-
-
 ```
 
 Important rules:
@@ -182,7 +178,6 @@ Aggregates group entities and value objects under a single root. External code c
 The aggregate root may be mutable, while its contained value objects and exposed collections remain immutable.
 
 ```python
-
 from typing import Self
 from uuid import UUID, uuid4
 
@@ -290,7 +285,6 @@ class Order(BaseModel):
 
     def __hash__(self) -> int:
         return hash((type(self), self.id))
-
 ```
 
 ---
@@ -300,7 +294,6 @@ class Order(BaseModel):
 Domain events are immutable records describing something that already happened. Name them in the past tense and store a timezone-aware occurrence timestamp.
 
 ```python
-
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -339,7 +332,6 @@ class OrderShipped(DomainEvent):
             raise ValueError("Tracking number must not be blank")
 
         return normalized
-
 ```
 
 Key points:
@@ -366,16 +358,13 @@ from typing import Optional
 
 class OrderRepository(ABC):
     @abstractmethod
-    async def find_by_id(self, order_id: UUID) -> Optional[Order]:
-        ...
+    async def find_by_id(self, order_id: UUID) -> Optional[Order]: ...
 
     @abstractmethod
-    async def save(self, order: Order) -> None:
-        ...
+    async def save(self, order: Order) -> None: ...
 
     @abstractmethod
-    async def delete(self, order_id: UUID) -> None:
-        ...
+    async def delete(self, order_id: UUID) -> None: ...
 ```
 
 ---

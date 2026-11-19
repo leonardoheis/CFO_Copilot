@@ -30,16 +30,20 @@ One class, one job. Split when you write "and" describing what a class does.
 class Document:
     def __init__(self, content: str) -> None:
         self.content = content
-    def save(self, path: str) -> None: ...       # I/O — not Document's job
-    def to_pdf(self) -> bytes: ...               # rendering — not Document's job
+
+    def save(self, path: str) -> None: ...  # I/O — not Document's job
+    def to_pdf(self) -> bytes: ...  # rendering — not Document's job
+
 
 # ✅ Fix: one class per responsibility
 class Document:
     def __init__(self, content: str) -> None:
         self.content = content
 
+
 class DocumentRepository:
     def save(self, doc: Document, path: str) -> None: ...
+
 
 class PDFRenderer:
     def render(self, doc: Document) -> bytes: ...
@@ -58,25 +62,32 @@ Achieve this with polymorphism: a shared Protocol/ABC + injection.
 # ❌ Violation: every new export format requires editing ReportExporter
 class ReportExporter:
     def export(self, report: Report, fmt: str) -> bytes:
-        if fmt == "pdf": ...
-        elif fmt == "csv": ...
+        if fmt == "pdf":
+            ...
+        elif fmt == "csv":
+            ...
         # must touch this for every new format
+
 
 # ✅ Fix: inject the formatter — ReportExporter never changes again
 from typing import Protocol
 
+
 class ReportFormatter(Protocol):
     def format(self, report: Report) -> bytes: ...
+
 
 class PDFFormatter:
     def format(self, report: Report) -> bytes: ...
 
+
 class CSVFormatter:
     def format(self, report: Report) -> bytes: ...
 
+
 class ReportExporter:
     def export(self, report: Report, formatter: ReportFormatter) -> bytes:
-        return formatter.format(report)   # closed for modification
+        return formatter.format(report)  # closed for modification
 ```
 
 **Signal:** adding a new variant requires an `elif` in an existing method.
@@ -91,30 +102,40 @@ Violations appear when subclass overrides raise unexpected exceptions or change 
 ```python
 # ❌ Violation: Square breaks Rectangle's invariant (w and h are independent)
 class Rectangle:
-    def set_width(self, w: float) -> None: self.width = w
-    def set_height(self, h: float) -> None: self.height = h
+    def set_width(self, w: float) -> None:
+        self.width = w
+
+    def set_height(self, h: float) -> None:
+        self.height = h
+
 
 class Square(Rectangle):
     def set_width(self, w: float) -> None:
-        self.width = self.height = w    # side-effect breaks caller expectations
+        self.width = self.height = w  # side-effect breaks caller expectations
+
 
 # ✅ Fix: don't force an IS-A relationship; use a shared Protocol instead
 from typing import Protocol
 
+
 class Shape(Protocol):
     def area(self) -> float: ...
+
 
 class Rectangle:
     def __init__(self, w: float, h: float) -> None:
         self.width, self.height = w, h
+
     def area(self) -> float:
         return self.width * self.height
+
 
 class Square:
     def __init__(self, side: float) -> None:
         self.side = side
+
     def area(self) -> float:
-        return self.side ** 2
+        return self.side**2
 ```
 
 **Signal:** a subclass raises `NotImplementedError` or silently changes behaviour callers depend on.
@@ -130,6 +151,7 @@ In Python: use multiple small `Protocol` classes instead of one fat ABC.
 # ❌ Violation: PDFReader is forced to implement send_by_email
 from abc import ABC, abstractmethod
 
+
 class DocumentProcessor(ABC):
     @abstractmethod
     def read(self) -> str: ...
@@ -140,22 +162,28 @@ class DocumentProcessor(ABC):
     @abstractmethod
     def send_by_email(self, address: str) -> None: ...
 
+
 # ✅ Fix: composable Protocols — implement only what you need
 from typing import Protocol
+
 
 class Readable(Protocol):
     def read(self) -> str: ...
 
+
 class Writable(Protocol):
     def write(self, content: str) -> None: ...
 
+
 class PDFExportable(Protocol):
     def convert_to_pdf(self) -> bytes: ...
+
 
 # A class can satisfy multiple protocols without inheritance
 class PDFReader:
     def read(self) -> str: ...
     def convert_to_pdf(self) -> bytes: ...
+
     # no write, no email — and that's fine
 ```
 
@@ -172,31 +200,37 @@ Pass dependencies in — don't instantiate them inside the class.
 # ❌ Violation: ForecastService is welded to one concrete model
 class ForecastService:
     def __init__(self) -> None:
-        self.model = ArimaModel(order=(1, 1, 1))   # swapping it means editing this class
+        self.model = ArimaModel(order=(1, 1, 1))  # swapping it means editing this class
 
     def project(self, history: Sequence[float]) -> Sequence[float]:
         return self.model.predict(history)
+
 
 # ✅ Fix: depend on a Protocol, inject the implementation
 from typing import Protocol, Sequence
 
+
 class Forecaster(Protocol):
     def predict(self, history: Sequence[float]) -> Sequence[float]: ...
 
+
 class ForecastService:
     def __init__(self, model: Forecaster) -> None:
-        self.model = model                 # caller decides the implementation
+        self.model = model  # caller decides the implementation
 
     def project(self, history: Sequence[float]) -> Sequence[float]:
         return self.model.predict(history)
 
+
 # Production — ARIMA today, LSTM tomorrow, no change to ForecastService
 service = ForecastService(model=SarimaModel(order=(1, 1, 1), seasonal_period=4))
+
 
 # Tests — deterministic, no fitting required
 class FlatForecaster:
     def predict(self, history: Sequence[float]) -> Sequence[float]:
         return [history[-1]] * 4
+
 
 service = ForecastService(model=FlatForecaster())
 ```

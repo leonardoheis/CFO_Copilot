@@ -44,9 +44,11 @@ def price(order, kind):
 class PricingRule(Protocol):
     def apply(self, order: Order) -> Decimal: ...
 
+
 class MemberPricing:
     def apply(self, order: Order) -> Decimal:
         return order.subtotal * Decimal("0.9")
+
 
 def price(order: Order, rule: PricingRule) -> Decimal:
     return rule.apply(order)

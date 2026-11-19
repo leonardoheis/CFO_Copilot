@@ -36,6 +36,7 @@ from pathlib import Path
 
 import pytest
 
+
 @pytest.fixture
 def model_path(tmp_path: Path) -> Generator[Path]:
     """A real file on disk, removed before and after — no mock needed.
@@ -46,6 +47,7 @@ def model_path(tmp_path: Path) -> Generator[Path]:
     path.unlink(missing_ok=True)
     yield path
     path.unlink(missing_ok=True)
+
 
 @pytest.fixture
 def training_data_dimension_mismatch() -> tuple[list[list[float]], list[float]]:
@@ -68,14 +70,18 @@ def training_data_dimension_mismatch() -> tuple[list[list[float]], list[float]]:
 ```python
 import pytest
 
+
 # Cover the boundary rather than a scatter of arbitrary values: one below,
 # one at, one above. That is where off-by-one errors actually live.
-@pytest.mark.parametrize("size,should_pass", [
-    (0,                    False),  # empty
-    (1,                    True),   # minimal valid
-    (MAX_BYTES,            True),   # exactly at the limit
-    (MAX_BYTES + 1,        False),  # one byte over
-])
+@pytest.mark.parametrize(
+    "size,should_pass",
+    [
+        (0, False),  # empty
+        (1, True),  # minimal valid
+        (MAX_BYTES, True),  # exactly at the limit
+        (MAX_BYTES + 1, False),  # one byte over
+    ],
+)
 def test_size_gate(tmp_path, size, should_pass):
     f = tmp_path / "upload.bin"
     f.write_bytes(b"x" * size)
@@ -89,17 +95,17 @@ def test_size_gate(tmp_path, size, should_pass):
 # [tool.pytest.ini_options]
 # markers = ["slow: marks tests as slow", "integration: requires real services"]
 
+
 @pytest.mark.slow
-def test_embedding_similarity():
-    ...
+def test_embedding_similarity(): ...
+
 
 @pytest.mark.integration
-def test_real_db_round_trip():
-    ...
+def test_real_db_round_trip(): ...
+
 
 @pytest.mark.xfail(reason="GPU not available in CI", strict=False)
-def test_llm_inference():
-    ...
+def test_llm_inference(): ...
 ```
 
 Run subsets: `pytest -m "not slow"` · `pytest -m integration`
@@ -133,7 +139,7 @@ def test_health_endpoint(client, snapshot):
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == snapshot   # compared against the stored snapshot
+    assert response.json() == snapshot  # compared against the stored snapshot
 ```
 
 The first run writes the snapshot; later runs fail on any difference. Review
@@ -152,7 +158,7 @@ A **fake** is a real, lightweight implementation that behaves like the real thin
 # Instead of mocking the store, use a plain dict — it has the same behaviour
 # and, unlike a MagicMock, it will actually fail if the logic is wrong.
 def test_exact_duplicate_detected(tmp_path):
-    seen: dict[str, str] = {}                # real dict, not MagicMock
+    seen: dict[str, str] = {}  # real dict, not MagicMock
 
     payload = tmp_path / "doc.bin"
     payload.write_bytes(b"contents")
@@ -186,7 +192,7 @@ gets exercised for everything you did not override:
 @pytest.fixture(autouse=True, scope="session")
 def injector_override() -> None:
     container = configure_container()
-    container.override(TestContainer)   # only the providers it declares
+    container.override(TestContainer)  # only the providers it declares
     container.wire(packages=["tests"])
 ```
 
@@ -247,12 +253,13 @@ uv run poe test                            # project alias (see pyproject.toml)
 from unittest.mock import patch
 import pytest
 
+
 def test_skips_remote_check_when_rules_already_decide(tmp_path):
     # patch is correct here: the remote call is a true external boundary, and
     # the point of the test is that it must NOT happen on the fast path.
     with patch("myapp.validation._remote_check") as remote:
         result = validate(path=tmp_path / "in.bin", strict=False)
-        remote.assert_not_called()     # the rule-based path must not call out
+        remote.assert_not_called()  # the rule-based path must not call out
         assert result.accepted is True
 ```
 

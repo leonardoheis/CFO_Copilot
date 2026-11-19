@@ -38,6 +38,7 @@ def report(rows):
 def row_total(row):
     return sum(i.amount * i.rate for i in row.items if i.active)
 
+
 def report(rows):
     for row in rows:
         print(f"{row.name}: {row_total(row)}")
