@@ -1,40 +1,87 @@
+import re
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Final
 
 import pandas as pd
 
 from app.data.exceptions import ResultsNotFoundError
 
+_RUN_ID: Final = re.compile(r"run-[0-9a-f]{32}")
+
 
 class ResultsStore:
-    """Append evaluation records to one parquet dataset, partitioned by model.
+    """Store complete evaluation runs alongside the legacy model partitions.
 
-    Every append writes new files, so earlier runs are never overwritten.
+    New runs are partitioned by run ID and model.
 
     Usage::
 
         store = container.results_store()
         store.append(evaluation.records(model="seasonal_naive", provenance=...))
-        results = store.read()
+        results = store.read(run_id=provenance.run_id)
     """
 
     def __init__(self, directory: Path) -> None:
         self._directory = directory
 
+    def _run_directory(self, run_id: str) -> Path:
+        if _RUN_ID.fullmatch(run_id) is None:
+            message = f"Invalid evaluation run ID: {run_id!r}"
+            raise ValueError(message)
+        return self._directory / f"run_id={run_id}"
+
     def append(self, records: pd.DataFrame) -> None:
-        self._directory.mkdir(parents=True, exist_ok=True)
-        records.to_parquet(self._directory, partition_cols=["model"], index=False)
-
-    def read(self) -> pd.DataFrame:
-        """Read every record appended so far.
-
-        Returns:
-            All records; ``model`` as a plain string column.
+        """Publish one complete run of records.
 
         Raises:
-            ResultsNotFoundError: Nothing has been appended yet.
+            ValueError: The records lack a single evaluation run ID.
+            FileExistsError: That run has already been stored.
+            OSError: The staged run could not be published.
         """
-        if not self._directory.exists():
-            message = f"No results at {self._directory}"
+        run_ids = records.get("run_id", pd.Series(dtype=str)).unique()
+        if len(run_ids) != 1 or not isinstance(run_id := run_ids[0], str):
+            message = "All records in an append must share one evaluation run ID"
+            raise ValueError(message)
+        destination = self._run_directory(run_id)
+        if destination.exists():
+            raise FileExistsError(destination)
+
+        self._directory.mkdir(parents=True, exist_ok=True)
+        # A hidden staging directory keeps partial files out of dataset reads.
+        with TemporaryDirectory(prefix=".pending-", dir=self._directory) as temporary:
+            staged = Path(temporary) / "run"
+            records.drop(columns="run_id").to_parquet(
+                staged, partition_cols=["model"], index=False
+            )
+            try:
+                staged.rename(destination)
+            except OSError as error:
+                if not destination.exists():
+                    raise
+                raise FileExistsError(destination) from error
+
+    def read(self, *, run_id: str | None = None) -> pd.DataFrame:
+        """Read one evaluation run, or all results when no run ID is given.
+
+        Returns:
+            The selected records, with missing IDs for legacy records.
+
+        Raises:
+            ResultsNotFoundError: No records exist for the requested selection.
+        """
+        directory = self._directory if run_id is None else self._run_directory(run_id)
+        if not directory.is_dir():
+            message = f"No results at {directory}"
             raise ResultsNotFoundError(message)
-        results = pd.read_parquet(self._directory)
-        return results.assign(model=results["model"].astype(str))
+        results = pd.read_parquet(directory)
+        if "model" not in results:
+            message = f"No results at {directory}"
+            raise ResultsNotFoundError(message)
+        if run_id is not None or "run_id" not in results:
+            results["run_id"] = run_id
+        stored_ids = results["run_id"].astype(object)
+        return results.assign(
+            model=results["model"].astype(str),
+            run_id=stored_ids.where(stored_ids.notna(), None),
+        )

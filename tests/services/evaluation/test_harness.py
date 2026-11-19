@@ -251,6 +251,7 @@ def test_every_scored_row_becomes_a_record_with_its_provenance(
 
     assert len(records) == len(evaluation.scored) * len(LEVELS)
     assert set(records["git_commit"]) == {"0" * 40}
+    assert set(records["run_id"]) == {provenance.run_id}
     assert set(records["arm"]) == {TASK.arm.value}
     assert set(records["level"]) == set(LEVELS)
     silent = records[records["ticker"] == "BBB"]

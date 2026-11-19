@@ -122,6 +122,13 @@ Each step ends with `uv run poe check` green.
      changes with a feature or consolidated panel file; the commit is read from
      a loose ref, a packed ref and a detached HEAD; every scored row becomes a
      record.
+   - **Run IDs ([R10](../specs/nb02-evaluation-harness.md#r10--results-store)).**
+     Generate one ID in NB02's provenance cell and carry it on every record
+     in both A2 sweeps. Publish the append as a completed
+     `run_id=<id>/model=<model>/` partition, leaving the original
+     `model=<model>/` files in place. Select the run by ID in the results cell.
+     Verify mixed layouts, same-commit runs, duplicate and failed writes, and
+     unchanged access to the tagged baseline.
 
 **Checkpoint 1 (A1).** In the notebook, run the four baselines on Protocol A. The
 results must reproduce the spec's baseline table to four decimals.

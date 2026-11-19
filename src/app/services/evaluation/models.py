@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Annotated, Self
+from uuid import uuid4
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
@@ -58,6 +59,7 @@ class RunProvenance(BaseModel):
     harness_version: str
     data_freeze: str
     git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    run_id: str = Field(default_factory=lambda: f"run-{uuid4().hex}")
 
 
 class ForecastTask(BaseModel):
@@ -165,6 +167,7 @@ class EvaluationRecord(BaseModel):
     harness_version: str
     data_freeze: str
     git_commit: str
+    run_id: str | None = None
 
     @model_validator(mode="after")
     def _history_belongs_to_protocol_b(self) -> Self:

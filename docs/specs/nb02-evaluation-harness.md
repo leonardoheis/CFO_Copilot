@@ -415,12 +415,20 @@ appears without its sector breakdown (master plan §7).
   held-out company is the record's own ticker, so no fold is stored.
 - Each record also carries the harness version, the data-freeze identifier and
   the git commit.
+- Every new evaluation run has its own identifier, shared by its records.
+  Two runs at the same commit remain separately selectable. A complete run
+  is published once, and an interrupted write leaves no partial run visible
+  to readers. NB02 selects its own run when displaying stored record counts.
+- The published baseline contains 1,101,312 records from before run IDs.
+  Those records remain readable with missing IDs and keep their original
+  provenance and values.
 - All notebooks append to the same store.
 
 ### R11 — Reproducible
 
 - Running the four baselines twice on the frozen data gives byte-identical
-  results.
+  results when both sweeps share the same run metadata. Comparisons between
+  separately identified runs compare the values independent of their IDs.
 - With the same seed, a model's results depend only on the data freeze and the
   harness version.
 
