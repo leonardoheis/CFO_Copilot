@@ -95,8 +95,10 @@ def test_an_append_must_contain_exactly_one_run(
     tmp_path: Path, records: pd.DataFrame
 ) -> None:
     store = ResultsStore(directory=tmp_path / "results")
+    two_runs = records.assign(run_id=[FIRST_RUN, SECOND_RUN])
+
     with pytest.raises(ValueError, match="share one evaluation run ID"):
-        store.append(records.assign(run_id=[FIRST_RUN, SECOND_RUN]))
+        store.append(two_runs)
 
 
 def test_invalid_run_ids_are_rejected(tmp_path: Path) -> None:

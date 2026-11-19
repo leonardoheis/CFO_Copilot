@@ -78,9 +78,11 @@ class ResultsStore:
         if "model" not in results:
             message = f"No results at {directory}"
             raise ResultsNotFoundError(message)
-        if run_id is not None or "run_id" not in results:
-            results["run_id"] = run_id
-        stored_ids = results["run_id"].astype(object)
+        stored_ids = (
+            pd.Series(run_id, index=results.index, dtype=object)
+            if run_id is not None or "run_id" not in results
+            else results["run_id"].astype(object)
+        )
         return results.assign(
             model=results["model"].astype(str),
             run_id=stored_ids.where(stored_ids.notna(), None),
