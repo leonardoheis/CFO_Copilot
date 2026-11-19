@@ -214,6 +214,7 @@ MEMORY.md
 
 # Internal tooling — local to this machine, not part of the project
 scripts/
+!/.agents/skills/analyzing-time-series/scripts/
 .claude/skills/AUDIT.md
 data/raw/*
 # Local snapshots of data/processed taken before a re-ingest, for comparison.
