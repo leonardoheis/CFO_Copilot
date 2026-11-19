@@ -114,14 +114,14 @@ Each step ends with `uv run poe check` green.
    new files. `Evaluation.records(model=, provenance=)` validates the scored
    rows as `EvaluationRecord`s; `level` is None until Phase 2 adds intervals.
    `RunProvenance` carries the harness version (in `EvaluationSettings`), the
-   data freeze (`data_freeze_id`: the backup directory name plus a SHA-256 of
-   its feature files) and the full git commit (`head_commit`, read from `.git`
-   rather than by running git). `data/results/` is committed (decided
+   data freeze ([NB02 frozen inputs](../specs/nb02-frozen-inputs.md)) and the
+   full git commit (`head_commit`, read from `.git`). `data/results/` is committed (decided
    2026-11-17), so later models compare against the records without re-running
    NB02; it is kept out of the Docker image.
    - *Tests:* round-trip; appending twice keeps both runs; the freeze id
-     changes with a feature file; the commit is read from a loose ref, a packed
-     ref and a detached HEAD; every scored row becomes a record.
+     changes with a feature or consolidated panel file; the commit is read from
+     a loose ref, a packed ref and a detached HEAD; every scored row becomes a
+     record.
 
 **Checkpoint 1 (A1).** In the notebook, run the four baselines on Protocol A. The
 results must reproduce the spec's baseline table to four decimals.
