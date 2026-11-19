@@ -174,10 +174,10 @@ skip_covered = true
 [tool.mypy]
 strict = true
 
-# Vendored agent-skill scripts and repo tooling, not application code. Both
-# editor directories hold the same files, so type-checking them also collides
+# Vendored agent-skill scripts and repo tooling, not application code. The
+# skill directories hold the same files, so type-checking them also collides
 # on module names.
-exclude = '^(\.(cursor|claude)|scripts)[/\\]'
+exclude = '^(\.(agents|cursor|claude)|scripts)[/\\]'
 
 follow_imports = "normal"
 
@@ -211,7 +211,7 @@ ignore_missing_imports = true
 [tool.ruff]
 fix = true
 preview = true
-exclude = ['app\views\templates\books', 'books', '.cursor', '.claude', 'scripts']
+exclude = ['app\views\templates\books', 'books', '.agents', '.cursor', '.claude', 'scripts']
 target-version = "py312"
 unsafe-fixes = true
 
