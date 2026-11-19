@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.9.0 (2026-11-19)
+
+### Features
+
+- **evaluation**: Enhance baseline forecaster for folds
+  ([`ba448a3`](https://github.com/leonardoheis/CFO_Copilot/commit/ba448a30d81eb6a4c18c0118360a9ee90d9c4e5d))
+
+- **provenance**: Enhance data freeze identification
+  ([`3e1a868`](https://github.com/leonardoheis/CFO_Copilot/commit/3e1a868e7a5d7b04fa59fa460cc07b08967baa64))
+
+- **results**: Implement run ID management for evaluations
+  ([`b627b3d`](https://github.com/leonardoheis/CFO_Copilot/commit/b627b3dd72f6cf81063d261ec0685c39df097a4b))
+
+- **skills**: Add new skills for Python development
+  ([`c195e74`](https://github.com/leonardoheis/CFO_Copilot/commit/c195e74e7056f987ac0a388ab0ac3431fe4e1f70))
+
+
 ## v0.8.0 (2026-11-18)
 
 ### Features
