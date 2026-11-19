@@ -252,6 +252,13 @@ results must reproduce the spec's baseline table to four decimals.
       scale (running sums over the errors inside H) follow the history.
       Checked against the slice-per-origin version on the frozen panel: all
       16 targets × horizons, 5 histories and 60 companies agree to 2e-15.
+    - **Fit isolation ([R3 and A3](../specs/nb02-evaluation-harness.md#r3--protocol-b-new-company)).**
+      Accept an unfitted-forecaster factory for Protocol B and call it once
+      per nonempty company/origin fold. Adapt the notebook and tests. Each
+      baseline fold gets a fresh wrapper while reusing the panel-derived
+      target cache across folds. Verify with an accumulating forecaster
+      and a cache reuse test, then compare one frozen-data Protocol B
+      evaluation against the tagged results without appending records.
 
 **Checkpoint 3 (A6).** Seasonal-naive Protocol B intervals cover within ±5
 points of each level at every H, for every target and horizon. Restated from

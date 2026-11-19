@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Final, NamedTuple
 
 import numpy as np
@@ -265,7 +265,7 @@ def _evaluation(
 
 
 def _held_out_predictions(
-    forecaster: Forecaster,
+    forecaster_factory: Callable[[], Forecaster],
     features: pd.DataFrame,
     held_out_companies: tuple[HeldOutCompany, ...],
     histories: Sequence[int | None],
@@ -287,7 +287,7 @@ def _held_out_predictions(
             test = features[split.test].drop(columns=list(LABEL_COLUMNS))
             check_no_look_ahead(train, test, split.origin)
             check_held_out(train, test, split.origin)
-            model = forecaster.fit(train)
+            model = forecaster_factory().fit(train)
             for predictions, history in zip(by_history, histories, strict=True):
                 shown = test if history is None else truncate_history(test, history)
                 y_hat = model.predict(shown, history=history)["y_hat"]
@@ -471,19 +471,20 @@ class EvaluationHarness:
 
     def evaluate_new_companies(
         self,
-        forecaster: Forecaster,
+        forecaster_factory: Callable[[], Forecaster],
         dataset: pd.DataFrame,
         *,
         panels: Mapping[str, pd.DataFrame],
         task: ForecastTask,
     ) -> tuple[Evaluation, ...]:
-        """Score ``forecaster`` under Protocol B: every company as if it were new.
+        """Score each company as new using an unfitted forecaster per fold.
 
-        Each company is forecast by a model fit without it (leave one company
-        out), from features cut to H quarters of its own history, for each H
-        in the settings and for all of it. Its interval is the jackknife over
-        the other companies' errors at the same H, scaled by its own error
-        size blended with its sector peers' (spec R3, R8).
+        The factory must create a fresh model for each company and origin.
+        Each model is fit without its held-out company. At prediction time it
+        receives features cut to that company's own history, once per
+        configured length and once for its full history. The interval uses
+        the jackknife over the other companies' errors at the same history,
+        scaled by its own error size blended with its sector peers' (spec R3, R8).
         ``seasonality_regime`` is dropped: it is computed from full histories.
 
         Returns:
@@ -501,7 +502,7 @@ class EvaluationHarness:
             for split in held_out_companies[0].splits[-settings.n_origins :]
         ]
         predictions_by_history = _held_out_predictions(
-            forecaster, features, held_out_companies, histories
+            forecaster_factory, features, held_out_companies, histories
         )
         forecasts_by_history = _held_out_forecasts(
             predictions_by_history, histories, panels, task
