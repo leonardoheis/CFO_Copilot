@@ -19,7 +19,7 @@
 | D2 | Window: **2006-Q2 → 2026-Q2** (81 quarters) | Covers GFC, COVID, 2022–24 rate cycle |
 | D3 | Universe: **60 companies, 9 sectors**, no banks or insurers | Schema has gross_profit/EBITDA/FCF/margins — meaningless for financials |
 | D4 | Default target transform: **`log(x)`, panel-wide**, with alternatives as measured arms | One rule keeps errors commensurable across companies; per-company Box-Cox (λ −0.46 to 2.33) would not |
-| D5 | Horizons: **h ∈ {1,2,3,4}**, direct (one model per h) | Avoids recursive error compounding |
+| D5 | Horizons: **h ∈ {1,2,3,4}**, direct (one model per h). **Exception (2026-11-19):** NB03's ETS, Theta and ARIMA forecast h = 1–4 iterated from one fit; SARIMAX keeps one fit per h | Avoids recursive error compounding. The exception: those models are defined by one iterated equation, and for them iterated forecasts match or beat direct ones [`marcellino2006comparison`] (NB03 spec, N5) |
 | D6 | Mandatory baseline: **seasonal naive**, reported even when it wins | Currently beats everything; hiding that would be dishonest |
 | D7 | **Protocol A first, then Protocol B.** Both required. | A is the standard result; B is what the app needs |
 | D8 | Both protocols emit **both** PI and CI | Their difference separates irreducible volatility from model ignorance |
@@ -367,7 +367,10 @@ Spec `docs/specs/nb02-evaluation-harness.md`, plan `docs/plans/nb02-evaluation-h
 - **Exit:** `evaluate()` reproduces the baselines bit-for-bit twice; all leakage assertions pass; spec acceptance A1–A7; **then freeze and tag `nb02-v1.0.0`**
 
 ### NB03 — Statistical
+Spec `docs/specs/nb03-statistical-models.md`, plan `docs/plans/nb03-statistical-models.md`.
 The thesis's ARIMA/SARIMA arm (D26). ETS, Theta, AutoARIMA (SARIMA orders), **SARIMAX + macro exog**, per company via `statsforecast`; the baselines come from NB02. Record each model's minimum viable H for Protocol B.
+- SARIMAX regressors: `gdp_yoy`, `cpi_yoy`, `fed_funds`, each lagged by h so every value is known at the origin (spec N1, N2)
+- Iterated h = 1–4 for ETS, Theta and AutoARIMA: the D5 exception (spec N5)
 - **Exit:** SARIMAX beats seasonal naive on Protocol A at h=1, or a documented reason why not
 
 ### NB04 — Gradient boosting & linear
@@ -797,6 +800,7 @@ Every design decision in this plan now has a citation. Full BibTeX in `reference
 |---|---|---|
 | §4 pooling / global models | D21, NB04 | `monteromanso2021global` (global models are **not** more restrictive than local; complexity constant in the number of series), `makridakis2022m5acc` (first M competition won by global ML), `das2026chronosfinance` (mixing unrelated markets *hurts*) |
 | §6 NB02 tabularization | Reduction to supervised regression | `elsayed2021gbrt` (windowed GBRT matches/beats SOTA deep models on 9 datasets), `bentaieb2012multistep` (direct vs recursive), `ke2017lightgbm`, `chen2016xgboost` |
+| §6 NB03 | Iterated forecasts (D5 exception), lagged macro regressors | `marcellino2006comparison` (iterated vs direct multistep AR on macro series), `hyndman2021fpp` §7.6 (predictors lagged by h make ex-ante forecasts possible), `stark2002forecasting` and `croushore2011frontiers` (revision risk of the regressors) |
 | §3 target variables, §6 NB04 | Firm-level financial forecasting | `cao2024fundamental` (ML earnings forecasts beat cross-sectional models *and* analyst consensus), `vanbinsbergen2023man`, `bradshaw2012reexam`, `gerakos2013regression` |
 | §3 macro block | D12, macro covariates | `ghysels2006predicting`, `ghysels2004midas` (MIDAS for the mixed-frequency problem), `stock2002diffusion` (factor alternative to 7 raw covariates) |
 | §3.4 macro revisions | D13, O4 | `croushore2001realtime`, `croushore2011frontiers` (predictive content can **vanish** in real time), `stark2002forecasting` (inflation forecasts most revision-sensitive — so CPI is the covariate to worry about) |
